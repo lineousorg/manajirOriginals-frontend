@@ -1,0 +1,164 @@
+"use client";
+
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Heart, User, Menu, X, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useCartStore } from "@/store/cart.store";
+import { useWishlistStore } from "@/store/wishlist.store";
+import { useAuthStore } from "@/store/auth.store";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const navLinks = [
+  { href: "/products", label: "Shop" },
+  { href: "/products?category=coats", label: "Coats" },
+  { href: "/products?category=dresses", label: "Dresses" },
+  { href: "/products?category=tops", label: "Tops" },
+];
+
+export const Header = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const cartItemCount = useCartStore((state) => state.getItemCount());
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const openCart = useCartStore((state) => state.openCart);
+  const { isAuthenticated, user } = useAuthStore();
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    let lastScrollY = 0;
+
+    const onScroll = () => {
+      const current = window.scrollY;
+      setIsScrolled(current > 20 && current > lastScrollY);
+      lastScrollY = current;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (pathname === "/login") return null;
+
+  return (
+    <header
+      className={`sticky top-0 z-50 transition-all duration-500 ${
+        isScrolled
+          ? "bg-background/90 backdrop-blur-xl shadow-md border-b border-border/40"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="container-fashion">
+        <div className="flex items-center justify-between h-20 md:h-16">
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-3 -ml-3 hover:bg-muted/50 rounded-full transition-all duration-200"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            <motion.div
+              animate={{ rotate: isMobileMenuOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </motion.div>
+          </button>
+
+          {/* Logo */}
+          <Link
+            href="/"
+            className="font-serif text-2xl md:text-3xl font-light tracking-tight hover:opacity-80 transition-opacity"
+          >
+            MANAJIR
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-10">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
+                  pathname === link.href
+                    ? "text-foreground after:w-full"
+                    : "text-muted-foreground hover:text-foreground"
+                } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-gradient-to-r after:from-primary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 md:gap-6">
+            <Link
+              href="/wishlist"
+              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              aria-label="Wishlist"
+            >
+              <Heart size={22} />
+              {wishlistItems.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
+            <button
+              onClick={openCart}
+              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              aria-label="Cart"
+            >
+              <ShoppingBag size={22} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+            <Link
+              href={isAuthenticated ? "/profile" : "/login"}
+              className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              aria-label="Profile"
+            >
+              {user ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <User size={22} />
+              )}
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-border bg-background"
+          >
+            <nav className="container-fashion py-4 flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm uppercase tracking-wider py-2"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+};
