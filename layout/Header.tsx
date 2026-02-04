@@ -1,16 +1,22 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Heart, User, Menu, X, Search } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TiShoppingCart, TiThMenu, TiUser } from "react-icons/ti";
+import { IoClose } from "react-icons/io5";
 
 const navLinks = [
   { href: "/products", label: "Shop" },
+  { href: "/products", label: "Products", hasDropdown: true },
+];
+
+const categoryLinks = [
   { href: "/products?category=coats", label: "Coats" },
   { href: "/products?category=dresses", label: "Dresses" },
   { href: "/products?category=tops", label: "Tops" },
@@ -61,7 +67,11 @@ export const Header = () => {
               animate={{ rotate: isMobileMenuOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
             >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {isMobileMenuOpen ? (
+                <IoClose size={24} />
+              ) : (
+                <TiThMenu size={24} />
+              )}
             </motion.div>
           </button>
 
@@ -76,17 +86,37 @@ export const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
-                  pathname === link.href
-                    ? "text-foreground after:w-full"
-                    : "text-muted-foreground hover:text-foreground"
-                } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-gradient-to-r after:from-primary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+              <div
+                key={link.href + link.label}
+                className={`relative ${link.hasDropdown ? "group" : ""}`}
               >
-                {link.label}
-              </Link>
+                <Link
+                  href={link.href}
+                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
+                    pathname === link.href && !link.hasDropdown
+                      ? "text-foreground after:w-full"
+                      : "text-muted-foreground hover:text-foreground"
+                  } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-primary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+                >
+                  {link.label}
+                </Link>
+                {/* Dropdown for Products */}
+                {link.hasDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-40 opacity-0 invisible transform translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 ease-out">
+                    <div className="bg-background/95 backdrop-blur-xl border border-border/40 rounded-lg shadow-xl py-2">
+                      {categoryLinks.map((category) => (
+                        <Link
+                          key={category.href}
+                          href={category.href}
+                          className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+                        >
+                          {category.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -99,7 +129,7 @@ export const Header = () => {
             >
               <Heart size={22} />
               {wishlistItems.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-linear-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
                   {wishlistItems.length}
                 </span>
               )}
@@ -109,9 +139,9 @@ export const Header = () => {
               className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
               aria-label="Cart"
             >
-              <ShoppingBag size={22} />
+              <TiShoppingCart size={22} />
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-linear-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
                   {cartItemCount}
                 </span>
               )}
@@ -128,7 +158,7 @@ export const Header = () => {
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <User size={22} />
+                <TiUser size={22} />
               )}
             </Link>
           </div>
@@ -146,14 +176,29 @@ export const Header = () => {
           >
             <nav className="container-fashion py-4 flex flex-col gap-4">
               {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-sm uppercase tracking-wider py-2"
-                >
-                  {link.label}
-                </Link>
+                <div key={link.href + link.label}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-sm uppercase tracking-wider py-2"
+                  >
+                    {link.label}
+                  </Link>
+                  {link.hasDropdown && (
+                    <div className="pl-4 flex flex-col gap-2 mt-1">
+                      {categoryLinks.map((category) => (
+                        <Link
+                          key={category.href}
+                          href={category.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="text-sm uppercase tracking-wider py-2 text-muted-foreground"
+                        >
+                          {category.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </nav>
           </motion.div>
