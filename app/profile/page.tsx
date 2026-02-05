@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { User, MapPin, Package, LogOut, Edit2, Plus } from "lucide-react";
@@ -8,7 +8,7 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 
 const ProfilePage = () => {
-    const router = useRouter();
+  const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -24,27 +24,27 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="container-fashion py-8 md:py-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="heading-section mb-8">My Account</h1>
+    <div className="container-fashion py-8 md:py-12 h-screen">
+      <div className=" mx-auto">
+        <h1 className="heading-section mb-8 text-left">My Account</h1>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Sidebar */}
           <aside className="space-y-2">
-            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-muted text-left">
+            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/30 text-left">
               <User size={18} />
               Profile
             </button>
             <Link
               href="/orders"
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-muted transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-colors text-left text-muted-foreground"
             >
               <Package size={18} />
               Orders
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-muted transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-colors text-left text-muted-foreground"
             >
               <LogOut size={18} />
               Sign Out
@@ -73,7 +73,7 @@ const ProfilePage = () => {
                     </div>
                   )}
                   <div>
-                    <h2 className="font-serif text-xl font-medium">
+                    <h2 className="font-serif text-xl font-medium text-left">
                       {user?.name}
                     </h2>
                     <p className="text-sm text-muted-foreground">

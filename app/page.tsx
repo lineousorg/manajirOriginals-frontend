@@ -45,7 +45,7 @@ export default function Home() {
               "url(https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1920&q=80)",
           }}
         >
-          <div className="absolute inset-0 bg-foreground/30" />
+          {/* <div className="absolute inset-0 bg-foreground/30" /> */}
         </div>
         <div className="container-fashion relative z-10">
           <motion.div
@@ -102,7 +102,7 @@ export default function Home() {
                     alt={category.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-foreground/60 to-transparent" />
+                  {/* <div className="absolute inset-0 bg-linear-to-t from-foreground/60 to-transparent" /> */}
                   <div className="absolute bottom-0 left-0 right-0 p-6">
                     <h3 className="font-serif text-xl text-background">
                       {category.name}
@@ -165,7 +165,7 @@ export default function Home() {
               alt="Sustainable Fashion"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-foreground/40" />
+            {/* <div className="absolute inset-0 bg-foreground/40" /> */}
             <div className="absolute inset-0 flex items-center justify-center text-center">
               <div className="max-w-xl px-6 text-background">
                 <p className="text-label text-background/80 mb-4">

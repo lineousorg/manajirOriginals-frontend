@@ -28,15 +28,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${cormorant.variable}`}>
-        <Providers>
-          <Toaster />
-          <Sonner />
-          <Header />
-          <CartDrawer />
-          {children}
-          <Footer />
-        </Providers>
+      <body
+        className={`${inter.variable} ${cormorant.variable} bg-luxury-red-black`}
+      >
+        <div className="glass-overlay text-center">
+          <Providers>
+            <Toaster />
+            <Sonner />
+            <Header />
+            <CartDrawer />
+            {children}
+            <Footer />
+          </Providers>
+        </div>
       </body>
     </html>
   );

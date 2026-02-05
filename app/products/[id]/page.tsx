@@ -135,10 +135,13 @@ export default function ProductDetailsPage({ params }: PageProps) {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:sticky lg:top-28 lg:self-start"
           >
-            <p className="text-label mb-2">{product.brand}</p>
-            <h1 className="font-serif text-3xl md:text-4xl font-medium mb-4">
+            {/* <p className="text-label mb-2">{product.brand}</p> */}
+            <h1 className="font-serif text-3xl md:text-4xl font-medium mb-2 text-left">
               {product.name}
             </h1>
+            <p className="text-muted-foreground mb-8 text-left">
+              {product.description}
+            </p>
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-medium">
@@ -152,14 +155,12 @@ export default function ProductDetailsPage({ params }: PageProps) {
               {product.isSale && (
                 <span className="badge-sale">
                   {Math.round(
-                    (1 - product.price / product.originalPrice!) * 100
+                    (1 - product.price / product.originalPrice!) * 100,
                   )}
                   % Off
                 </span>
               )}
             </div>
-
-            <p className="text-muted-foreground mb-8">{product.description}</p>
 
             {/* Color Selection */}
             <div className="mb-6">

@@ -30,7 +30,7 @@ export const Footer = () => {
   if (pathname === "/login") return null;
 
   return (
-    <footer className="bg-foreground text-background mt-auto">
+    <footer className="bg-black text-background mt-auto">
       <div className="container-fashion py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand */}
@@ -45,11 +45,11 @@ export const Footer = () => {
                 className="w-16 h-16 rounded-full object-cover"
               />
             </Link>
-            <p className="mt-4 text-background/70 max-w-sm text-sm leading-relaxed">
+            <p className="mt-4 text-gray-200 max-w-sm text-left text-sm leading-relaxed">
               Timeless elegance meets contemporary design. Crafted with care for
               the modern individual.
             </p>
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-4 mt-6 text-rose-700">
               <a
                 href="#"
                 className="p-2 hover:bg-background/10 rounded-full transition-colors"
