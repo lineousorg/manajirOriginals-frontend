@@ -180,7 +180,7 @@
   }
 
   .text-label {
-    @apply text-xs uppercase tracking-widest font-medium text-muted-foreground;
+    @apply text-xs uppercase tracking-widest font-medium;
   }
 
   .card-product {

@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 
 interface ProductGalleryProps {
   images: string[];
   productName: string;
 }
 
-export const ProductGallery = ({ images, productName }: ProductGalleryProps) => {
+export const ProductGallery = ({
+  images,
+  productName,
+}: ProductGalleryProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -24,7 +27,7 @@ export const ProductGallery = ({ images, productName }: ProductGalleryProps) => 
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-muted group">
+      <div className="relative h-[70dvh] overflow-hidden rounded-lg bg-muted group">
         <AnimatePresence mode="wait">
           <motion.img
             key={currentIndex}
@@ -34,8 +37,8 @@ export const ProductGallery = ({ images, productName }: ProductGalleryProps) => 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ${
-              isZoomed ? 'scale-150' : ''
+            className={`w-full h-full object-contain cursor-zoom-in transition-transform duration-500 ${
+              isZoomed ? "scale-150" : ""
             }`}
             onClick={() => setIsZoomed(!isZoomed)}
           />
@@ -75,8 +78,8 @@ export const ProductGallery = ({ images, productName }: ProductGalleryProps) => 
                 onClick={() => setCurrentIndex(index)}
                 className={`w-2 h-2 rounded-full transition-all ${
                   index === currentIndex
-                    ? 'bg-foreground w-6'
-                    : 'bg-foreground/40 hover:bg-foreground/60'
+                    ? "bg-foreground w-6"
+                    : "bg-foreground/40 hover:bg-foreground/60"
                 }`}
                 aria-label={`Go to image ${index + 1}`}
               />
@@ -91,10 +94,10 @@ export const ProductGallery = ({ images, productName }: ProductGalleryProps) => 
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-[3/4] overflow-hidden rounded-md transition-all ${
+            className={`aspect-3/4 overflow-hidden rounded-md transition-all ${
               index === currentIndex
-                ? 'ring-2 ring-foreground'
-                : 'opacity-60 hover:opacity-100'
+                ? "ring-2 ring-foreground"
+                : "opacity-60 hover:opacity-100"
             }`}
           >
             <img

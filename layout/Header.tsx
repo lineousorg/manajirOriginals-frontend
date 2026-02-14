@@ -30,6 +30,8 @@ export const Header = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  console.log(user);
+
   // Transform flat categories to tree structure
   const categoryTree = categories
     .filter((cat) => cat.parentId === null)
@@ -47,12 +49,9 @@ export const Header = () => {
   }, []);
 
   useEffect(() => {
-    let lastScrollY = 0;
-
     const onScroll = () => {
       const current = window.scrollY;
-      setIsScrolled(current > 20 && current > lastScrollY);
-      lastScrollY = current;
+      setIsScrolled(current > 20);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -96,7 +95,9 @@ export const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className={`hidden md:grid grid-cols-${navLinks.length} items-center gap-10`}>
+          <nav
+            className={`hidden md:grid grid-cols-${navLinks.length} items-center gap-10`}
+          >
             {navLinks.map((link) => (
               <div
                 key={link.href + link.label}

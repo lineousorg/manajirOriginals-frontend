@@ -37,7 +37,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative h-[90vh] min-h-150 flex items-center overflow-hidden">
+      <section className="relative h-dvh min-h-150 flex items-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{

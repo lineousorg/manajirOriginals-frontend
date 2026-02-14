@@ -115,7 +115,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
       {/* Product Details */}
       <div className="container-fashion py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 ">
           {/* Gallery */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -155,7 +155,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
               {product.isSale && (
                 <span className="badge-sale">
                   {Math.round(
-                    (1 - product.price / product.originalPrice!) * 100,
+                    (1 - product.price / product.originalPrice!) * 100
                   )}
                   % Off
                 </span>
@@ -213,7 +213,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
             </div>
 
             {/* Quantity */}
-            <div className="mb-8">
+            <div className="mb-8 flex flex-col items-start justify-start">
               <span className="text-label mb-3 block">Quantity</span>
               <div className="inline-flex items-center border border-border rounded-md">
                 <button
@@ -263,66 +263,65 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 <Heart size={20} fill={inWishlist ? "currentColor" : "none"} />
               </button>
             </div>
-
-            {/* Benefits */}
-            <div className="grid grid-cols-3 gap-4 py-6 border-t border-b border-border mb-8">
-              <div className="text-center">
-                <Truck
-                  size={20}
-                  className="mx-auto mb-2 text-muted-foreground"
-                />
-                <p className="text-xs text-muted-foreground">Free Shipping</p>
-              </div>
-              <div className="text-center">
-                <RotateCcw
-                  size={20}
-                  className="mx-auto mb-2 text-muted-foreground"
-                />
-                <p className="text-xs text-muted-foreground">Easy Returns</p>
-              </div>
-              <div className="text-center">
-                <ShieldCheck
-                  size={20}
-                  className="mx-auto mb-2 text-muted-foreground"
-                />
-                <p className="text-xs text-muted-foreground">Secure Checkout</p>
-              </div>
-            </div>
-
-            {/* Accordion Details */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="details">
-                <AccordionTrigger className="text-label hover:no-underline">
-                  Product Details
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 text-muted-foreground text-sm">
-                    {product.details.map((detail, index) => (
-                      <li key={index}>• {detail}</li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="shipping">
-                <AccordionTrigger className="text-label hover:no-underline">
-                  Shipping & Returns
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="text-muted-foreground text-sm space-y-2">
-                    <p>Free standard shipping on orders over $150.</p>
-                    <p>Express shipping available for $15.</p>
-                    <p>Free returns within 30 days of purchase.</p>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
           </motion.div>
         </div>
       </div>
 
+      <div className="container-fashion py-4 mb-10">
+        {/* Benefits */}
+        <div className="grid grid-cols-3 gap-4 py-6 border-t border-b border-border mb-8">
+          <div className="text-center">
+            <Truck size={20} className="mx-auto mb-2 text-muted-foreground" />
+            <p className=" text-muted-foreground">Free Shipping</p>
+          </div>
+          <div className="text-center">
+            <RotateCcw
+              size={20}
+              className="mx-auto mb-2 text-muted-foreground"
+            />
+            <p className=" text-muted-foreground">Easy Returns</p>
+          </div>
+          <div className="text-center">
+            <ShieldCheck
+              size={20}
+              className="mx-auto mb-2 text-muted-foreground"
+            />
+            <p className=" text-muted-foreground">Secure Checkout</p>
+          </div>
+        </div>
+
+        {/* Accordion Details */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="details">
+            <AccordionTrigger className="text-label hover:no-underline text-lg">
+              Product Details
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul className="space-y-2 text-muted-foreground text-sm">
+                {product.details.map((detail, index) => (
+                  <li key={index}>• {detail}</li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="shipping">
+            <AccordionTrigger className="text-label hover:no-underline text-lg">
+              Shipping & Returns
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="text-muted-foreground text-sm space-y-2">
+                <p>Free standard shipping on orders over $150.</p>
+                <p>Express shipping available for $15.</p>
+                <p>Free returns within 30 days of purchase.</p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="container-fashion py-16 border-t border-border">
+        <section className="container-fashion py-16 ">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

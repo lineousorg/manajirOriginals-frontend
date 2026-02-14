@@ -53,7 +53,7 @@ export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   createdAt: Date;
   shippingAddress: Address;
   trackingNumber?: string;
@@ -61,6 +61,8 @@ export interface Order {
 
 export interface Category {
   id: string;
+  image?: string;
+  productCount: number;
   name: string;
   slug: string;
   parentId: string | null;
@@ -77,5 +79,5 @@ export interface FilterState {
   priceRange: [number, number];
   sizes: string[];
   colors: string[];
-  sortBy: 'newest' | 'price-asc' | 'price-desc' | 'popular';
+  sortBy: "newest" | "price-asc" | "price-desc" | "popular";
 }
