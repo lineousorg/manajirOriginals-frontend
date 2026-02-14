@@ -1,0 +1,9 @@
+services:
+  frontend-prod:
+    image: lineousreza/lineousrepo:frontend-manajir-prod
+    container_name: frontend-manajir-prod
+    restart: always
+    ports:
+      - "3019:3000"
+    environment:
+      - NODE_ENV=production
