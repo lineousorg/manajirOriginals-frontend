@@ -10,6 +10,7 @@ const CartPage = () => {
     useCartStore();
 
   const subtotal = getTotal();
+
   
   const shipping = subtotal > 150 ? 0 : 15;
   const total = subtotal + shipping;
