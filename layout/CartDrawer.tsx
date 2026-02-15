@@ -1,15 +1,16 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 
-import { useCartStore } from '@/store/cart.store';
-import { useAuthStore } from '@/store/auth.store';
-import { SignupModal } from '@/components/auth/SignupModal';
-import Link from 'next/link';
+import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
+import { SignupModal } from "@/components/auth/SignupModal";
+import Link from "next/link";
 
 export const CartDrawer = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal } = useCartStore();
+  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal } =
+    useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
 
@@ -34,7 +35,7 @@ export const CartDrawer = () => {
       }, 350);
     } else {
       // User is logged in, proceed to checkout
-      window.location.href = '/checkout';
+      window.location.href = "/checkout";
     }
   };
 
@@ -54,10 +55,10 @@ export const CartDrawer = () => {
 
             {/* Drawer */}
             <motion.div
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-50 shadow-2xl flex flex-col"
             >
               {/* Header */}
@@ -68,7 +69,7 @@ export const CartDrawer = () => {
                     Your Bag
                   </h2>
                   <span className="text-sm text-gray-700">
-                    ({items.length} {items.length === 1 ? 'item' : 'items'})
+                    ({items.length} {items.length === 1 ? "item" : "items"})
                   </span>
                 </div>
                 <button
@@ -87,9 +88,12 @@ export const CartDrawer = () => {
                     <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
                       <ShoppingBag size={32} className="text-gray-700" />
                     </div>
-                    <h3 className="font-serif text-xl text-gray-800 mb-2">Your bag is empty</h3>
+                    <h3 className="font-serif text-xl text-gray-800 mb-2">
+                      Your bag is empty
+                    </h3>
                     <p className="text-sm text-gray-700 mb-6 max-w-xs">
-                      Looks like you haven&apos;t added any items to your bag yet.
+                      Looks like you haven&apos;t added any items to your bag
+                      yet.
                     </p>
                     <button
                       onClick={closeCart}
@@ -126,7 +130,11 @@ export const CartDrawer = () => {
                             </div>
                             <button
                               onClick={() =>
-                                removeItem(item.product.id, item.selectedSize, item.selectedColor)
+                                removeItem(
+                                  item.product.id,
+                                  item.selectedSize,
+                                  item.selectedColor,
+                                )
                               }
                               className="p-1.5 hover:bg-muted rounded-full transition-colors text-gray-700 hover:text-destructive flex-shrink-0"
                               aria-label="Remove item"
@@ -135,14 +143,14 @@ export const CartDrawer = () => {
                             </button>
                           </div>
                           <div className="mt-auto pt-2 flex items-center justify-between">
-                            <div className="flex items-center border border-border rounded-full">
+                            <div className="flex items-center border border-border rounded-full text-gray-400">
                               <button
                                 onClick={() => {
                                   updateQuantity(
                                     item.product.id,
                                     item.selectedSize,
                                     item.selectedColor,
-                                    item.quantity - 1
+                                    item.quantity - 1,
                                   );
                                 }}
                                 disabled={item.quantity <= 1}
@@ -151,7 +159,7 @@ export const CartDrawer = () => {
                               >
                                 <Minus size={14} />
                               </button>
-                              <span className="px-3 text-sm font-medium min-w-[2rem] text-center">
+                              <span className="px-3 text-sm text-gray-500 font-medium min-w-[2rem] text-center">
                                 {item.quantity}
                               </span>
                               <button
@@ -160,10 +168,10 @@ export const CartDrawer = () => {
                                     item.product.id,
                                     item.selectedSize,
                                     item.selectedColor,
-                                    item.quantity + 1
+                                    item.quantity + 1,
                                   );
                                 }}
-                                className="p-2 hover:bg-muted transition-colors rounded-r-full"
+                                className="p-2 hover:bg-muted transition-colors rounded-r-full text-gray-400"
                                 aria-label="Increase quantity"
                               >
                                 <Plus size={14} />
@@ -185,7 +193,7 @@ export const CartDrawer = () => {
                 <div className="border-t border-border p-4 sm:p-6 space-y-4 bg-card/30">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Subtotal</span>
-                    <span className="text-xl font-serif font-medium text-gray-800">
+                    <span className="text-xl font-medium text-gray-800">
                       ${getTotal().toFixed(2)}
                     </span>
                   </div>

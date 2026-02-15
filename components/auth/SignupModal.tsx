@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  X,
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -13,7 +22,7 @@ interface SignupModalProps {
 
 export const SignupModal = ({ isOpen, onClose }: SignupModalProps) => {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -41,7 +50,7 @@ export const SignupModal = ({ isOpen, onClose }: SignupModalProps) => {
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       // Check if HTTP status is success (2xx)
@@ -65,18 +74,23 @@ export const SignupModal = ({ isOpen, onClose }: SignupModalProps) => {
         });
       }
     } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } }; request?: unknown };
-      
+      const error = err as {
+        response?: { status?: number; data?: { message?: string } };
+        request?: unknown;
+      };
+
       // Check if we got a response from server
       if (error.response) {
         // Server responded with error status
         const status = error.response.status;
-        
+
         if (status === 400 || status === 409) {
           // Bad request or conflict (user already exists)
           setMessage({
             type: "error",
-            text: error.response.data?.message || "User already exists or invalid data",
+            text:
+              error.response.data?.message ||
+              "User already exists or invalid data",
           });
         } else if (status === 500) {
           setMessage({
@@ -129,7 +143,7 @@ export const SignupModal = ({ isOpen, onClose }: SignupModalProps) => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
           >
- w-full max-w            <div className="bg-background rounded-2xl shadow-2xl border border-border overflow-hidden mx-4">
+            <div className="bg-background rounded-2xl shadow-2xl border border-border overflow-hidden mx-4">
               {/* Header */}
               <div className="relative p-6 pb-4">
                 <button
@@ -139,12 +153,14 @@ export const SignupModal = ({ isOpen, onClose }: SignupModalProps) => {
                 >
                   <X size={18} className="text-gray-700" />
                 </button>
-                
+
                 <div className="flex flex-col items-center text-center">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <User size={24} className="text-primary" />
                   </div>
-                  <h2 className="font-serif text-2xl text-gray-800">Create Account</h2>
+                  <h2 className="font-serif text-2xl text-gray-800">
+                    Create Account
+                  </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     Sign up to place your order
                   </p>

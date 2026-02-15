@@ -146,7 +146,67 @@ const useApi = () => {
     []
   );
 
-  return { get, post, put, loading, error };
+  const patch = useCallback(
+    async <T = any>(
+      url: string,
+      data: any = {},
+      config: ApiRequestConfig = {},
+      transform?: Transformer<T>
+    ): Promise<T> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const isFormData =
+          typeof FormData !== "undefined" && data instanceof FormData;
+
+        const headers = {
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
+          ...(config.headers || {}),
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { skipAuth, ...axiosConfig } = config as ApiRequestConfig;
+        const response: AxiosResponse = await apiClient.patch(url, data, {
+          ...axiosConfig,
+          headers,
+        });
+
+        return transform ? transform(response.data) : response.data;
+      } catch (err: any) {
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const del = useCallback(
+    async <T = any>(
+      url: string,
+      config: ApiRequestConfig = {},
+      transform?: Transformer<T>
+    ): Promise<T> => {
+      setLoading(true);
+      setError(null);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { skipAuth, ...axiosConfig } = config as ApiRequestConfig;
+        const response: AxiosResponse = await apiClient.delete(url, axiosConfig);
+
+        return transform ? transform(response.data) : response.data;
+      } catch (err: any) {
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  return { get, post, put, patch, del, loading, error };
 };
 
 export default useApi;

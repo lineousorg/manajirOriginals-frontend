@@ -39,14 +39,18 @@ export interface User {
 }
 
 export interface Address {
-  id: string;
-  name: string;
-  street: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
   city: string;
-  state: string;
-  zip: string;
+  postalCode: string;
   country: string;
   isDefault: boolean;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Order {

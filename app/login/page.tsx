@@ -5,6 +5,7 @@ import { User } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
+import { SignupModal } from "@/components/auth/SignupModal";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -14,6 +15,7 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -120,10 +122,20 @@ const LoginPage = () => {
           </form>
           <p className="text-sm text-muted-foreground mt-6">
             Dont have an account?{" "}
-            <button className="text-primary hover:underline">Create one</button>
+            <button
+              onClick={() => setIsSignupModalOpen(true)}
+              className="text-red-400 hover:underline"
+            >
+              Create one
+            </button>
           </p>
         </div>
       </motion.div>
+
+      <SignupModal
+        isOpen={isSignupModalOpen}
+        onClose={() => setIsSignupModalOpen(false)}
+      />
     </div>
   );
 };
