@@ -35,34 +35,34 @@
   :root {
     /* Fashion-forward neutral palette */
     --background: 40 30% 98%;
-    --foreground: 40 15% 97%;
+    --foreground: 40 20% 25%;
 
     --card: 40 25% 97%;
-    --card-foreground: 40 15% 97%;
+    --card-foreground: 40 20% 25%;
 
     --popover: 40 30% 98%;
-    --popover-foreground: 40 15% 97%;
+    --popover-foreground: 40 20% 25%;
 
-    /* Deep red accent */
-    --primary: 0 85% 25%;
-    --primary-foreground: 40 30% 98%;
+    /* Soft cream accent */
+    --primary: 40 20% 55%;
+    --primary-foreground: 40 20% 98%;
 
     /* Soft stone secondary */
     --secondary: 30 15% 90%;
-    --secondary-foreground: 40 15% 92%;
+    --secondary-foreground: 40 15% 95%;
 
     --muted: 30 10% 94%;
-    --muted-foreground: 40 10% 75%;
+    --muted-foreground: 40 15% 45%;
 
     --accent: 30 20% 92%;
-    --accent-foreground: 40 15% 97%;
+    --accent-foreground: 40 20% 25%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 30 15% 88%;
     --input: 30 15% 88%;
-    --ring: 0 85% 25%;
+    --ring: 40 20% 55%;
 
     --radius: 0.375rem;
 
@@ -74,7 +74,7 @@
     );
     --card-shadow: 0 4px 24px -4px hsl(30 10% 20% / 0.08);
     --card-shadow-hover: 0 12px 40px -8px hsl(30 10% 20% / 0.15);
-    --button-shadow: 0 4px 14px 0 hsl(0 85% 25% / 0.25);
+    --button-shadow: 0 4px 14px 0 hsl(40 20% 55% / 0.2);
 
     /* Typography */
     --font-serif: "Cormorant Garamond", serif;
@@ -100,14 +100,14 @@
     --popover: 0 10% 6%;
     --popover-foreground: 40 15% 97%;
 
-    --primary: 0 85% 30%;
+    --primary: 40 20% 60%;
     --primary-foreground: 40 15% 97%;
 
     --secondary: 0 10% 12%;
-    --secondary-foreground: 40 15% 92%;
+    --secondary-foreground: 40 15% 95%;
 
     --muted: 0 10% 15%;
-    --muted-foreground: 40 10% 75%;
+    --muted-foreground: 40 20% 70%;
 
     --accent: 0 10% 12%;
     --accent-foreground: 40 15% 97%;
@@ -117,29 +117,29 @@
 
     --border: 0 10% 18%;
     --input: 0 10% 18%;
-    --ring: 0 85% 30%;
+    --ring: 40 20% 60%;
 
-    /* Premium dark red gradient background */
+    /* Premium dark cream gradient background */
     --dark-bg-gradient: linear-gradient(
       135deg,
-      hsl(0 10% 6%) 0%,
-      hsl(0 15% 4%) 50%,
-      hsl(0 20% 3%) 100%
+      hsl(40 10% 10%) 0%,
+      hsl(40 15% 8%) 50%,
+      hsl(40 20% 6%) 100%
     );
     --red-glow: radial-gradient(
       ellipse at center,
-      hsl(0 85% 20% / 0.15) 0%,
-      hsl(0 10% 5% / 0) 70%
+      hsl(40 20% 30% / 0.1) 0%,
+      hsl(40 10% 8% / 0) 70%
     );
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 0 85% 25%;
+    --sidebar-primary: 40 20% 55%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 0 85% 30%;
+    --sidebar-ring: 40 20% 60%;
   }
 }
 
@@ -198,8 +198,8 @@
     box-shadow: var(--button-shadow);
   }
 
-  .btn-primary-fashion:hover {
-    box-shadow: 0 6px 20px 0 hsl(0 85% 25% / 0.35);
+    .btn-primary-fashion:hover {
+    box-shadow: 0 6px 20px 0 hsl(40 20% 55% / 0.25);
     @apply -translate-y-0.5;
   }
 
@@ -339,14 +339,14 @@
   color: #888;
 }
 
-.bg-luxury-red-black {
+.bg-luxury-cream-black {
   background:
     radial-gradient(
       circle at top left,
-      rgba(224, 9, 27, 0.55),
+      rgba(200, 180, 160, 0.4),
       transparent 45%
     ),
-    linear-gradient(135deg, #0b0f0e 0%, #120506 35%, #2a070a 60%, #0b0f0e 100%);
+    linear-gradient(135deg, #1a1815 0%, #151515 35%, #1a1815 60%, #151515 100%);
 }
 
 .glass-overlay {

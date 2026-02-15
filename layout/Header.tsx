@@ -62,9 +62,8 @@ export const Header = () => {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-500 ${
-        isScrolled ? "bg-primary backdrop-blur-xl shadow-md" : "bg-transparent"
-      }`}
+      className={`sticky top-0 z-50 transition-all duration-500 ${isScrolled ? "bg-primary backdrop-blur-xl shadow-md" : "bg-transparent"
+        }`}
     >
       <div className="container-fashion">
         <div className="grid grid-cols-3 h-20 md:h-16">
@@ -105,11 +104,10 @@ export const Header = () => {
               >
                 <Link
                   href={link.href}
-                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
-                    pathname === link.href && !link.hasDropdown
-                      ? "text-foreground after:w-full"
-                      : "text-muted-foreground hover:text-foreground"
-                  } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-primary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${pathname === link.href && !link.hasDropdown
+                    ? "text-foreground after:w-full"
+                    : "text-foreground hover:text-foreground"
+                    } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-secondary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
                 >
                   {link.label}
                 </Link>
@@ -159,10 +157,10 @@ export const Header = () => {
           <div className="flex items-center justify-end gap-3 md:gap-6">
             <Link
               href="/wishlist"
-              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              className={`${isScrolled ? "text-white" : "text-red-400"} relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105`}
               aria-label="Wishlist"
             >
-              <Heart size={22} className="text-red-400" />
+              <Heart size={22} />
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-linear-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
                   {wishlistItems.length}
@@ -171,10 +169,10 @@ export const Header = () => {
             </Link>
             <button
               onClick={openCart}
-              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              className={`${isScrolled ? "text-white" : "text-red-400"} relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105`}
               aria-label="Cart"
             >
-              <TiShoppingCart size={22} className="text-red-400" />
+              <TiShoppingCart size={22} />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-linear-to-r from-primary to-primary/80 text-primary-foreground text-[11px] font-semibold rounded-full flex items-center justify-center shadow-lg">
                   {cartItemCount}
