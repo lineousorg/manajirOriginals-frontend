@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
     }
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("admin_token")
+        ? localStorage.getItem("auth_token")
         : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
