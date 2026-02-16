@@ -30,8 +30,6 @@ export const Header = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  console.log(user);
-
   // Transform flat categories to tree structure
   const categoryTree = categories
     .filter((cat) => cat.parentId === null)
@@ -42,8 +40,8 @@ export const Header = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await get<Category[]>("/categories", { skipAuth: true });
-      setCategories(data.data);
+      const response = await get<{ data: Category[] }>("/categories", { skipAuth: true });
+      setCategories(response.data);
     };
     fetchCategories();
   }, []);
@@ -95,7 +93,7 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav
-            className={`hidden md:grid grid-cols-${navLinks.length} items-center gap-10`}
+            className="hidden md:grid grid-cols-3 items-center gap-10"
           >
             {navLinks.map((link) => (
               <div

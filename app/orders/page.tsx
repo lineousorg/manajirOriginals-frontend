@@ -2,11 +2,23 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle, Clock, XCircle, ChevronRight } from 'lucide-react';
-import { orderService } from '@/services/order.service';
-import { Order } from '@/types';
+import { orderService, ApiOrderResponse } from '@/services/order.service';
 import { Loader } from '@/components/ui/Loader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import Link from 'next/link';
+
+// Map API uppercase status to lowercase for display
+const mapStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'PENDING': 'pending',
+    'PROCESSING': 'processing',
+    'SHIPPED': 'shipped',
+    'DELIVERED': 'delivered',
+    'CANCELLED': 'cancelled',
+    'CANCELED': 'cancelled',
+  };
+  return statusMap[status.toUpperCase()] || 'pending';
+};
 
 const statusConfig = {
   pending: { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Pending' },
@@ -17,14 +29,20 @@ const statusConfig = {
 };
 
 const OrdersPage = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<ApiOrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadOrders = async () => {
       try {
+        setLoading(true);
         const data = await orderService.getOrders();
         setOrders(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load orders. Please try again later.');
+        console.error('Error loading orders:', err);
       } finally {
         setLoading(false);
       }
@@ -36,6 +54,23 @@ const OrdersPage = () => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-fashion py-16">
+        <EmptyState
+          icon={<Package size={64} />}
+          title="Something went wrong"
+          description={error}
+          action={
+            <Link href="/products" className="btn-primary-fashion">
+              Start Shopping
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -63,8 +98,9 @@ const OrdersPage = () => {
 
       <div className="space-y-6">
         {orders.map((order, index) => {
-          const status = statusConfig[order.status];
-          const StatusIcon = status.icon;
+          const orderStatus = mapStatus(order.status);
+          const status = statusConfig[orderStatus as keyof typeof statusConfig];
+          const StatusIcon = status?.icon || Clock;
 
           return (
             <motion.div
@@ -77,10 +113,10 @@ const OrdersPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-mono text-sm">{order.id}</span>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>
+                    <span className="font-mono text-sm">#{order.id}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status?.bg || 'bg-gray-100'} ${status?.color || 'text-gray-600'}`}>
                       <StatusIcon size={12} />
-                      {status.label}
+                      {status?.label || order.status}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
@@ -93,22 +129,20 @@ const OrdersPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-medium">${order.total.toFixed(2)}</p>
-                  {order.trackingNumber && (
-                    <p className="text-sm text-muted-foreground">
-                      Tracking: {order.trackingNumber}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Payment: {order.paymentMethod.replace('_', ' ')}
+                  </p>
                 </div>
               </div>
 
               {/* Order Progress */}
-              {order.status !== 'cancelled' && (
+              {orderStatus !== 'cancelled' && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
                     {['pending', 'processing', 'shipped', 'delivered'].map((step, i) => {
-                      const stepIndex = ['pending', 'processing', 'shipped', 'delivered'].indexOf(order.status);
+                      const stepIndex = ['pending', 'processing', 'shipped', 'delivered'].indexOf(orderStatus);
                       const isCompleted = i <= stepIndex;
-                      const isCurrent = step === order.status;
+                      const isCurrent = step === orderStatus;
 
                       return (
                         <div key={step} className="flex-1 flex items-center">
@@ -139,13 +173,12 @@ const OrdersPage = () => {
                 </div>
               )}
 
-              {/* Shipping Address */}
+              {/* Order Details */}
               <div className="flex items-start gap-4 pt-4 border-t border-border">
                 <div className="flex-1">
-                  <p className="text-label mb-1">Shipping Address</p>
+                  <p className="text-label mb-1">Order ID</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.shippingAddress.street}, {order.shippingAddress.city},{' '}
-                    {order.shippingAddress.state} {order.shippingAddress.zip}
+                    #{order.id}
                   </p>
                 </div>
                 <button className="flex items-center gap-1 text-sm text-primary hover:underline">
