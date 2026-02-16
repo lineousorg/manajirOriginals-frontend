@@ -41,9 +41,9 @@ const LoginPage = () => {
       const data = await userService.login(formData.email, formData.password);
 
       login({
-        id: data.user.id,
+        id: String(data.user.id),
         email: data.user.email,
-        name: data.user.name,
+        name: data.user.email.split('@')[0], // Use email prefix as name since API doesn't return name
       });
 
       router.push("/");

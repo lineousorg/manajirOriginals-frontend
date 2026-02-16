@@ -1,50 +1,41 @@
 import { User } from "@/types";
 import { apiClient } from "@/hooks/useApi";
 
+// API Response structure (direct - no wrapper)
 export interface LoginResponse {
-  message: string;
-  status: string;
-  data: {
-    user: {
-      id: number;
-      email: string;
-      name: string;
-    };
-    token: string;
+  user: {
+    id: number;
+    email: string;
+    role: string;
   };
+  accessToken: string;
 }
 
 export const userService = {
-  async login(email: string, password: string): Promise<LoginResponse["data"]> {
+  async login(email: string, password: string): Promise<LoginResponse> {
     const response = await apiClient.post<LoginResponse>("/auth/login", {
       email,
       password,
     });
 
-    if (response.data.status === "failed") {
-      throw new Error(response.data.message || "Login failed");
-    }
-
     // Store token
     if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", response.data.data.token);
+      localStorage.setItem("accessToken", response.data.accessToken);
     }
 
-    return response.data.data;
+    return response.data;
   },
 
   async logout(): Promise<void> {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
+      localStorage.removeItem("accessToken");
     }
   },
 
   async getProfile(): Promise<User | null> {
     try {
-      const response = await apiClient.get<{ data: { user: User } }>(
-        "/auth/me",
-      );
-      return response.data.data.user;
+      const response = await apiClient.get<{ user: User }>("/auth/me");
+      return response.data.user;
     } catch {
       return null;
     }

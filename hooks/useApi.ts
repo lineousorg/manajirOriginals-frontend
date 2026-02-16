@@ -28,15 +28,13 @@ apiClient.interceptors.request.use(
       return config;
     }
     const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("auth_token")
-        : null;
+      typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Transform function type
@@ -50,7 +48,7 @@ const useApi = () => {
     async <T = any>(
       url: string,
       config: ApiRequestConfig = {},
-      transform?: Transformer<T>
+      transform?: Transformer<T>,
     ): Promise<T> => {
       setLoading(true);
       setError(null);
@@ -71,7 +69,7 @@ const useApi = () => {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const post = useCallback(
@@ -79,7 +77,7 @@ const useApi = () => {
       url: string,
       data: any = {},
       config: ApiRequestConfig = {},
-      transform?: Transformer<T>
+      transform?: Transformer<T>,
     ): Promise<T> => {
       setLoading(true);
       setError(null);
@@ -107,7 +105,7 @@ const useApi = () => {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const put = useCallback(
@@ -115,7 +113,7 @@ const useApi = () => {
       url: string,
       data: any = {},
       config: ApiRequestConfig = {},
-      transform?: Transformer<T>
+      transform?: Transformer<T>,
     ): Promise<T> => {
       setLoading(true);
       setError(null);
@@ -143,7 +141,7 @@ const useApi = () => {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const patch = useCallback(
@@ -151,7 +149,7 @@ const useApi = () => {
       url: string,
       data: any = {},
       config: ApiRequestConfig = {},
-      transform?: Transformer<T>
+      transform?: Transformer<T>,
     ): Promise<T> => {
       setLoading(true);
       setError(null);
@@ -179,21 +177,24 @@ const useApi = () => {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const del = useCallback(
     async <T = any>(
       url: string,
       config: ApiRequestConfig = {},
-      transform?: Transformer<T>
+      transform?: Transformer<T>,
     ): Promise<T> => {
       setLoading(true);
       setError(null);
       try {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { skipAuth, ...axiosConfig } = config as ApiRequestConfig;
-        const response: AxiosResponse = await apiClient.delete(url, axiosConfig);
+        const response: AxiosResponse = await apiClient.delete(
+          url,
+          axiosConfig,
+        );
 
         return transform ? transform(response.data) : response.data;
       } catch (err: any) {
@@ -203,7 +204,7 @@ const useApi = () => {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   return { get, post, put, patch, del, loading, error };
