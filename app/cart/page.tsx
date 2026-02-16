@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } =
+  const { items, removeItem, updateQuantity, getTotal, clearCart } = 
     useCartStore();
 
   const subtotal = getTotal();
