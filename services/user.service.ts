@@ -1,43 +1,50 @@
 import { User } from '@/types';
+import { apiClient } from '@/hooks/useApi';
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const mockUser: User = {
-  id: 'user_1',
-  email: 'emma@example.com',
-  name: 'Emma Thompson',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80',
-};
+export interface LoginResponse {
+  message: string;
+  status: string;
+  data: {
+    user: {
+      id: number;
+      email: string;
+      name: string;
+    };
+    token: string;
+  };
+}
 
 export const userService = {
-  async login(email: string, password: string): Promise<User> {
-    await delay(500);
-    if (email && password) {
-      return mockUser;
+  async login(email: string, password: string): Promise<LoginResponse['data']> {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
+      email,
+      password,
+    });
+    
+    if (response.data.status === 'failed') {
+      throw new Error(response.data.message || 'Login failed');
     }
-    throw new Error('Invalid credentials');
+    
+    // Store token
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', response.data.data.token);
+    }
+    
+    return response.data.data;
   },
 
   async logout(): Promise<void> {
-    await delay(200);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_token');
+    }
   },
 
-  async getProfile(): Promise<User> {
-    await delay(200);
-    return mockUser;
-  },
-
-  async updateProfile(data: Partial<User>): Promise<User> {
-    await delay(300);
-    return { ...mockUser, ...data };
-  },
-
-  async register(email: string, password: string, name: string): Promise<User> {
-    await delay(500);
-    return {
-      id: `user_${Date.now()}`,
-      email,
-      name,
-    };
+  async getProfile(): Promise<User | null> {
+    try {
+      const response = await apiClient.get<{ data: { user: User } }>('/auth/me');
+      return response.data.data.user;
+    } catch {
+      return null;
+    }
   },
 };
