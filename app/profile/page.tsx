@@ -19,6 +19,41 @@ import { Address } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
 import { useToast } from "@/components/ui/use-toast";
 import useApi from "@/hooks/useApi";
+import toast, { Toaster } from "react-hot-toast";
+
+export const confirmToast = (message: string) =>
+  new Promise<boolean>((resolve) => {
+    toast(
+      (t) => (
+        <div className="">
+          <p>{message}</p>
+
+          <div className="flex items-center gap-2 mt-5">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(false);
+              }}
+              className="px-3 py-1 rounded bg-gray-200 w-full"
+            >
+              No
+            </button>
+
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(true);
+              }}
+              className="px-3 py-1 rounded bg-red-500 text-white w-full"
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
+  });
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -77,7 +112,11 @@ const ProfilePage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this address?")) return;
+    const confirmed = await confirmToast(
+      "Are you sure you want to delete this address?",
+    );
+
+    if (!confirmed) return;
 
     try {
       await api.del(`/addresses/${id}`);
@@ -85,8 +124,9 @@ const ProfilePage = () => {
         title: "Success",
         description: "Address deleted successfully",
       });
+
       fetchAddresses();
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -123,21 +163,21 @@ const ProfilePage = () => {
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Sidebar */}
-          <aside className="space-y-2">
-            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/30 text-left">
+          <aside className="space-y-2 *:hover:bg-gray-200 *:hover:scale-105 ">
+            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/30 text-left transition-all duration-300 ease-in-out">
               <User size={18} />
               Profile
             </button>
             <Link
               href="/orders"
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 text-left text-muted-foreground transition-all duration-300 ease-in-out"
             >
               <Package size={18} />
               Orders
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-all duration-300 ease-in-out text-left text-muted-foreground cursor-pointer"
             >
               <LogOut size={18} />
               Sign Out
@@ -150,9 +190,9 @@ const ProfilePage = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-muted/30 rounded-xl p-6"
+              className="bg-muted rounded-xl p-6"
             >
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   {user?.avatar ? (
                     <img
@@ -252,7 +292,7 @@ const ProfilePage = () => {
                   Loading addresses...
                 </div>
               ) : addresses.length === 0 ? (
-                <div className="bg-muted/30 rounded-xl p-8 text-center">
+                <div className="bg-muted rounded-xl p-8 text-center">
                   <MapPin
                     size={48}
                     className="mx-auto mb-4 text-muted-foreground opacity-50"
@@ -350,6 +390,7 @@ const ProfilePage = () => {
         address={editingAddress}
         onSuccess={handleModalSuccess}
       />
+      <Toaster />
     </div>
   );
 };

@@ -42,7 +42,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-900 to-red-950/20 py-8 px-4">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

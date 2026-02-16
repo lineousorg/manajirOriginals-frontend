@@ -163,23 +163,25 @@ export const AddressModal = ({
                   <X size={18} className="text-gray-700" />
                 </button>
 
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <div className="flex items-center gap-5 text-center mb-5">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
                     <MapPin size={24} className="text-primary" />
                   </div>
-                  <h2 className="font-serif text-2xl text-gray-800">
-                    {address ? "Edit Address" : "Add New Address"}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {address
-                      ? "Update your address details"
-                      : "Enter your shipping address"}
-                  </p>
+                  <div>
+                    <h2 className="text-xl text-left font-sans text-gray-800">
+                      {address ? "Edit Address" : "Add New Address"}
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {address
+                        ? "Update your address details"
+                        : "Enter your shipping address"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+              <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-label block mb-2">First Name</label>
@@ -232,7 +234,7 @@ export const AddressModal = ({
                         setFormData({ ...formData, phone: e.target.value })
                       }
                       className="input-fashion rounded-lg pl-10 text-gray-700"
-                      placeholder="+1234567890"
+                      placeholder="Enter your number"
                       required
                     />
                   </div>
@@ -252,7 +254,7 @@ export const AddressModal = ({
                         setFormData({ ...formData, address: e.target.value })
                       }
                       className="input-fashion rounded-lg pl-10 text-gray-700"
-                      placeholder="123 Main St"
+                      placeholder="Detailed address"
                       required
                     />
                   </div>
@@ -268,7 +270,7 @@ export const AddressModal = ({
                         setFormData({ ...formData, city: e.target.value })
                       }
                       className="input-fashion rounded-lg text-gray-700"
-                      placeholder="New York"
+                      placeholder="Enter City"
                       required
                     />
                   </div>
@@ -281,7 +283,7 @@ export const AddressModal = ({
                         setFormData({ ...formData, postalCode: e.target.value })
                       }
                       className="input-fashion rounded-lg text-gray-700"
-                      placeholder="10001"
+                      placeholder="Enter postal code"
                       required
                     />
                   </div>
