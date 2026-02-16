@@ -14,6 +14,7 @@ const CartPage = () => {
   const total = subtotal + shipping;
 
 
+
   if (items.length === 0) {
     return (
       <div className="container-fashion py-16">
