@@ -1,22 +1,37 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, CreditCard, CheckCircle } from "lucide-react";
+import {
+  ChevronRight,
+  CreditCard,
+  CheckCircle,
+  Plus,
+  MapPin,
+  Truck,
+  ShieldCheck,
+} from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Address } from "@/types";
+import { AddressModal } from "@/components/auth/AddressModal";
+import { useAuthStore } from "@/store/auth.store";
+import useApi from "@/hooks/useApi";
 
 const CheckoutPage = () => {
   const router = useRouter();
   const { items, getTotal, clearCart } = useCartStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const api = useApi();
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
-    "shipping"
+    "shipping",
   );
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
     lastName: "",
+    phone: "",
     address: "",
     city: "",
     state: "",
@@ -27,13 +42,61 @@ const CheckoutPage = () => {
     cardCvc: "",
   });
 
+  // Address state
+  const [defaultAddress, setDefaultAddress] = useState<Address | null>(null);
+  const [loadingAddress, setLoadingAddress] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const subtotal = getTotal();
   const shipping = subtotal > 150 ? 0 : 15;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
+  // Fetch default address on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDefaultAddress();
+      // Set email from user
+      if (user?.email) {
+        setFormData((prev) => ({ ...prev, email: user.email }));
+      }
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchDefaultAddress = async () => {
+    try {
+      setLoadingAddress(true);
+      const response = await api.get<{ data: Address[] }>("/addresses");
+      const addresses = response.data;
+      const defaultAddr =
+        addresses.find((addr) => addr.isDefault) || addresses[0];
+      if (defaultAddr) {
+        setDefaultAddress(defaultAddr);
+        // Pre-fill form with default address
+        setFormData((prev) => ({
+          ...prev,
+          firstName: defaultAddr.firstName,
+          lastName: defaultAddr.lastName,
+          phone: defaultAddr.phone,
+          address: defaultAddr.address,
+          city: defaultAddr.city,
+          state: "", // Backend doesn't have state field
+          zip: defaultAddr.postalCode,
+          country:
+            defaultAddr.country === "USA"
+              ? "United States"
+              : defaultAddr.country,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch addresses:", error);
+    } finally {
+      setLoadingAddress(false);
+    }
+  };
+
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -48,6 +111,10 @@ const CheckoutPage = () => {
     e.preventDefault();
     clearCart();
     setStep("success");
+  };
+
+  const handleAddAddressSuccess = () => {
+    fetchDefaultAddress();
   };
 
   if (items.length === 0 && step !== "success") {
@@ -113,218 +180,49 @@ const CheckoutPage = () => {
         </span>
       </nav>
 
-      <div className="grid lg:grid-cols-2 gap-12">
-        {/* Form */}
-        <div>
-          {step === "shipping" && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <h1 className="heading-section mb-8">Shipping Information</h1>
-              <form onSubmit={handleSubmitShipping} className="space-y-6">
-                <div>
-                  <label className="text-label block mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="input-fashion rounded-md"
-                    placeholder="your@email.com"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-label block mb-2">First Name</label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-label block mb-2">Last Name</label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-label block mb-2">Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                    className="input-fashion rounded-md"
-                    placeholder="123 Fashion St"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-label block mb-2">City</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-label block mb-2">State</label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-label block mb-2">ZIP Code</label>
-                    <input
-                      type="text"
-                      name="zip"
-                      value={formData.zip}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-label block mb-2">Country</label>
-                    <select
-                      name="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      className="input-fashion rounded-md"
-                    >
-                      <option>United States</option>
-                      <option>Canada</option>
-                      <option>United Kingdom</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button type="submit" className="btn-primary-fashion w-full">
-                  Continue to Payment
-                </button>
-              </form>
-            </motion.div>
-          )}
-
-          {step === "payment" && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <h1 className="heading-section mb-8">Payment Information</h1>
-              <form onSubmit={handleSubmitPayment} className="space-y-6">
-                <div className="bg-muted/30 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-muted-foreground">
-                    Shipping to: {formData.address}, {formData.city},{" "}
-                    {formData.state} {formData.zip}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setStep("shipping")}
-                    className="text-sm text-primary hover:underline mt-2"
-                  >
-                    Edit shipping
-                  </button>
-                </div>
-
-                <div>
-                  <label className="text-label block mb-2">Card Number</label>
-                  <input
-                    type="text"
-                    name="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={handleInputChange}
-                    required
-                    className="input-fashion rounded-md"
-                    placeholder="4242 4242 4242 4242"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-label block mb-2">Expiry Date</label>
-                    <input
-                      type="text"
-                      name="cardExpiry"
-                      value={formData.cardExpiry}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                      placeholder="MM/YY"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-label block mb-2">CVC</label>
-                    <input
-                      type="text"
-                      name="cardCvc"
-                      value={formData.cardCvc}
-                      onChange={handleInputChange}
-                      required
-                      className="input-fashion rounded-md"
-                      placeholder="123"
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="btn-primary-fashion w-full">
-                  Place Order · ${total.toFixed(2)}
-                </button>
-              </form>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Order Summary */}
-        <div className="lg:sticky lg:top-28 lg:self-start">
-          <div className="bg-muted/30 rounded-xl p-6">
-            <h2 className="font-serif text-xl mb-6">Order Summary</h2>
+      <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
+        {/* Order Summary - Now on LEFT */}
+        <div className="lg:col-span-2 lg:sticky lg:top-28 lg:self-start">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <Truck size={20} className="text-primary" />
+              </div>
+              <h2 className="font-serif text-gray-600 text-xl">
+                Order Summary
+              </h2>
+            </div>
 
             <div className="space-y-4 mb-6">
               {items.map((item) => (
                 <div
                   key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                  className="flex gap-4"
+                  className="flex gap-4 items-start"
                 >
-                  <img
-                    src={item.product.images[0]}
-                    alt={item.product.name}
-                    className="w-16 h-20 object-cover rounded-md"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{item.product.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.selectedSize} · {item.selectedColor} · Qty:{" "}
+                  <div className="relative">
+                    <img
+                      src={item.product.images[0]}
+                      alt={item.product.name}
+                      className="w-20 h-24 object-cover rounded-lg"
+                    />
+                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center justify-center">
                       {item.quantity}
+                    </span>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium line-clamp-2 text-gray-600">
+                      {item.product.name}
                     </p>
-                    <p className="text-sm font-medium mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <span className="inline-block text-gray-600">
+                        {item.selectedSize}
+                      </span>
+                      <span className="mx-1.5">·</span>
+                      <span className="inline-block text-gray-600">
+                        {item.selectedColor}
+                      </span>
+                    </p>
+                    <p className="text-sm font-medium mt-2 text-primary">
                       ${(item.product.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
@@ -335,26 +233,345 @@ const CheckoutPage = () => {
             <div className="border-t border-border pt-4 space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span className="font-medium text-gray-600">
+                  ${subtotal.toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
-                <span>
+                <span className="text-muted-foreground">
+                  Shipping
+                  {shipping === 0 && (
+                    <span className="ml-2 text-xs text-green-600 font-medium">
+                      FREE
+                    </span>
+                  )}
+                </span>
+                <span className="font-medium text-gray-600">
                   {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span className="text-muted-foreground">Tax (8%)</span>
+                <span className="font-medium text-gray-600">
+                  ${tax.toFixed(2)}
+                </span>
               </div>
-              <div className="border-t border-border pt-3 flex justify-between text-base font-medium">
+              {/* {subtotal < 150 && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Free shipping at</span>
+                  <span className="text-gray-600">${(150 - subtotal).toFixed(2)} more</span>
+                </div>
+              )} */}
+              <div className="border-t border-border pt-3 flex justify-between text-lg font-semibold text-gray-600">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span className="text-gray-600">${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
+                <ShieldCheck size={14} />
+                <span>Secure checkout · 30-day returns</span>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Form - Now on RIGHT */}
+        <div className="lg:col-span-3 text-left">
+          {step === "shipping" && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <div className="flex items-center mb-8">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <MapPin size={20} className="text-white" />
+                </div>
+                <h1 className="heading-section">Shipping Information</h1>
+              </div>
+
+              {/* Show add address button if no default address */}
+              {!loadingAddress && !defaultAddress && (
+                <div className="bg-muted/30 rounded-xl p-6 mb-8 border border-dashed border-border">
+                  <div className="text-center">
+                    <MapPin
+                      size={32}
+                      className="mx-auto text-muted-foreground mb-3"
+                    />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No shipping address found. Please add an address to
+                      continue.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(true)}
+                      className="btn-primary-fashion inline-flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Add Shipping Address
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Add address button even when address exists */}
+              {defaultAddress && (
+                <div className="mb-6 p-4 bg-muted/20 rounded-xl border border-border">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <MapPin size={18} className="text-primary mt-0.5" />
+                      <div>
+                        {/* <p className="text-sm font-medium">Shipping to:</p> */}
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {defaultAddress.firstName} {defaultAddress.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {defaultAddress.address}, {defaultAddress.city},{" "}
+                          {defaultAddress.postalCode}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(true)}
+                      className="text-xs text-white hover:text-primary/80 font-medium underline underline-offset-2 transition-colors"
+                    >
+                      Add New
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitShipping} className="space-y-6">
+                <div>
+                  <label className="text-label text-left block mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="input-fashion rounded-lg"
+                    placeholder="your@email.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-label text-left block mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    className="input-fashion rounded-lg"
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-label text-left block mb-2">
+                    Street Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    className="input-fashion rounded-lg"
+                    placeholder="123 Fashion Street, Apt 4"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      ZIP / Postal Code
+                    </label>
+                    <input
+                      type="text"
+                      name="zip"
+                      value={formData.zip}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="btn-primary-fashion w-full py-4 text-base"
+                    disabled={
+                      !loadingAddress && !defaultAddress && !formData.address
+                    }
+                  >
+                    Continue to Payment
+                    <ChevronRight size={18} className="ml-2" />
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {step === "payment" && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <CreditCard size={20} className="text-primary" />
+                </div>
+                <h1 className="heading-section">Payment Details</h1>
+              </div>
+
+              <div className="bg-muted/30 rounded-xl p-5 mb-6 border border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Truck size={18} className="text-muted-foreground" />
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Shipping to:</p>
+                      <p className="font-medium">
+                        {formData.address}, {formData.city}, {formData.zip}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep("shipping")}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmitPayment} className="space-y-6">
+                <div>
+                  <label className="text-label text-left block mb-2">
+                    Card Number
+                  </label>
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    value={formData.cardNumber}
+                    onChange={handleInputChange}
+                    required
+                    className="input-fashion rounded-lg"
+                    placeholder="4242 4242 4242 4242"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="text"
+                      name="cardExpiry"
+                      value={formData.cardExpiry}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                      placeholder="MM / YY"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-label text-left block mb-2">
+                      CVC
+                    </label>
+                    <input
+                      type="text"
+                      name="cardCvc"
+                      value={formData.cardCvc}
+                      onChange={handleInputChange}
+                      required
+                      className="input-fashion rounded-lg"
+                      placeholder="123"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="btn-primary-fashion w-full py-4 text-base"
+                  >
+                    Place Order
+                    <span className="ml-2">·</span>
+                    <span className="ml-2">${total.toFixed(2)}</span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  By placing this order, you agree to our Terms of Service and
+                  Privacy Policy.
+                </p>
+              </form>
+            </motion.div>
+          )}
+        </div>
       </div>
+
+      {/* Address Modal */}
+      <AddressModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        address={null}
+        onSuccess={handleAddAddressSuccess}
+      />
     </div>
   );
 };

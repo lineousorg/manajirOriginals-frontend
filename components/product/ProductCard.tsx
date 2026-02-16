@@ -49,7 +49,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isNew && <span className="badge-new">New</span>}
+            {product.isNew && <span className="">New</span>}
             {product.isSale && <span className="badge-sale">Sale</span>}
           </div>
 
@@ -66,7 +66,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
             className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 ${
               inWishlist
                 ? "bg-primary text-primary-foreground"
-                : "bg-background/80 text-foreground hover:bg-background"
+                : "bg-primary text-foreground hover:bg-background"
             }`}
             aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
@@ -74,7 +74,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </button>
 
           {/* Quick View Overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+          <div className=" group-hover:translate-y-0 transition-transform duration-300">
             <span className="btn-outline-fashion w-full text-center bg-background/95 backdrop-blur-sm text-sm py-2">
               Quick View
             </span>

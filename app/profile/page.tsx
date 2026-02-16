@@ -1,16 +1,70 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, MapPin, Package, LogOut, Edit2, Plus } from "lucide-react";
+import {
+  User,
+  MapPin,
+  Package,
+  LogOut,
+  Edit2,
+  Plus,
+  Trash2,
+  Star,
+} from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { Address } from "@/types";
+import { AddressModal } from "@/components/auth/AddressModal";
+import { useToast } from "@/components/ui/use-toast";
+import useApi from "@/hooks/useApi";
+import toast, { Toaster } from "react-hot-toast";
+
+export const confirmToast = (message: string) =>
+  new Promise<boolean>((resolve) => {
+    toast(
+      (t) => (
+        <div className="">
+          <p>{message}</p>
+
+          <div className="flex items-center gap-2 mt-5">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(false);
+              }}
+              className="px-3 py-1 rounded bg-gray-200 w-full"
+            >
+              No
+            </button>
+
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(true);
+              }}
+              className="px-3 py-1 rounded bg-red-500 text-white w-full"
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
+  });
 
 const ProfilePage = () => {
-    const router = useRouter();
+  const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const { toast } = useToast();
+  const api = useApi();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -18,33 +72,112 @@ const ProfilePage = () => {
     }
   }, [isAuthenticated, router]);
 
+  // Fetch addresses when component mounts
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAddresses();
+    }
+  }, [isAuthenticated]);
+
+  const fetchAddresses = async () => {
+    try {
+      setLoadingAddresses(true);
+      const response = await api.get<{ data: Address[] }>("/addresses");
+      setAddresses(response.data);
+    } catch (error) {
+      console.error("Failed to fetch addresses:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load addresses",
+      });
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
     logout();
   };
 
+  const handleAddNew = () => {
+    setEditingAddress(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (address: Address) => {
+    setEditingAddress(address);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    const confirmed = await confirmToast(
+      "Are you sure you want to delete this address?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.del(`/addresses/${id}`);
+      toast({
+        title: "Success",
+        description: "Address deleted successfully",
+      });
+
+      fetchAddresses();
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete address",
+      });
+    }
+  };
+
+  const handleSetDefault = async (id: number) => {
+    try {
+      await api.patch(`/addresses/${id}/set-default`);
+      toast({
+        title: "Success",
+        description: "Default address updated",
+      });
+      fetchAddresses();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to set default address",
+      });
+    }
+  };
+
+  const handleModalSuccess = () => {
+    fetchAddresses();
+  };
+
   return (
-    <div className="container-fashion py-8 md:py-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="heading-section mb-8">My Account</h1>
+    <div className="container-fashion py-8 md:py-12 h-screen">
+      <div className=" mx-auto">
+        <h1 className="heading-section mb-8 text-left">My Account</h1>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Sidebar */}
-          <aside className="space-y-2">
-            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-muted text-left">
+          <aside className="space-y-2 *:hover:bg-gray-200 *:hover:scale-105 ">
+            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/30 text-left transition-all duration-300 ease-in-out">
               <User size={18} />
               Profile
             </button>
             <Link
               href="/orders"
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-muted transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 text-left text-muted-foreground transition-all duration-300 ease-in-out"
             >
               <Package size={18} />
               Orders
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-muted transition-colors text-left text-muted-foreground"
+              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-all duration-300 ease-in-out text-left text-muted-foreground cursor-pointer"
             >
               <LogOut size={18} />
               Sign Out
@@ -57,9 +190,9 @@ const ProfilePage = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-muted/30 rounded-xl p-6"
+              className="bg-muted rounded-xl p-6"
             >
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   {user?.avatar ? (
                     <img
@@ -73,9 +206,9 @@ const ProfilePage = () => {
                     </div>
                   )}
                   <div>
-                    <h2 className="font-serif text-xl font-medium">
+                    {/* <h2 className="font-serif text-xl font-medium text-left">
                       {user?.name}
-                    </h2>
+                    </h2> */}
                     <p className="text-sm text-muted-foreground">
                       {user?.email}
                     </p>
@@ -145,58 +278,119 @@ const ProfilePage = () => {
                 <h3 className="font-serif text-lg font-medium">
                   Saved Addresses
                 </h3>
-                <button className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <button
+                  onClick={handleAddNew}
+                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                >
                   <Plus size={16} />
                   Add New
                 </button>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-muted/30 rounded-xl p-4 border-2 border-primary">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-primary" />
-                      <span className="text-sm font-medium">Home</span>
-                      <span className="badge-fashion bg-primary/10 text-primary text-[10px]">
-                        Default
-                      </span>
-                    </div>
-                    <button className="text-sm text-muted-foreground hover:text-foreground">
-                      Edit
-                    </button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    123 Fashion Ave
-                    <br />
-                    New York, NY 10001
-                    <br />
-                    United States
-                  </p>
+              {loadingAddresses ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading addresses...
                 </div>
-
-                <div className="bg-muted/30 rounded-xl p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-muted-foreground" />
-                      <span className="text-sm font-medium">Office</span>
-                    </div>
-                    <button className="text-sm text-muted-foreground hover:text-foreground">
-                      Edit
-                    </button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    456 Business St
-                    <br />
-                    Los Angeles, CA 90001
-                    <br />
-                    United States
+              ) : addresses.length === 0 ? (
+                <div className="bg-muted rounded-xl p-8 text-center">
+                  <MapPin
+                    size={48}
+                    className="mx-auto mb-4 text-muted-foreground opacity-50"
+                  />
+                  <p className="text-muted-foreground mb-4">
+                    You haven&apos;t added any addresses yet
                   </p>
+                  <button
+                    onClick={handleAddNew}
+                    className="btn-primary-fashion"
+                  >
+                    <Plus size={18} className="mr-2" />
+                    Add Your First Address
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-4 text-left">
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      className={`bg-muted/30 rounded-xl p-4 border-2 ${
+                        addr.isDefault ? "border-primary" : "border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} className="text-primary" />
+                          <span className="text-sm font-medium">
+                            {addr.firstName} {addr.lastName}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="badge-fashion bg-primary/10 text-primary text-[10px]">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {!addr.isDefault && (
+                            <button
+                              onClick={() => handleSetDefault(addr.id)}
+                              className="p-1 hover:bg-muted rounded transition-colors"
+                              title="Set as default"
+                            >
+                              <Star
+                                size={14}
+                                className="text-muted-foreground"
+                              />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEdit(addr)}
+                            className="p-1 hover:bg-muted rounded transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2
+                              size={14}
+                              className="text-muted-foreground"
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(addr.id)}
+                            className="p-1 hover:bg-muted rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} className="text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {addr.address}
+                        <br />
+                        {addr.city}, {addr.postalCode}
+                        <br />
+                        {addr.country}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {addr.phone}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Address Modal */}
+      <AddressModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAddress(null);
+        }}
+        address={editingAddress}
+        onSuccess={handleModalSuccess}
+      />
+      <Toaster />
     </div>
   );
 };

@@ -87,12 +87,42 @@ const products: Product[] = [
 ];
 
 const categories: Category[] = [
-  { id: 'cat_1', name: 'Coats & Jackets', slug: 'coats', image: PRODUCT_IMAGES.coats[0], productCount: 4 },
-  { id: 'cat_2', name: 'Dresses', slug: 'dresses', image: PRODUCT_IMAGES.dresses[0], productCount: 4 },
-  { id: 'cat_3', name: 'Tops', slug: 'tops', image: PRODUCT_IMAGES.tops[0], productCount: 4 },
-  { id: 'cat_4', name: 'Pants', slug: 'pants', image: PRODUCT_IMAGES.pants[0], productCount: 4 },
-  { id: 'cat_5', name: 'Accessories', slug: 'accessories', image: PRODUCT_IMAGES.accessories[0], productCount: 4 },
-  { id: 'cat_6', name: 'Shoes', slug: 'shoes', image: PRODUCT_IMAGES.shoes[0], productCount: 4 },
+  {
+    id: 'cat_1', name: 'Coats & Jackets', slug: 'coats', image: PRODUCT_IMAGES.coats[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
+  {
+    id: 'cat_2', name: 'Dresses', slug: 'dresses', image: PRODUCT_IMAGES.dresses[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
+  {
+    id: 'cat_3', name: 'Tops', slug: 'tops', image: PRODUCT_IMAGES.tops[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
+  {
+    id: 'cat_4', name: 'Pants', slug: 'pants', image: PRODUCT_IMAGES.pants[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
+  {
+    id: 'cat_5', name: 'Accessories', slug: 'accessories', image: PRODUCT_IMAGES.accessories[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
+  {
+    id: 'cat_6', name: 'Shoes', slug: 'shoes', image: PRODUCT_IMAGES.shoes[0], productCount: 4,
+    parentId: null,
+    createdAt: '',
+    updatedAt: ''
+  },
 ];
 
 // Simulated API delay

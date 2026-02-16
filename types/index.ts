@@ -39,21 +39,25 @@ export interface User {
 }
 
 export interface Address {
-  id: string;
-  name: string;
-  street: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
   city: string;
-  state: string;
-  zip: string;
+  postalCode: string;
   country: string;
   isDefault: boolean;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   createdAt: Date;
   shippingAddress: Address;
   trackingNumber?: string;
@@ -61,10 +65,17 @@ export interface Order {
 
 export interface Category {
   id: string;
+  image?: string;
+  productCount: number;
   name: string;
   slug: string;
-  image: string;
-  productCount: number;
+  parentId: string | null;
+  children?: Category[];
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    products: number;
+  };
 }
 
 export interface FilterState {
@@ -72,5 +83,5 @@ export interface FilterState {
   priceRange: [number, number];
   sizes: string[];
   colors: string[];
-  sortBy: 'newest' | 'price-asc' | 'price-desc' | 'popular';
+  sortBy: "newest" | "price-asc" | "price-desc" | "popular";
 }

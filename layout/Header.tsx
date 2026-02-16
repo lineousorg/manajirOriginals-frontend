@@ -1,25 +1,22 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart } from "lucide-react";
+import { Heart, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
+import { Category } from "@/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TiShoppingCart, TiThMenu, TiUser } from "react-icons/ti";
 import { IoClose } from "react-icons/io5";
+import useApi from "@/hooks/useApi";
 
 const navLinks = [
+  { href: "/", label: "Home" },
   { href: "/products", label: "Shop" },
   { href: "/products", label: "Products", hasDropdown: true },
-];
-
-const categoryLinks = [
-  { href: "/products?category=coats", label: "Coats" },
-  { href: "/products?category=dresses", label: "Dresses" },
-  { href: "/products?category=tops", label: "Tops" },
 ];
 
 export const Header = () => {
@@ -29,16 +26,30 @@ export const Header = () => {
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const { isAuthenticated, user } = useAuthStore();
-
+  const { get } = useApi();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  useEffect(() => {
-    let lastScrollY = 0;
+  // Transform flat categories to tree structure
+  const categoryTree = categories
+    .filter((cat) => cat.parentId === null)
+    .map((cat) => ({
+      ...cat,
+      children: categories.filter((child) => child.parentId === cat.id),
+    }));
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const response = await get<{ data: Category[] }>("/categories", { skipAuth: true });
+      setCategories(response.data);
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     const onScroll = () => {
       const current = window.scrollY;
-      setIsScrolled(current > 20 && current > lastScrollY);
-      lastScrollY = current;
+      setIsScrolled(current > 20);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -49,14 +60,11 @@ export const Header = () => {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-500 ${
-        isScrolled
-          ? "bg-background/90 backdrop-blur-xl shadow-md border-b border-border/40"
-          : "bg-transparent"
-      }`}
+      className={`sticky top-0 z-50 transition-all duration-500 ${isScrolled ? "bg-primary backdrop-blur-xl shadow-md" : "bg-transparent"
+        }`}
     >
       <div className="container-fashion">
-        <div className="flex items-center justify-between h-20 md:h-16">
+        <div className="grid grid-cols-3 h-20 md:h-16">
           {/* Mobile Menu Button */}
           <button
             className="md:hidden p-3 -ml-3 hover:bg-muted/50 rounded-full transition-all duration-200"
@@ -78,13 +86,15 @@ export const Header = () => {
           {/* Logo */}
           <Link
             href="/"
-            className="font-serif text-2xl md:text-3xl font-light tracking-tight hover:opacity-80 transition-opacity"
+            className="font-serif text-2xl md:text-3xl font-semibold tracking-tight hover:opacity-80 transition-opacity text-foreground flex items-center justify-start"
           >
             MANAJIR
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-10">
+          <nav
+            className="hidden md:grid grid-cols-3 items-center gap-10"
+          >
             {navLinks.map((link) => (
               <div
                 key={link.href + link.label}
@@ -92,26 +102,47 @@ export const Header = () => {
               >
                 <Link
                   href={link.href}
-                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
-                    pathname === link.href && !link.hasDropdown
-                      ? "text-foreground after:w-full"
-                      : "text-muted-foreground hover:text-foreground"
-                  } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-primary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${pathname === link.href && !link.hasDropdown
+                    ? "text-foreground after:w-full"
+                    : "text-foreground hover:text-foreground"
+                    } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-secondary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
                 >
                   {link.label}
                 </Link>
                 {/* Dropdown for Products */}
                 {link.hasDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-40 opacity-0 invisible transform translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 ease-out">
+                  <div className="absolute top-full left-0 mt-2 w-56 opacity-0 invisible transform translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-300 ease-out">
                     <div className="bg-background/95 backdrop-blur-xl border border-border/40 rounded-lg shadow-xl py-2">
-                      {categoryLinks.map((category) => (
-                        <Link
-                          key={category.href}
-                          href={category.href}
-                          className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
-                        >
-                          {category.label}
-                        </Link>
+                      {categoryTree.map((category) => (
+                        <div key={category.id} className="relative group/sub">
+                          <Link
+                            href={"/products?category=" + category.slug}
+                            className="flex items-center justify-between px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            {category.name}
+                            {category.children &&
+                              category.children.length > 0 && (
+                                <ChevronRight size={14} className="ml-2" />
+                              )}
+                          </Link>
+                          {/* Nested children dropdown */}
+                          {category.children &&
+                            category.children.length > 0 && (
+                              <div className="absolute left-full top-0 ml-0.5 w-48 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-300 ease-out">
+                                <div className="bg-background/95 backdrop-blur-xl border border-border/40 rounded-lg shadow-xl py-2">
+                                  {category.children.map((child) => (
+                                    <Link
+                                      key={child.id}
+                                      href={"/products?category=" + child.slug}
+                                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+                                    >
+                                      {child.name}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -121,10 +152,10 @@ export const Header = () => {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center justify-end gap-3 md:gap-6">
             <Link
               href="/wishlist"
-              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              className={`${isScrolled ? "text-white" : "text-red-400"} relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105`}
               aria-label="Wishlist"
             >
               <Heart size={22} />
@@ -136,7 +167,7 @@ export const Header = () => {
             </Link>
             <button
               onClick={openCart}
-              className="relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
+              className={`${isScrolled ? "text-white" : "text-red-400"} relative p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105`}
               aria-label="Cart"
             >
               <TiShoppingCart size={22} />
@@ -186,14 +217,14 @@ export const Header = () => {
                   </Link>
                   {link.hasDropdown && (
                     <div className="pl-4 flex flex-col gap-2 mt-1">
-                      {categoryLinks.map((category) => (
+                      {categories.map((category) => (
                         <Link
-                          key={category.href}
-                          href={category.href}
+                          key={category.id}
+                          href={"/products?category=" + category.slug}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="text-sm uppercase tracking-wider py-2 text-muted-foreground"
                         >
-                          {category.label}
+                          {category.name}
                         </Link>
                       ))}
                     </div>
