@@ -182,15 +182,18 @@ export const Header = () => {
               className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
               aria-label="Profile"
             >
-              {user ? (
+              {user?.avatar ? (
                 <img
                   src={user.avatar}
                   alt={user.name}
                   className="w-8 h-8 rounded-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                  }}
                 />
-              ) : (
-                <TiUser size={22} />
-              )}
+              ) : null}
+              <TiUser size={22} className={`fallback-icon ${user?.avatar ? 'hidden' : ''}`} />
             </Link>
           </div>
         </div>

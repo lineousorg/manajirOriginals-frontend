@@ -17,43 +17,11 @@ import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { Address } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
+import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useToast } from "@/components/ui/use-toast";
 import useApi from "@/hooks/useApi";
 import toast, { Toaster } from "react-hot-toast";
-
-export const confirmToast = (message: string) =>
-  new Promise<boolean>((resolve) => {
-    toast(
-      (t) => (
-        <div className="">
-          <p>{message}</p>
-
-          <div className="flex items-center gap-2 mt-5">
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                resolve(false);
-              }}
-              className="px-3 py-1 rounded bg-gray-200 w-full"
-            >
-              No
-            </button>
-
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                resolve(true);
-              }}
-              className="px-3 py-1 rounded bg-red-500 text-white w-full"
-            >
-              Yes
-            </button>
-          </div>
-        </div>
-      ),
-      { duration: Infinity },
-    );
-  });
+import { confirmToast } from "@/lib/toast-confirm";
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -63,6 +31,7 @@ const ProfilePage = () => {
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [refreshAddresses, setRefreshAddresses] = useState(0);
   const { toast } = useToast();
   const api = useApi();
 
@@ -153,7 +122,7 @@ const ProfilePage = () => {
   };
 
   const handleModalSuccess = () => {
-    fetchAddresses();
+    setRefreshAddresses((prev) => prev + 1);
   };
 
   return (
@@ -274,7 +243,7 @@ const ProfilePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <div className="flex items-center justify-between mb-4">
+              {/* <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-lg font-medium">
                   Saved Addresses
                 </h3>
@@ -285,96 +254,15 @@ const ProfilePage = () => {
                   <Plus size={16} />
                   Add New
                 </button>
-              </div>
+              </div> */}
 
-              {loadingAddresses ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading addresses...
-                </div>
-              ) : addresses.length === 0 ? (
-                <div className="bg-muted rounded-xl p-8 text-center">
-                  <MapPin
-                    size={48}
-                    className="mx-auto mb-4 text-muted-foreground opacity-50"
-                  />
-                  <p className="text-muted-foreground mb-4">
-                    You haven&apos;t added any addresses yet
-                  </p>
-                  <button
-                    onClick={handleAddNew}
-                    className="btn-primary-fashion"
-                  >
-                    <Plus size={18} className="mr-2" />
-                    Add Your First Address
-                  </button>
-                </div>
-              ) : (
-                <div className="grid md:grid-cols-2 gap-4 text-left">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className={`bg-muted/30 rounded-xl p-4 border-2 ${
-                        addr.isDefault ? "border-primary" : "border-transparent"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} className="text-primary" />
-                          <span className="text-sm font-medium">
-                            {addr.firstName} {addr.lastName}
-                          </span>
-                          {addr.isDefault && (
-                            <span className="badge-fashion bg-primary/10 text-primary text-[10px]">
-                              Default
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {!addr.isDefault && (
-                            <button
-                              onClick={() => handleSetDefault(addr.id)}
-                              className="p-1 hover:bg-muted rounded transition-colors"
-                              title="Set as default"
-                            >
-                              <Star
-                                size={14}
-                                className="text-muted-foreground"
-                              />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleEdit(addr)}
-                            className="p-1 hover:bg-muted rounded transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2
-                              size={14}
-                              className="text-muted-foreground"
-                            />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(addr.id)}
-                            className="p-1 hover:bg-muted rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} className="text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {addr.address}
-                        <br />
-                        {addr.city}, {addr.postalCode}
-                        <br />
-                        {addr.country}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {addr.phone}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <AddressSelector
+                onAddNewClick={handleAddNew}
+                refreshTrigger={refreshAddresses}
+                showActions={true}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </motion.div>
           </div>
         </div>
