@@ -17,7 +17,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Chic Shopfront",
+  title: "Manajir Originals",
   description: "Fashion e-commerce platform",
 };
 
@@ -28,9 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${cormorant.variable} bg-luxury-red-black`}
-      >
+      <body className={`${inter.variable} ${cormorant.variable}`}>
         <div className="glass-overlay text-center">
           <Providers>
             <Toaster />

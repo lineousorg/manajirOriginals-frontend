@@ -145,11 +145,11 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-medium">
-                ${product.price.toFixed(2)}
+                ৳{product.price.toFixed(2)}
               </span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">
-                  ${product.originalPrice.toFixed(2)}
+                  ৳{product.originalPrice.toFixed(2)}
                 </span>
               )}
               {product.isSale && (
@@ -310,8 +310,8 @@ export default function ProductDetailsPage({ params }: PageProps) {
             </AccordionTrigger>
             <AccordionContent>
               <div className="text-muted-foreground text-sm space-y-2">
-                <p>Free standard shipping on orders over $150.</p>
-                <p>Express shipping available for $15.</p>
+                <p>Free standard shipping on orders over ৳150.</p>
+                <p>Express shipping available for ৳15.</p>
                 <p>Free returns within 30 days of purchase.</p>
               </div>
             </AccordionContent>

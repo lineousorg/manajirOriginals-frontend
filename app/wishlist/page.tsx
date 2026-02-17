@@ -95,10 +95,10 @@ const WishlistPage = () => {
                 </Link>
               </h3>
               <div className="flex items-center gap-2">
-                <span className="font-medium">${item.product.price.toFixed(2)}</span>
+                <span className="font-medium">৳{item.product.price.toFixed(2)}</span>
                 {item.product.originalPrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    ${item.product.originalPrice.toFixed(2)}
+                    ৳{item.product.originalPrice.toFixed(2)}
                   </span>
                 )}
               </div>

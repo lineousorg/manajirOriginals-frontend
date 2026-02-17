@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User } from "lucide-react";
+import { User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { SignupModal } from "@/components/auth/SignupModal";
+import { userService } from "@/services/user.service";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -16,6 +17,8 @@ const LoginPage = () => {
     password: "",
   });
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -29,20 +32,32 @@ const LoginPage = () => {
     }
   }, [session, login, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({
-      id: "user_1",
-      email: formData.email,
-      name: "Emma Thompson",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
-    });
-    router.push("/");
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const data = await userService.login(formData.email, formData.password);
+
+      login({
+        id: String(data.user.id),
+        email: data.user.email,
+        name: data.user.email.split('@')[0], // Use email prefix as name since API doesn't return name
+      });
+
+      router.push("/");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-900 to-red-950/20 py-8 px-4">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -64,6 +79,11 @@ const LoginPage = () => {
             onSubmit={handleLogin}
             className="space-y-4 text-left max-w-sm mx-auto"
           >
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
             <div>
               <label className="text-label block mb-2">Email</label>
               <input
@@ -90,12 +110,24 @@ const LoginPage = () => {
                 required
               />
             </div>
-            <button type="submit" className="btn-primary-fashion w-full">
-              Sign In
+            <button
+              type="submit"
+              className="btn-primary-fashion w-full flex items-center justify-center gap-2"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
             <div className="mt-4">
               <button
                 onClick={() => signIn("google")}
+                type="button"
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

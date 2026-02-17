@@ -30,8 +30,6 @@ export const Header = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  console.log(user);
-
   // Transform flat categories to tree structure
   const categoryTree = categories
     .filter((cat) => cat.parentId === null)
@@ -42,8 +40,8 @@ export const Header = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await get<Category[]>("/categories", { skipAuth: true });
-      setCategories(data.data);
+      const response = await get<{ data: Category[] }>("/categories", { skipAuth: true });
+      setCategories(response.data);
     };
     fetchCategories();
   }, []);
@@ -95,7 +93,7 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav
-            className={`hidden md:grid grid-cols-${navLinks.length} items-center gap-10`}
+            className="hidden md:grid grid-cols-3 items-center gap-10"
           >
             {navLinks.map((link) => (
               <div
@@ -184,15 +182,18 @@ export const Header = () => {
               className="p-3 hover:bg-muted/50 rounded-full transition-all duration-200 hover:scale-105"
               aria-label="Profile"
             >
-              {user ? (
+              {user?.avatar ? (
                 <img
                   src={user.avatar}
                   alt={user.name}
                   className="w-8 h-8 rounded-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                  }}
                 />
-              ) : (
-                <TiUser size={22} />
-              )}
+              ) : null}
+              <TiUser size={22} className={`fallback-icon ${user?.avatar ? 'hidden' : ''}`} />
             </Link>
           </div>
         </div>

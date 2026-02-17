@@ -180,7 +180,7 @@
   }
 
   .text-label {
-    @apply text-xs uppercase tracking-widest font-medium;
+    @apply text-xs uppercase font-medium text-left text-gray-600;
   }
 
   .card-product {
@@ -208,7 +208,7 @@
   }
 
   .input-fashion {
-    @apply w-full px-4 py-3 border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
+    @apply w-full px-4 py-3 border border-border bg-background text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
   }
 
   .link-underline {
@@ -357,7 +357,6 @@
     rgba(255, 255, 255, 0.06),
     rgba(255, 255, 255, 0.01)
   );
-  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);

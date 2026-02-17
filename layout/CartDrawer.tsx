@@ -178,7 +178,7 @@ export const CartDrawer = () => {
                               </button>
                             </div>
                             <p className="font-medium text-gray-800">
-                              ${(item.product.price * item.quantity).toFixed(2)}
+                              ৳{(item.product.price * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -194,7 +194,7 @@ export const CartDrawer = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Subtotal</span>
                     <span className="text-xl font-medium text-gray-800">
-                      ${getTotal().toFixed(2)}
+                      ৳{getTotal().toFixed(2)}
                     </span>
                   </div>
                   <p className="text-xs text-gray-700 text-center">
