@@ -97,6 +97,13 @@ const useApi = () => {
           headers,
         });
 
+        // Check if the API response indicates failure
+        if (response.data?.status?.toString() === "failed") {
+          const err = new Error(response.data?.message || "Request failed");
+          setError(err);
+          throw err;
+        }
+
         return transform ? transform(response.data) : response.data;
       } catch (err: any) {
         setError(err);

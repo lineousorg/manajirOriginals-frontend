@@ -278,7 +278,7 @@ const ProfilePage = () => {
         address={editingAddress}
         onSuccess={handleModalSuccess}
       />
-      <Toaster />
+      <Toaster position="top-center" />
     </div>
   );
 };

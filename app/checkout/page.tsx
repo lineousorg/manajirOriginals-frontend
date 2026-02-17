@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect } from "react";
@@ -7,7 +9,6 @@ import {
   ChevronRight,
   CreditCard,
   CheckCircle,
-  Plus,
   MapPin,
   Truck,
   ShieldCheck,
@@ -19,14 +20,14 @@ import { Address } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
 import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 const CheckoutPage = () => {
   const { items, getTotal, clearCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
-    "shipping",
+    "shipping"
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "CASH_ON_DELIVERY" | "ONLINE_PAYMENT"
@@ -81,7 +82,7 @@ const CheckoutPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -112,16 +113,20 @@ const CheckoutPage = () => {
 
     try {
       // Make the API call
-      await post("/orders", payload);
+      const response = await post("/orders", payload);
+
+      // Check if the API response indicates failure
+      if (response?.status === "failed" || response?.status === "error") {
+        throw new Error(response?.message || "Failed to create order");
+      }
 
       // Clear cart and show success
       clearCart();
       setStep("success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create order:", err);
-      // Still proceed to success for demo purposes (remove in production)
-      clearCart();
-      setStep("success");
+      // Show error toast and stay on payment page
+      toast.error(err?.response?.data?.message || err?.message || "Failed to create order. Please try again.");
     }
   };
 
@@ -132,7 +137,7 @@ const CheckoutPage = () => {
 
   if (items.length === 0 && step !== "success") {
     return (
-      <div className="container-fashion py-16">
+      <div className="container-fashion py-16 min-h-[90dvh] flex items-center justify-center">
         <EmptyState
           icon={<CreditCard size={64} />}
           title="Nothing to checkout"
@@ -149,7 +154,7 @@ const CheckoutPage = () => {
 
   if (step === "success") {
     return (
-      <div className="container-fashion py-16">
+      <div className="container-fashion py-16 min-h-[90dvh] flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -195,7 +200,7 @@ const CheckoutPage = () => {
         </span>
       </nav>
 
-      <div className="min-h-[100dvh]">
+      <div className="min-h-dvh">
         <div className="flex items-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
             <MapPin size={20} className="text-primary" />
@@ -737,7 +742,7 @@ const CheckoutPage = () => {
       />
 
       {/* Toast Notifications */}
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
     </div>
   );
 };
