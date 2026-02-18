@@ -54,17 +54,7 @@ const CheckoutPage = () => {
   const [refreshAddresses, setRefreshAddresses] = useState(0);
 
   // Order state for receipt
-  const [orderData, setOrderData] = useState<{
-    id: string;
-    items: any[];
-    subtotal: number;
-    shipping: number;
-    tax: number;
-    total: number;
-    paymentMethod: string;
-    orderDate: string;
-    shippingAddress: Address | null;
-  } | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   const subtotal = getTotal();
   const shipping = subtotal > 150 ? 0 : 15;
@@ -134,18 +124,15 @@ const CheckoutPage = () => {
         throw new Error(response?.message || "Failed to create order");
       }
 
-      // Store order data for receipt
-      setOrderData({
-        id: response?.data?.orderId || response?.orderId || `ORD-${Date.now()}`,
-        items: items,
-        subtotal: subtotal,
-        shipping: shipping,
-        tax: tax,
-        total: total,
-        paymentMethod: paymentMethod,
-        orderDate: new Date().toISOString(),
-        shippingAddress: selectedAddress,
-      });
+      // Log the full response for debugging
+      console.log("Order API Response:", response);
+
+      // Store order ID for receipt download
+      // Try different response formats and fallback to generated ID
+      const receivedOrderId = response?.data?.orderId || response?.orderId || response?.data?.id || response?.id;
+      const finalOrderId = receivedOrderId || `ORD-${Date.now()}`;
+      console.log("Order ID:", finalOrderId);
+      setOrderId(finalOrderId);
 
       // Clear cart and show success
       clearCart();
@@ -214,27 +201,13 @@ const CheckoutPage = () => {
         </div>
         {/* Order Receipt */}
         <div>
-          {orderData && orderData.shippingAddress && (
+          {orderId && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <OrderReceipt
-                orderId={orderData.id}
-                items={orderData.items}
-                subtotal={orderData.subtotal}
-                shipping={orderData.shipping}
-                tax={orderData.tax}
-                total={orderData.total}
-                paymentMethod={
-                  orderData.paymentMethod as
-                    | "CASH_ON_DELIVERY"
-                    | "ONLINE_PAYMENT"
-                }
-                shippingAddress={orderData.shippingAddress}
-                orderDate={orderData.orderDate}
-              />
+              <OrderReceipt orderId={orderId} />
             </motion.div>
           )}
         </div>
