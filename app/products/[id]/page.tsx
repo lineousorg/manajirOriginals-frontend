@@ -200,7 +200,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`w-14 h-12 border rounded-md text-sm font-medium transition-all ${
+                    className={`w-12 h-10 md:w-14 md:h-12 border rounded-md text-sm font-medium transition-all ${
                       selectedSize === size
                         ? "border-foreground bg-foreground text-background"
                         : "border-border hover:border-foreground"
@@ -269,7 +269,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
       <div className="container-fashion py-4 mb-10">
         {/* Benefits */}
-        <div className="grid grid-cols-3 gap-4 py-6 border-t border-b border-border mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-6 border-t border-b border-border mb-8">
           <div className="text-center">
             <Truck size={20} className="mx-auto mb-2 text-muted-foreground" />
             <p className=" text-muted-foreground">Free Shipping</p>

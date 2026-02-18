@@ -126,27 +126,27 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="container-fashion py-8 md:py-12 h-screen">
+    <div className="container-fashion py-8 md:py-12 min-h-screen">
       <div className=" mx-auto">
         <h1 className="heading-section mb-8 text-left">My Account</h1>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {/* Sidebar */}
-          <aside className="space-y-2 *:hover:bg-gray-200 *:hover:scale-105 ">
-            <button className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/30 text-left transition-all duration-300 ease-in-out">
+          <aside className="flex flex-row md:flex-col md:space-y-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0 *:hover:bg-gray-200 *:hover:scale-105 ">
+            <button className="flex items-center gap-3 p-3 rounded-lg bg-white/30 text-left transition-all duration-300 ease-in-out whitespace-nowrap">
               <User size={18} />
               Profile
             </button>
             <Link
               href="/orders"
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 text-left text-muted-foreground transition-all duration-300 ease-in-out"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/30 text-left text-muted-foreground transition-all duration-300 ease-in-out whitespace-nowrap"
             >
               <Package size={18} />
               Orders
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/30 transition-all duration-300 ease-in-out text-left text-muted-foreground cursor-pointer"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/30 transition-all duration-300 ease-in-out text-left text-muted-foreground cursor-pointer whitespace-nowrap"
             >
               <LogOut size={18} />
               Sign Out
@@ -193,7 +193,7 @@ const ProfilePage = () => {
 
               {isEditing && (
                 <form className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-label block mb-2">
                         First Name

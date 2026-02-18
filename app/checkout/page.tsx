@@ -20,6 +20,7 @@ import { Address } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
 import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
+import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import toast, { Toaster } from "react-hot-toast";
 
 const CheckoutPage = () => {
@@ -27,7 +28,7 @@ const CheckoutPage = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
-    "shipping"
+    "shipping",
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "CASH_ON_DELIVERY" | "ONLINE_PAYMENT"
@@ -51,6 +52,19 @@ const CheckoutPage = () => {
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshAddresses, setRefreshAddresses] = useState(0);
+
+  // Order state for receipt
+  const [orderData, setOrderData] = useState<{
+    id: string;
+    items: any[];
+    subtotal: number;
+    shipping: number;
+    tax: number;
+    total: number;
+    paymentMethod: string;
+    orderDate: string;
+    shippingAddress: Address | null;
+  } | null>(null);
 
   const subtotal = getTotal();
   const shipping = subtotal > 150 ? 0 : 15;
@@ -82,7 +96,7 @@ const CheckoutPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -120,13 +134,30 @@ const CheckoutPage = () => {
         throw new Error(response?.message || "Failed to create order");
       }
 
+      // Store order data for receipt
+      setOrderData({
+        id: response?.data?.orderId || response?.orderId || `ORD-${Date.now()}`,
+        items: items,
+        subtotal: subtotal,
+        shipping: shipping,
+        tax: tax,
+        total: total,
+        paymentMethod: paymentMethod,
+        orderDate: new Date().toISOString(),
+        shippingAddress: selectedAddress,
+      });
+
       // Clear cart and show success
       clearCart();
       setStep("success");
     } catch (err: any) {
       console.error("Failed to create order:", err);
       // Show error toast and stay on payment page
-      toast.error(err?.response?.data?.message || err?.message || "Failed to create order. Please try again.");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create order. Please try again.",
+      );
     }
   };
 
@@ -154,29 +185,59 @@ const CheckoutPage = () => {
 
   if (step === "success") {
     return (
-      <div className="container-fashion py-16 min-h-[90dvh] flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-lg mx-auto text-center"
-        >
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle size={40} className="text-primary" />
-          </div>
-          <h1 className="heading-section mb-4">Order Confirmed!</h1>
-          <p className="text-muted-foreground mb-8">
-            Thank you for your purchase. We will send you an email confirmation
-            with tracking details shortly.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/orders" className="btn-outline-fashion">
-              View Orders
-            </Link>
-            <Link href="/products" className="btn-primary-fashion">
-              Continue Shopping
-            </Link>
-          </div>
-        </motion.div>
+      <div className="container-fashion py-8 md:py-12">
+        <div className=" mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center mb-8"
+          >
+            <div>
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={40} className="text-green-600" />
+              </div>
+              <h1 className="heading-section mb-4">Order Confirmed!</h1>
+              <p className="text-muted-foreground mb-8">
+                Thank you for your purchase. We will send you an email
+                confirmation with tracking details shortly.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/orders" className="btn-outline-fashion">
+                  View Orders
+                </Link>
+                <Link href="/products" className="btn-primary-fashion">
+                  Continue Shopping
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        {/* Order Receipt */}
+        <div>
+          {orderData && orderData.shippingAddress && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <OrderReceipt
+                orderId={orderData.id}
+                items={orderData.items}
+                subtotal={orderData.subtotal}
+                shipping={orderData.shipping}
+                tax={orderData.tax}
+                total={orderData.total}
+                paymentMethod={
+                  orderData.paymentMethod as
+                    | "CASH_ON_DELIVERY"
+                    | "ONLINE_PAYMENT"
+                }
+                shippingAddress={orderData.shippingAddress}
+                orderDate={orderData.orderDate}
+              />
+            </motion.div>
+          )}
+        </div>
       </div>
     );
   }
@@ -231,7 +292,7 @@ const CheckoutPage = () => {
                       <img
                         src={item.product.images[0]}
                         alt={item.product.name}
-                        className="w-20 h-24 object-cover rounded-lg"
+                        className="w-16 h-20 md:w-20 md:h-24 object-cover rounded-lg"
                       />
                       <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center justify-center">
                         {item.quantity}
@@ -340,7 +401,7 @@ const CheckoutPage = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-label text-left block mb-2">
                         First Name
@@ -403,7 +464,7 @@ const CheckoutPage = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-label text-left block mb-2">
                         City
@@ -437,8 +498,8 @@ const CheckoutPage = () => {
                   <div className="pt-4">
                     <button
                       type="submit"
-                      className="btn-primary-fashion w-full py-4 text-base"
-                      disabled={!selectedAddress && !formData.address}
+                      className="btn-primary-fashion w-full py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!selectedAddress}
                     >
                       Continue to Payment
                       <ChevronRight size={18} className="ml-2" />
@@ -559,10 +620,11 @@ const CheckoutPage = () => {
                       <button
                         type="button"
                         onClick={() => setPaymentMethod("ONLINE_PAYMENT")}
-                        className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group ${
+                        disabled
+                        className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group opacity-50 cursor-not-allowed ${
                           paymentMethod === "ONLINE_PAYMENT"
                             ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                            : "border-border"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -570,7 +632,7 @@ const CheckoutPage = () => {
                             className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                               paymentMethod === "ONLINE_PAYMENT"
                                 ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                : "bg-muted text-muted-foreground"
                             }`}
                           >
                             <svg
@@ -604,6 +666,9 @@ const CheckoutPage = () => {
                               }`}
                             >
                               Online Payment
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                (Coming Soon)
+                              </span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Pay securely online
@@ -685,7 +750,7 @@ const CheckoutPage = () => {
                   <div className="pt-4">
                     <button
                       type="submit"
-                      className="btn-primary-fashion w-full py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="btn-primary-fashion w-full py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       disabled={loading}
                     >
                       {loading ? (

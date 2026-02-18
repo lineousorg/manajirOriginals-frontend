@@ -238,9 +238,9 @@ export const AddressSelector = ({
                   <p className="text-sm text-muted-foreground">
                     {address.city}, {address.postalCode}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  {/* <p className="text-sm text-muted-foreground">
                     {address.country}
-                  </p>
+                  </p> */}
                   {!address.isDefault && (
                     <button
                       type="button"

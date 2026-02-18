@@ -221,7 +221,7 @@ export default function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-20 bg-foreground text-background">
+      {/* <section className="py-20 bg-foreground text-background">
         <div className="container-fashion">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -246,7 +246,7 @@ export default function Home() {
             </form>
           </motion.div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }

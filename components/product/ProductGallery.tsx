@@ -27,7 +27,7 @@ export const ProductGallery = ({
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative h-[70dvh] overflow-hidden rounded-lg bg-muted group">
+      <div className="relative h-[50dvh] md:h-[70dvh] overflow-hidden rounded-lg bg-muted group">
         <AnimatePresence mode="wait">
           <motion.img
             key={currentIndex}

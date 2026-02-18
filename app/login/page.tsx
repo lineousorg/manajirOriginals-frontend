@@ -63,21 +63,21 @@ const LoginPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center"
       >
-        <div className="text-center md:text-left ">
-          <h1 className="heading-section text-4xl font-bold mb-4">
+        <div className="text-center md:text-left px-4 md:px-0">
+          <h1 className="heading-section text-3xl md:text-4xl font-bold mb-4">
             Welcome Back
           </h1>
           <p className="text-muted-foreground text-lg">
             Sign in to access your account, orders, and wishlist.
           </p>
         </div>
-        <div className="text-center md:border-l md:border-border md:pl-8">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-            <User size={40} className="text-muted-foreground" />
+        <div className="text-center md:border-l md:border-border md:pl-8 px-4 md:px-0">
+          <div className="w-14 h-14 md:w-20 md:h-20 bg-muted rounded-full flex items-center justify-center mb-4 md:mb-6">
+            <User size={32} className="md:size-40 text-muted-foreground" />
           </div>
           <form
             onSubmit={handleLogin}
-            className="space-y-4 text-left max-w-sm mx-auto"
+            className="space-y-4 text-left max-w-sm mx-auto w-full"
           >
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
