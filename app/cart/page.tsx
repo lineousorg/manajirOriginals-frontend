@@ -53,11 +53,11 @@ const CartPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="flex gap-6 pb-6 border-b border-border"
+              className="flex gap-3 md:gap-6 pb-6 border-b border-border"
             >
               <Link
                 href={`/products/${item.product.id}`}
-                className="w-28 h-36 flex-shrink-0 overflow-hidden rounded-lg"
+                className="w-20 h-24 md:w-28 md:h-36 flex-shrink-0 overflow-hidden rounded-lg"
               >
                 <img
                   src={item.product.images[0]}
@@ -131,7 +131,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ${(item.product.price * item.quantity).toFixed(2)}
+                    ৳{(item.product.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -146,28 +146,28 @@ const CartPage = () => {
           transition={{ delay: 0.3 }}
           className="lg:sticky lg:top-28 lg:self-start"
         >
-          <div className="bg-muted/30 rounded-xl p-6">
+          <div className="bg-muted/30 rounded-xl p-4 md:p-6">
             <h2 className="font-serif text-xl mb-6">Order Summary</h2>
 
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>৳{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
                 <span>
-                  {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                  {shipping === 0 ? "Free" : `৳${shipping.toFixed(2)}`}
                 </span>
               </div>
               {shipping > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Free shipping on orders over $150
+                  Free shipping on orders over ৳150
                 </p>
               )}
               <div className="border-t border-border pt-4 flex justify-between text-base font-medium">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>৳{total.toFixed(2)}</span>
               </div>
             </div>
 
