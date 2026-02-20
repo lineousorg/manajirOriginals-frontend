@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -11,8 +11,6 @@ import {
   ShieldCheck,
   ChevronRight,
 } from "lucide-react";
-import { productService } from "@/services/product.service";
-import { Product } from "@/types";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Loader } from "@/components/ui/Loader";
@@ -27,61 +25,64 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useProductById, useProducts, getProductCategories } from "@/hooks/useProduct";
 
-interface PageProps {
-  params: { id: string };
-}
-
-export default function ProductDetailsPage({ params }: PageProps) {
+export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
+
+  const { product, loading } = useProductById(id, { refreshInterval: 30_000 });
+  const { products: allProducts } = useProducts({ refreshInterval: 60_000 });
 
   const addToCart = useCartStore((state) => state.addItem);
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { isAuthenticated } = useAuthStore();
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const [productData, related] = await Promise.all([
-          productService.getProductById(id),
-          productService.getRelatedProducts(id),
-        ]);
+  // Related products: same category, different id
+  const relatedProducts = product
+    ? allProducts
+        .filter(
+          (p) =>
+            p.id !== product.id &&
+            p.categoryId === product.categoryId,
+        )
+        .slice(0, 4)
+    : [];
 
-        if (!productData) {
-          router.push("/products");
-          return;
-        }
+  const productId = product ? String(product.id) : "";
+  const inWishlist = product ? isInWishlist(productId) : false;
 
-        setProduct(productData);
-        setRelatedProducts(related);
-        setSelectedSize(productData.sizes[0] || "");
-        setSelectedColor(productData.colors[0]?.name || "");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProduct();
-  }, [id, router]);
+  const images =
+    product?.images && product.images.length > 0
+      ? product.images
+      : ["https://placehold.co/600x800?text=No+Image"];
+
+  const sizes = product?.sizes ?? [];
+  const details = product?.details ?? [];
+  const categories = product ? getProductCategories(product) : null;
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
       router.push("/login");
       return;
     }
-    if (!product || !selectedSize || !selectedColor) return;
-    addToCart(product, selectedSize, selectedColor, quantity);
+    if (!product) return;
+    addToCart(
+      {
+        ...product,
+        id: productId,
+        images,
+      } as any,
+      selectedSize || "One Size",
+      selectedColor || "Default",
+      quantity,
+    );
   };
 
-  if (loading) {
+  if (loading && !product) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader size="lg" />
@@ -89,9 +90,16 @@ export default function ProductDetailsPage({ params }: PageProps) {
     );
   }
 
-  if (!product) return null;
-
-  const inWishlist = isInWishlist(product.id);
+  if (!product) {
+    return (
+      <div className="container-fashion py-16 text-center">
+        <p className="text-muted-foreground">Product not found.</p>
+        <Link href="/products" className="btn-primary-fashion mt-4 inline-block">
+          Back to Products
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -108,6 +116,28 @@ export default function ProductDetailsPage({ params }: PageProps) {
           >
             Products
           </Link>
+          {categories?.parent && (
+            <>
+              <ChevronRight size={14} />
+              <Link
+                href={`/products?category=${(categories.parent as any).slug}`}
+                className="hover:text-foreground transition-colors"
+              >
+                {categories.parent.name}
+              </Link>
+            </>
+          )}
+          {categories?.child && (
+            <>
+              <ChevronRight size={14} />
+              <Link
+                href={`/products?category=${(categories.child as any).slug}`}
+                className="hover:text-foreground transition-colors"
+              >
+                {categories.child.name}
+              </Link>
+            </>
+          )}
           <ChevronRight size={14} />
           <span className="text-foreground">{product.name}</span>
         </nav>
@@ -122,10 +152,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <ProductGallery
-              images={product.images}
-              productName={product.name}
-            />
+            <ProductGallery images={images} productName={product.name} />
           </motion.div>
 
           {/* Product Info */}
@@ -139,31 +166,33 @@ export default function ProductDetailsPage({ params }: PageProps) {
             <h1 className="font-serif text-3xl md:text-4xl font-medium mb-2 text-left">
               {product.name}
             </h1>
-            <p className="text-muted-foreground mb-8 text-left">
-              {product.description}
-            </p>
+            {product.description && (
+              <p className="text-muted-foreground mb-8 text-left">
+                {product.description}
+              </p>
+            )}
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-medium">
-                ৳{product.price.toFixed(2)}
+                ৳{product.price}
               </span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">
-                  ৳{product.originalPrice.toFixed(2)}
+                  ৳{product.originalPrice}
                 </span>
               )}
-              {product.isSale && (
+              {product.isSale && product.originalPrice && (
                 <span className="badge-sale">
                   {Math.round(
-                    (1 - product.price / product.originalPrice!) * 100
+                    (1 - product.price / product.originalPrice) * 100,
                   )}
                   % Off
                 </span>
               )}
             </div>
 
-            {/* Color Selection */}
-            <div className="mb-6">
+            {/* Color Selection - commented out as color selection is not available yet */}
+            {/* <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-label">Color</span>
                 <span className="text-sm text-muted-foreground">
@@ -171,7 +200,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 </span>
               </div>
               <div className="flex gap-3">
-                {product.colors.map((color) => (
+                {(product.colors ?? []).map((color) => (
                   <button
                     key={color.name}
                     onClick={() => setSelectedColor(color.name)}
@@ -185,32 +214,34 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   />
                 ))}
               </div>
-            </div>
+            </div> */}
 
             {/* Size Selection */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-label">Size</span>
-                <button className="text-sm text-primary hover:underline">
-                  Size Guide
-                </button>
-              </div>
-              <div className="flex gap-2">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`w-12 h-10 md:w-14 md:h-12 border rounded-md text-sm font-medium transition-all ${
-                      selectedSize === size
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border hover:border-foreground"
-                    }`}
-                  >
-                    {size}
+            {sizes.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-label">Size</span>
+                  <button className="text-sm text-primary hover:underline">
+                    Size Guide
                   </button>
-                ))}
+                </div>
+                <div className="flex gap-2">
+                  {sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`w-12 h-10 md:w-14 md:h-12 border rounded-md text-sm font-medium transition-all ${
+                        selectedSize === size
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border hover:border-foreground"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div className="mb-8 flex flex-col items-start justify-start">
@@ -238,7 +269,6 @@ export default function ProductDetailsPage({ params }: PageProps) {
             <div className="flex gap-3 mb-8">
               <button
                 onClick={handleAddToCart}
-                disabled={!selectedSize || !selectedColor}
                 className="flex-1 btn-primary-fashion disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add to Bag
@@ -249,7 +279,11 @@ export default function ProductDetailsPage({ params }: PageProps) {
                     router.push("/login");
                     return;
                   }
-                  toggleItem(product);
+                  toggleItem({
+                    ...product,
+                    id: productId,
+                    images,
+                  } as any);
                 }}
                 className={`p-4 border rounded-md transition-all ${
                   inWishlist
@@ -292,18 +326,20 @@ export default function ProductDetailsPage({ params }: PageProps) {
 
         {/* Accordion Details */}
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="details">
-            <AccordionTrigger className="text-label hover:no-underline text-lg">
-              Product Details
-            </AccordionTrigger>
-            <AccordionContent>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                {product.details.map((detail, index) => (
-                  <li key={index}>• {detail}</li>
-                ))}
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
+          {details.length > 0 && (
+            <AccordionItem value="details">
+              <AccordionTrigger className="text-label hover:no-underline text-lg">
+                Product Details
+              </AccordionTrigger>
+              <AccordionContent>
+                <ul className="space-y-2 text-muted-foreground text-sm">
+                  {details.map((detail, index) => (
+                    <li key={index}>• {detail}</li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          )}
           <AccordionItem value="shipping">
             <AccordionTrigger className="text-label hover:no-underline text-lg">
               Shipping & Returns

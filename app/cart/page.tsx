@@ -131,7 +131,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ৳{(item.product.price * item.quantity).toFixed(2)}
+                    ৳{(item.product.price * item.quantity)}
                   </p>
                 </div>
               </div>
@@ -152,12 +152,12 @@ const CartPage = () => {
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>৳{subtotal.toFixed(2)}</span>
+                <span>৳{subtotal}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
                 <span>
-                  {shipping === 0 ? "Free" : `৳${shipping.toFixed(2)}`}
+                  {shipping === 0 ? "Free" : `৳${shipping}`}
                 </span>
               </div>
               {shipping > 0 && (
@@ -167,7 +167,7 @@ const CartPage = () => {
               )}
               <div className="border-t border-border pt-4 flex justify-between text-base font-medium">
                 <span>Total</span>
-                <span>৳{total.toFixed(2)}</span>
+                <span>৳{total}</span>
               </div>
             </div>
 

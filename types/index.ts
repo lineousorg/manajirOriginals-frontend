@@ -1,22 +1,72 @@
-export interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  price: number;
-  originalPrice?: number;
-  images: string[];
-  category: string;
-  colors: ProductColor[];
-  sizes: string[];
-  description: string;
-  details: string[];
-  isNew?: boolean;
-  isSale?: boolean;
-}
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface ProductColor {
   name: string;
   value: string;
+}
+
+export interface ApiProduct {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  originalPrice?: number;
+  stock?: number;
+  sku?: string;
+  images?: string[];
+  categoryId?: number;
+  category?: {
+    id: number;
+    name: string;
+    slug: string;
+    parentId: number | null;
+    parent?: {
+      id: number;
+      name: string;
+      slug: string;
+      parentId: number | null;
+    };
+    children?: {
+      id: number;
+      name: string;
+      slug: string;
+      parentId: number | null;
+    }[];
+  };
+  brand?: string;
+  colors?: ProductColor[];
+  sizes?: string[];
+  details?: string[];
+  isNew?: boolean;
+  isSale?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
+/**
+ * @deprecated Use ApiProduct instead. Kept for backward compatibility with cart/wishlist stores.
+ */
+export interface Product {
+  id: string | number;
+  name: string;
+  brand?: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  category?: any;
+  categoryId?: number | string;
+  colors?: ProductColor[];
+  sizes?: string[];
+  description?: string;
+  details?: string[];
+  isNew?: boolean;
+  isSale?: boolean;
+  stock?: number;
+  sku?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
 }
 
 export interface CartItem {
@@ -64,15 +114,15 @@ export interface Order {
 }
 
 export interface Category {
-  id: string;
+  id: string | number;
   image?: string;
-  productCount: number;
+  productCount?: number;
   name: string;
   slug: string;
-  parentId: string | null;
+  parentId: string | number | null;
   children?: Category[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   _count?: {
     products: number;
   };
