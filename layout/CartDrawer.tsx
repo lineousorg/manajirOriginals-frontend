@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -113,9 +114,9 @@ export const CartDrawer = () => {
                         className="flex gap-4 bg-card/50 p-3 rounded-xl"
                       >
                         <img
-                          src={item.product.images[0]}
+                         src={item?.product?.images?.[0]?.url}
                           alt={item.product.name}
-                          className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg flex-shrink-0"
+                          className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg shrink-0"
                         />
                         <div className="flex-1 flex flex-col min-w-0">
                           <div className="flex justify-between items-start gap-2">
@@ -131,12 +132,12 @@ export const CartDrawer = () => {
                             <button
                               onClick={() =>
                                 removeItem(
-                                  item.product.id,
+                                  String(item.product.id),
                                   item.selectedSize,
-                                  item.selectedColor,
+                                  item.selectedColor
                                 )
                               }
-                              className="p-1.5 hover:bg-muted rounded-full transition-colors text-gray-700 hover:text-destructive flex-shrink-0"
+                              className="p-1.5 hover:bg-muted rounded-full transition-colors text-gray-700 hover:text-destructive shrink-0"
                               aria-label="Remove item"
                             >
                               <Trash2 size={16} />
@@ -147,10 +148,10 @@ export const CartDrawer = () => {
                               <button
                                 onClick={() => {
                                   updateQuantity(
-                                    item.product.id,
+                                    String(item.product.id),
                                     item.selectedSize,
                                     item.selectedColor,
-                                    item.quantity - 1,
+                                    item.quantity - 1
                                   );
                                 }}
                                 disabled={item.quantity <= 1}
@@ -159,16 +160,16 @@ export const CartDrawer = () => {
                               >
                                 <Minus size={14} />
                               </button>
-                              <span className="px-3 text-sm text-gray-500 font-medium min-w-[2rem] text-center">
+                              <span className="px-3 text-sm text-gray-500 font-medium min-w-8 text-center">
                                 {item.quantity}
                               </span>
                               <button
                                 onClick={() => {
                                   updateQuantity(
-                                    item.product.id,
+                                    String(item.product.id),
                                     item.selectedSize,
                                     item.selectedColor,
-                                    item.quantity + 1,
+                                    item.quantity + 1
                                   );
                                 }}
                                 className="p-2 hover:bg-muted transition-colors rounded-r-full text-gray-400"
@@ -178,7 +179,10 @@ export const CartDrawer = () => {
                               </button>
                             </div>
                             <p className="font-medium text-gray-800">
-                              ৳{(item.product.price * item.quantity).toFixed(2)}
+                              ৳{" "}
+                              {(
+                                item.product.variants[0]?.price * item.quantity
+                              ).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -194,7 +198,7 @@ export const CartDrawer = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-700">Subtotal</span>
                     <span className="text-xl font-medium text-gray-800">
-                      ৳{getTotal().toFixed(2)}
+                      ৳ {getTotal().toFixed(2)}
                     </span>
                   </div>
                   <p className="text-xs text-gray-700 text-center">

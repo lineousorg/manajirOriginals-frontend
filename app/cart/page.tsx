@@ -6,14 +6,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } = 
+  const { items, removeItem, updateQuantity, getTotal, clearCart } =
     useCartStore();
 
   const subtotal = getTotal();
   const shipping = subtotal > 150 ? 0 : 15;
   const total = subtotal + shipping;
-
-
 
   if (items.length === 0) {
     return (
@@ -31,6 +29,8 @@ const CartPage = () => {
       </div>
     );
   }
+
+  console.log(items);
 
   return (
     <div className="container-fashion py-8 md:py-12">
@@ -57,10 +57,10 @@ const CartPage = () => {
             >
               <Link
                 href={`/products/${item.product.id}`}
-                className="w-20 h-24 md:w-28 md:h-36 flex-shrink-0 overflow-hidden rounded-lg"
+                className="w-20 h-24 md:w-28 md:h-36 shrink-0 overflow-hidden rounded-lg"
               >
                 <img
-                  src={item.product.images[0]}
+               src={item?.product?.images?.[0]?.url}
                   alt={item.product.name}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
@@ -83,7 +83,7 @@ const CartPage = () => {
                   <button
                     onClick={() =>
                       removeItem(
-                        item.product.id,
+                        String(item.product.id),
                         item.selectedSize,
                         item.selectedColor
                       )
@@ -100,7 +100,7 @@ const CartPage = () => {
                     <button
                       onClick={() =>
                         updateQuantity(
-                          item.product.id,
+                          String(item.product.id),
                           item.selectedSize,
                           item.selectedColor,
                           item.quantity - 1
@@ -118,7 +118,7 @@ const CartPage = () => {
                     <button
                       onClick={() =>
                         updateQuantity(
-                          item.product.id,
+                          String(item.product.id),
                           item.selectedSize,
                           item.selectedColor,
                           item.quantity + 1
@@ -131,7 +131,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ৳{(item.product.price * item.quantity)}
+                    ৳{item.product.variants[0]?.price * item.quantity}
                   </p>
                 </div>
               </div>
@@ -152,13 +152,11 @@ const CartPage = () => {
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>৳{subtotal}</span>
+                <span>৳ {subtotal}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
-                <span>
-                  {shipping === 0 ? "Free" : `৳${shipping}`}
-                </span>
+                <span>{shipping === 0 ? "Free" : `৳ ${shipping}`}</span>
               </div>
               {shipping > 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -167,7 +165,7 @@ const CartPage = () => {
               )}
               <div className="border-t border-border pt-4 flex justify-between text-base font-medium">
                 <span>Total</span>
-                <span>৳{total}</span>
+                <span>৳ {total}</span>
               </div>
             </div>
 

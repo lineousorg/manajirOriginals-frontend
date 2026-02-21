@@ -4,6 +4,15 @@ export interface ProductColor {
   name: string;
   value: string;
 }
+// export interface ImageType {
+//   altText: string;
+//   url: string;
+// }
+
+export interface TypeImage {
+  altText: string;
+  url: string;
+}
 
 export interface ApiProduct {
   id: number;
@@ -13,7 +22,7 @@ export interface ApiProduct {
   originalPrice?: number;
   stock?: number;
   sku?: string;
-  images?: string[];
+  images?: TypeImage[];
   categoryId?: number;
   category?: {
     id: number;
@@ -36,7 +45,6 @@ export interface ApiProduct {
   brand?: string;
   colors?: ProductColor[];
   sizes?: string[];
-  details?: string[];
   isNew?: boolean;
   isSale?: boolean;
   createdAt?: string;
@@ -53,13 +61,12 @@ export interface Product {
   brand?: string;
   price: number;
   originalPrice?: number;
-  images: string[];
+  images?: TypeImage[];
   category?: any;
   categoryId?: number | string;
   colors?: ProductColor[];
   sizes?: string[];
   description?: string;
-  details?: string[];
   isNew?: boolean;
   isSale?: boolean;
   stock?: number;

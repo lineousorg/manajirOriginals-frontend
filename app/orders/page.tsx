@@ -228,7 +228,7 @@ const OrdersPage = () => {
     <div className="container-fashion py-8 md:py-12">
       <h1 className="heading-section mb-8">Order History</h1>
 
-      <div className="space-y-6">
+      <div className="space-y-6 min-h-screen">
         {orders.map((order, index) => {
           const orderStatus = mapStatus(order.status);
           const status = statusConfig[orderStatus as keyof typeof statusConfig];

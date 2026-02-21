@@ -28,7 +28,7 @@ const CheckoutPage = () => {
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
-    "shipping",
+    "shipping"
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "CASH_ON_DELIVERY" | "ONLINE_PAYMENT"
@@ -86,7 +86,7 @@ const CheckoutPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -99,12 +99,12 @@ const CheckoutPage = () => {
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-
     // Build the items array for the API
     const orderItems = items.map((item) => ({
-      variantId: Number(item.product.id) || 1,
+      variantId: Number(item.product.variants[0]?.id),
       quantity: item.quantity,
     }));
+    console.log(orderItems);
 
     // Create the payload
     const payload = {
@@ -129,7 +129,11 @@ const CheckoutPage = () => {
 
       // Store order ID for receipt download
       // Try different response formats and fallback to generated ID
-      const receivedOrderId = response?.data?.orderId || response?.orderId || response?.data?.id || response?.id;
+      const receivedOrderId =
+        response?.data?.orderId ||
+        response?.orderId ||
+        response?.data?.id ||
+        response?.id;
       const finalOrderId = receivedOrderId || `ORD-${Date.now()}`;
       console.log("Order ID:", finalOrderId);
       setOrderId(finalOrderId);
@@ -143,7 +147,7 @@ const CheckoutPage = () => {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to create order. Please try again.",
+          "Failed to create order. Please try again."
       );
     }
   };
@@ -263,7 +267,7 @@ const CheckoutPage = () => {
                   >
                     <div className="relative">
                       <img
-                        src={item.product.images[0]}
+                        src={item?.product?.images?.[0]?.url}
                         alt={item.product.name}
                         className="w-16 h-20 md:w-20 md:h-24 object-cover rounded-lg"
                       />
@@ -285,7 +289,7 @@ const CheckoutPage = () => {
                         </span>
                       </p>
                       <p className="text-sm font-medium mt-2 text-primary">
-                        ৳{(item.product.price * item.quantity).toFixed(2)}
+                        ৳ {(item.product.variants[0]?.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>

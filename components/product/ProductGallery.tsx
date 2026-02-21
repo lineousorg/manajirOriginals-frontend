@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, CloudCog, ZoomIn } from "lucide-react";
-
-interface ImageType {
-  altText: string;
-  url: string;
-}
+import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { TypeImage } from "@/types";
 
 interface ProductGalleryProps {
-  images: ImageType[];
+  images: TypeImage[];
   productName: string;
 }
 
@@ -29,7 +25,7 @@ export const ProductGallery = ({
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
-  console.log(images)
+  // console.log(images);
 
   return (
     <div className="space-y-4">
@@ -43,8 +39,9 @@ export const ProductGallery = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`w-full h-full object-contain cursor-zoom-in transition-transform duration-500 ${isZoomed ? "scale-150" : ""
-              }`}
+            className={`w-full h-full object-contain cursor-zoom-in transition-transform duration-500 ${
+              isZoomed ? "scale-150" : ""
+            }`}
             onClick={() => setIsZoomed(!isZoomed)}
           />
         </AnimatePresence>
@@ -81,10 +78,11 @@ export const ProductGallery = ({
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
-                  ? "bg-foreground w-6"
-                  : "bg-foreground/40 hover:bg-foreground/60"
-                  }`}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentIndex
+                    ? "bg-foreground w-6"
+                    : "bg-foreground/40 hover:bg-foreground/60"
+                }`}
                 aria-label={`Go to image ${index + 1}`}
               />
             ))}
@@ -98,10 +96,11 @@ export const ProductGallery = ({
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-3/4 overflow-hidden rounded-md transition-all ${index === currentIndex
-              ? "ring-2 ring-foreground"
-              : "opacity-60 hover:opacity-100"
-              }`}
+            className={`aspect-3/4 overflow-hidden rounded-md transition-all ${
+              index === currentIndex
+                ? "ring-2 ring-foreground"
+                : "opacity-60 hover:opacity-100"
+            }`}
           >
             <img
               src={images[index].url}

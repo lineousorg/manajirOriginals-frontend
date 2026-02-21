@@ -23,7 +23,7 @@ export default function ProductsPage() {
           No products available at the moment.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-screen">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

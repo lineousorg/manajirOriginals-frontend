@@ -3,7 +3,7 @@
 
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
-import { ApiProduct } from "@/types";
+import { ApiProduct, TypeImage } from "@/types";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
@@ -21,9 +21,15 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const productId = String(product.id);
   const inWishlist = isInWishlist(productId);
 
-  const images = product.images && product.images.length > 0
-    ? product.images
-    : ["https://placehold.co/600x800?text=No+Image"];
+  const images =
+    product.images && product.images.length > 0
+      ? product.images
+      : [
+          {
+            url: "https://placehold.co/600x800?text=No+Image",
+            altText: "No Image",
+          },
+        ];
 
   return (
     <motion.article
@@ -36,7 +42,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         <div className="relative overflow-hidden rounded-lg aspect-3/4 bg-muted">
           {/* Image */}
           <motion.img
-            src={images[0]}
+            src={images[0]?.url}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
@@ -45,7 +51,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           {/* Second Image on Hover */}
           {images[1] && (
             <img
-              src={images[1]}
+              src={images[1]?.url}
               alt={`${product.name} alternate view`}
               className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
               loading="lazy"
@@ -66,16 +72,26 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
                 router.push("/login");
                 return;
               }
+              const normalizedImages: TypeImage[] = Array.isArray(
+                product.images
+              )
+                ? product.images.map((img) =>
+                    typeof img === "string"
+                      ? { url: img, altText: product.name }
+                      : img
+                  )
+                : [];
               toggleItem({
                 ...product,
                 id: productId,
-                images,
-              } as any);
+                images: normalizedImages,
+              });
             }}
-            className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 ${inWishlist
+            className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 ${
+              inWishlist
                 ? "bg-primary text-primary-foreground"
                 : "bg-primary text-foreground hover:bg-background"
-              }`}
+            }`}
             aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
             <Heart size={18} fill={inWishlist ? "currentColor" : "none"} />
@@ -83,7 +99,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
           {/* Quick View Overlay */}
           <div className=" group-hover:translate-y-0 transition-transform duration-300">
-            <span className="btn-outline-fashion w-full text-center bg-background/95 backdrop-blur-sm text-sm py-2">
+            <span className="btn-outline-fashion w-full text-center bg-background/95 backdrop-blur-sm text-sm py-2 text-black">
               Quick View
             </span>
           </div>
@@ -94,7 +110,9 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       <div className="mt-4 space-y-1">
         {product.brand && <p className="text-label">{product.brand}</p>}
         {product.category && (
-          <p className="text-xs text-muted-foreground">{product.category.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {product.category.name}
+          </p>
         )}
         <h3 className="font-medium">
           <Link
@@ -105,7 +123,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </Link>
         </h3>
         <div className="flex items-center gap-2">
-          <span className="font-medium">৳{product.price}</span>
+          <span className="font-medium">৳ {product.variants[0].price}</span>
           {product.originalPrice && (
             <span className="text-sm text-muted-foreground line-through">
               ৳{product.originalPrice}

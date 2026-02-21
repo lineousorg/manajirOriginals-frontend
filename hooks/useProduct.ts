@@ -43,9 +43,15 @@ interface UseProductByIdOptions {
 export function normalizeProduct(raw: ApiProduct): ApiProduct {
   return {
     ...raw,
-    images: Array.isArray(raw.images) && raw.images.length > 0
-      ? raw.images
-      : ["https://placehold.co/600x800?text=No+Image"],
+    images:
+      Array.isArray(raw.images) && raw.images.length > 0
+        ? raw.images
+        : [
+            {
+              url: "https://placehold.co/600x800?text=No+Image",
+              altText: "No Image",
+            },
+          ],
     colors: raw.colors ?? [],
     sizes: raw.sizes ?? [],
     details: raw.details ?? [],
@@ -86,11 +92,7 @@ export function getProductCategories(product: ApiProduct) {
 // useProducts – fetch list of products with auto-refresh
 // ═══════════════════════════════════════════════════════════════════
 export function useProducts(options: UseProductsOptions = {}) {
-  const {
-    refreshInterval = 30_000,
-    fetchOnMount = true,
-    params,
-  } = options;
+  const { refreshInterval = 30_000, fetchOnMount = true, params } = options;
 
   const { get, loading, error } = useApi();
   const [products, setProducts] = useState<ApiProduct[]>([]);
@@ -122,10 +124,11 @@ export function useProducts(options: UseProductsOptions = {}) {
     } catch (err) {
       console.error("Failed to fetch products:", err);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [get, paramsKey]);
 
-  // Initial fetch
+  // Initial fetch - using useEffect is intentional for async data fetching
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (fetchOnMount) {
       fetchProducts();
@@ -156,7 +159,7 @@ export function useProducts(options: UseProductsOptions = {}) {
 // ═══════════════════════════════════════════════════════════════════
 export function useProductById(
   id: string | number | undefined,
-  options: UseProductByIdOptions = {},
+  options: UseProductByIdOptions = {}
 ) {
   const { refreshInterval = 30_000, fetchOnMount = true } = options;
 
@@ -167,19 +170,24 @@ export function useProductById(
   const fetchProduct = useCallback(async () => {
     if (!id) return;
     try {
-      const response = await get<SingleProductApiResponse>(
-        `/products/${id}`,
-        { skipAuth: true },
-      );
+      const response = await get<SingleProductApiResponse>(`/products/${id}`, {
+        skipAuth: true,
+      });
       setProduct(normalizeProduct(response.data));
     } catch (err) {
       console.error("Failed to fetch product:", err);
     }
   }, [get, id]);
 
+  // Initial fetch - using useEffect is intentional for async data fetching
+  const initialFetchCalled = useRef(false);
   useEffect(() => {
-    if (fetchOnMount && id) {
-      fetchProduct();
+    if (!initialFetchCalled.current) {
+      initialFetchCalled.current = true;
+      if (fetchOnMount && id) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchProduct();
+      }
     }
   }, [fetchOnMount, id, fetchProduct]);
 
@@ -222,7 +230,9 @@ export function useCategories(refreshInterval = 60_000) {
     }
   }, [get]);
 
+  // Initial fetch - using useEffect is intentional for async data fetching
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
   }, [fetchCategories]);
 
@@ -243,7 +253,8 @@ export function useCategories(refreshInterval = 60_000) {
       children: categories.filter((child) => child.parentId === cat.id),
     }));
 
-  const getParentCategories = () => categories.filter((c) => c.parentId === null);
+  const getParentCategories = () =>
+    categories.filter((c) => c.parentId === null);
   const getChildCategories = (parentId?: string) =>
     parentId
       ? categories.filter((c) => c.parentId === parentId)

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -20,12 +21,11 @@ import { useAuthStore } from "@/store/auth.store";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { useProductById, useProducts, getProductCategories } from "@/hooks/useProduct";
+  useProductById,
+  useProducts,
+  getProductCategories,
+} from "@/hooks/useProduct";
+import { TypeImage } from "@/types";
 
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,9 +45,7 @@ export default function ProductDetailsPage() {
   const relatedProducts = product
     ? allProducts
         .filter(
-          (p) =>
-            p.id !== product.id &&
-            p.categoryId === product.categoryId,
+          (p) => p.id !== product.id && p.categoryId === product.categoryId
         )
         .slice(0, 4)
     : [];
@@ -58,7 +56,12 @@ export default function ProductDetailsPage() {
   const images =
     product?.images && product.images.length > 0
       ? product.images
-      : ["https://placehold.co/600x800?text=No+Image"];
+      : [
+          {
+            url: "https://placehold.co/600x800?text=No+Image",
+            altText: "No Image",
+          },
+        ];
 
   const sizes = product?.sizes ?? [];
   const details = product?.details ?? [];
@@ -70,21 +73,28 @@ export default function ProductDetailsPage() {
       return;
     }
     if (!product) return;
+
+    const normalizedImages: TypeImage[] = Array.isArray(product.images)
+      ? product.images.map((img) =>
+          typeof img === "string" ? { url: img, altText: product.name } : img
+        )
+      : [];
+
     addToCart(
       {
         ...product,
         id: productId,
-        images,
-      } as any,
+        images: normalizedImages,
+      },
       selectedSize || "One Size",
       selectedColor || "Default",
-      quantity,
+      quantity
     );
   };
 
   if (loading && !product) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader size="lg" />
       </div>
     );
@@ -92,14 +102,19 @@ export default function ProductDetailsPage() {
 
   if (!product) {
     return (
-      <div className="container-fashion py-16 text-center">
+      <div className="container-fashion py-16 text-center min-h-screen">
         <p className="text-muted-foreground">Product not found.</p>
-        <Link href="/products" className="btn-primary-fashion mt-4 inline-block">
+        <Link
+          href="/products"
+          className="btn-primary-fashion mt-4 inline-block"
+        >
           Back to Products
         </Link>
       </div>
     );
   }
+
+  console.log(product);
 
   return (
     <div>
@@ -174,7 +189,7 @@ export default function ProductDetailsPage() {
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-medium">
-                ৳{product.price}
+                ৳ {product?.variants[0]?.price}
               </span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">
@@ -184,7 +199,7 @@ export default function ProductDetailsPage() {
               {product.isSale && product.originalPrice && (
                 <span className="badge-sale">
                   {Math.round(
-                    (1 - product.price / product.originalPrice) * 100,
+                    (1 - product.price / product.originalPrice) * 100
                   )}
                   % Off
                 </span>
@@ -325,7 +340,7 @@ export default function ProductDetailsPage() {
         </div>
 
         {/* Accordion Details */}
-        <Accordion type="single" collapsible className="w-full">
+        {/* <Accordion type="single" collapsible className="w-full">
           {details.length > 0 && (
             <AccordionItem value="details">
               <AccordionTrigger className="text-label hover:no-underline text-lg">
@@ -352,7 +367,7 @@ export default function ProductDetailsPage() {
               </div>
             </AccordionContent>
           </AccordionItem>
-        </Accordion>
+        </Accordion> */}
       </div>
 
       {/* Related Products */}
