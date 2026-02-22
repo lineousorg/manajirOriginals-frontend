@@ -1,38 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { Category, Product } from "@/types";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { ProductCard } from "@/components/product/ProductCard";
-import { productService } from "@/services/product.service";
+import { useProducts, useCategories } from "@/hooks/useProduct";
 
 export default function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [bestSellers, setBestSellers] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading: productsLoading } = useProducts({ refreshInterval: 30_000 });
+  const { categories, loading: categoriesLoading } = useCategories(60_000);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [featured, sellers, cats] = await Promise.all([
-          productService.getFeaturedProducts(),
-          productService.getBestSellers(),
-          productService.getCategories(),
-        ]);
-        setFeaturedProducts(featured);
-        setBestSellers(sellers);
-        setCategories(cats);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  const loading = productsLoading || categoriesLoading;
+
+  // Use first 4 newest products as "featured"
+  const featuredProducts = products.slice(0, 4);
+  // Use next 4 as "best sellers"
+  const bestSellers = products.slice(4, 8);
 
   return (
     <div>
@@ -73,50 +58,59 @@ export default function Home() {
       </section>
 
       {/* Categories */}
-      <section className="py-20">
-        <div className="container-fashion">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="heading-section">Shop by Category</h2>
-          </motion.div>
+      {categories.length > 0 && (
+        <section className="py-20">
+          <div className="container-fashion">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="heading-section">Shop by Category</h2>
+            </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {categories.slice(0, 6).map((category, index) => (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link
-                  href={`/products?category=${category.slug}`}
-                  className="group block relative aspect-4/5 overflow-hidden rounded-lg"
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              {categories.slice(0, 6).map((category, index) => (
+                <motion.div
+                  key={category.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  {/* <div className="absolute inset-0 bg-linear-to-t from-foreground/60 to-transparent" /> */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3 className="font-serif text-xl text-background">
-                      {category.name}
-                    </h3>
-                    <p className="text-sm text-background/70 mt-1">
-                      {category.productCount} items
-                    </p>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                  <Link
+                    href={`/products?category=${category.slug}`}
+                    className="group block relative aspect-4/5 overflow-hidden rounded-lg"
+                  >
+                    {category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-lg">
+                          {category.name}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 p-6">
+                      <h3 className="font-serif text-xl text-background">
+                        {category.name}
+                      </h3>
+                      <p className="text-sm text-background/70 mt-1">
+                        {category._count?.products ?? category.productCount ?? 0} items
+                      </p>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Featured Products */}
       <section className="py-20 bg-muted/30">
@@ -139,7 +133,7 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {loading ? (
+          {loading && featuredProducts.length === 0 ? (
             <ProductGridSkeleton count={4} />
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -165,7 +159,6 @@ export default function Home() {
               alt="Sustainable Fashion"
               className="w-full h-full object-cover"
             />
-            {/* <div className="absolute inset-0 bg-foreground/40" /> */}
             <div className="absolute inset-0 flex items-center justify-center text-center">
               <div className="max-w-xl px-6 text-background">
                 <p className="text-label text-background/80 mb-4">
@@ -188,65 +181,39 @@ export default function Home() {
       </section>
 
       {/* Best Sellers */}
-      <section className="py-20">
-        <div className="container-fashion">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex items-end justify-between mb-12"
-          >
-            <div>
-              <p className="text-label mb-2">Most Loved</p>
-              <h2 className="heading-section">Best Sellers</h2>
-            </div>
-            <Link
-              href="/products?sort=popular"
-              className="text-sm uppercase tracking-wider link-underline hidden md:block"
+      {bestSellers.length > 0 && (
+        <section className="py-20">
+          <div className="container-fashion">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex items-end justify-between mb-12"
             >
-              View All
-            </Link>
-          </motion.div>
+              <div>
+                <p className="text-label mb-2">Most Loved</p>
+                <h2 className="heading-section">Best Sellers</h2>
+              </div>
+              <Link
+                href="/products?sort=popular"
+                className="text-sm uppercase tracking-wider link-underline hidden md:block"
+              >
+                View All
+              </Link>
+            </motion.div>
 
-          {loading ? (
-            <ProductGridSkeleton count={4} />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {bestSellers.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      {/* <section className="py-20 bg-foreground text-background">
-        <div className="container-fashion">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center max-w-xl mx-auto"
-          >
-            <h2 className="heading-section mb-4">Stay in the Know</h2>
-            <p className="text-background/70 mb-8">
-              Subscribe to receive updates on new arrivals, exclusive offers,
-              and styling tips.
-            </p>
-            <form className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-1 px-4 py-3 bg-background/10 border border-background/20 text-background placeholder:text-background/50 focus:outline-none focus:border-background/40"
-              />
-              <button type="submit" className="btn-primary-fashion">
-                Subscribe
-              </button>
-            </form>
-          </motion.div>
-        </div>
-      </section> */}
+            {loading && bestSellers.length === 0 ? (
+              <ProductGridSkeleton count={4} />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {bestSellers.map((product, index) => (
+                  <ProductCard key={product.id} product={product} index={index} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

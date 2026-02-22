@@ -1,21 +1,26 @@
-"use client"
-import { motion } from 'framer-motion';
-import { Heart, ShoppingBag, X } from 'lucide-react';
-import { useWishlistStore } from '@/store/wishlist.store';
-import { useCartStore } from '@/store/cart.store';
-import { EmptyState } from '@/components/ui/EmptyState';
-import Link from 'next/link';
+"use client";
+import { motion } from "framer-motion";
+import { Heart, ShoppingBag, X } from "lucide-react";
+import { useWishlistStore } from "@/store/wishlist.store";
+import { useCartStore } from "@/store/cart.store";
+import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 
 const WishlistPage = () => {
   const { items, removeItem } = useWishlistStore();
   const addToCart = useCartStore((state) => state.addItem);
 
-  const handleAddToCart = (productId: string) => {
-    const item = items.find((i) => i.product.id === productId);
+  const handleAddToCart = (productId: string | number) => {
+    const item = items.find((i) => String(i.product.id) === String(productId));
     if (!item) return;
     const { product } = item;
-    addToCart(product, product.sizes[0], product.colors[0].name, 1);
-    removeItem(productId);
+    addToCart(
+      product,
+      product.sizes?.[0] || "One Size",
+      product.colors?.[0]?.name || "Default",
+      1,
+    );
+    removeItem(String(productId));
   };
 
   if (items.length === 0) {
@@ -48,10 +53,10 @@ const WishlistPage = () => {
             transition={{ delay: index * 0.1 }}
             className="group"
           >
-            <div className="relative overflow-hidden rounded-lg aspect-[3/4] bg-muted">
+            <div className="relative overflow-hidden rounded-lg aspect-3/4 bg-muted">
               <Link href={`/products/${item.product.id}`}>
                 <img
-                  src={item.product.images[0]}
+                  src={item?.product?.images?.[0]?.url}
                   alt={item.product.name}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
@@ -59,7 +64,7 @@ const WishlistPage = () => {
 
               {/* Remove Button */}
               <button
-                onClick={() => removeItem(item.product.id)}
+                onClick={() => removeItem(String(item.product.id))}
                 className="absolute top-3 right-3 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
                 aria-label="Remove from wishlist"
               >
@@ -69,13 +74,15 @@ const WishlistPage = () => {
               {/* Badges */}
               <div className="absolute top-3 left-3 flex flex-col gap-2">
                 {item.product.isNew && <span className="badge-new">New</span>}
-                {item.product.isSale && <span className="badge-sale">Sale</span>}
+                {item.product.isSale && (
+                  <span className="badge-sale">Sale</span>
+                )}
               </div>
 
               {/* Add to Cart */}
               <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                 <button
-                  onClick={() => handleAddToCart(item.product.id)}
+                  onClick={() => handleAddToCart(String(item.product.id))}
                   className="btn-primary-fashion w-full text-sm py-2"
                 >
                   <ShoppingBag size={16} className="mr-2" />
@@ -95,10 +102,10 @@ const WishlistPage = () => {
                 </Link>
               </h3>
               <div className="flex items-center gap-2">
-                <span className="font-medium">৳{item.product.price.toFixed(2)}</span>
+                <span className="font-medium">৳{item.product.price}</span>
                 {item.product.originalPrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    ৳{item.product.originalPrice.toFixed(2)}
+                    ৳{item.product.originalPrice}
                   </span>
                 )}
               </div>

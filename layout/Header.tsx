@@ -6,12 +6,11 @@ import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
-import { Category } from "@/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TiShoppingCart, TiThMenu, TiUser } from "react-icons/ti";
 import { IoClose } from "react-icons/io5";
-import useApi from "@/hooks/useApi";
+import { useCategories } from "@/hooks/useProduct";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -26,25 +25,10 @@ export const Header = () => {
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const { isAuthenticated, user } = useAuthStore();
-  const { get } = useApi();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories, categoryTree } = useCategories(60_000);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Transform flat categories to tree structure
-  const categoryTree = categories
-    .filter((cat) => cat.parentId === null)
-    .map((cat) => ({
-      ...cat,
-      children: categories.filter((child) => child.parentId === cat.id),
-    }));
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const response = await get<{ data: Category[] }>("/categories", { skipAuth: true });
-      setCategories(response.data);
-    };
-    fetchCategories();
-  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -128,7 +112,7 @@ export const Header = () => {
                           {/* Nested children dropdown */}
                           {category.children &&
                             category.children.length > 0 && (
-                              <div className="absolute left-full top-0 ml-0.5 w-48 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-300 ease-out">
+                              <div className="absolute left-full top-0 ml-0.5 w-48 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-300 ease-out text-left">
                                 <div className="bg-background/95 backdrop-blur-xl border border-border/40 rounded-lg shadow-xl py-2">
                                   {category.children.map((child) => (
                                     <Link

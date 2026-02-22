@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { TypeImage } from "@/types";
 
 interface ProductGalleryProps {
-  images: string[];
+  images: TypeImage[];
   productName: string;
 }
 
@@ -24,6 +25,8 @@ export const ProductGallery = ({
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
+  // console.log(images);
+
   return (
     <div className="space-y-4">
       {/* Main Image */}
@@ -31,9 +34,8 @@ export const ProductGallery = ({
         <AnimatePresence mode="wait">
           <motion.img
             key={currentIndex}
-            src={images[currentIndex]}
-            alt={`${productName} - Image ${currentIndex + 1}`}
-            initial={{ opacity: 0 }}
+            src={images[currentIndex].url}
+            alt={`${productName} - ${images[currentIndex].altText}`}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
@@ -101,7 +103,7 @@ export const ProductGallery = ({
             }`}
           >
             <img
-              src={image}
+              src={images[index].url}
               alt={`${productName} thumbnail ${index + 1}`}
               className="w-full h-full object-cover"
             />
