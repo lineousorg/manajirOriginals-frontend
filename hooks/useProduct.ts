@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import useApi from "@/hooks/useApi";
-import { ApiProduct, Category } from "@/types";
+import { ApiProduct, Category, ProductColor } from "@/types";
 
 // ─── Response types ───────────────────────────────────────────────
 interface ProductsApiResponse {
@@ -40,7 +40,63 @@ interface UseProductByIdOptions {
 }
 
 // ─── Helper: normalise API product to a consistent shape ──────────
+interface VariantAttribute {
+  variantId: number;
+  attributeValueId: number;
+  attributeValue: {
+    id: number;
+    value: string;
+    attributeId: number;
+    attribute: {
+      id: number;
+      name: string;
+    };
+  };
+}
+
+interface Variant {
+  id: number;
+  sku: string;
+  price: string;
+  stock: number;
+  productId: number;
+  createdAt: string;
+  updatedAt: string;
+  attributes: VariantAttribute[];
+}
+
 export function normalizeProduct(raw: ApiProduct): ApiProduct {
+  // Extract unique colors and sizes from variants
+  const colors: ProductColor[] = [];
+  const sizes: string[] = [];
+
+  if (raw.variants && Array.isArray(raw.variants)) {
+    raw.variants.forEach((variant: Variant) => {
+      if (variant.attributes && Array.isArray(variant.attributes)) {
+        variant.attributes.forEach((attr) => {
+          const attrName = attr.attributeValue?.attribute?.name;
+          const attrValue = attr.attributeValue?.value;
+
+          if (attrName === "Color" && attrValue) {
+            // Check if color already exists
+            if (!colors.find((c) => c.name === attrValue)) {
+              colors.push({
+                name: attrValue,
+                value: attrValue, // Using value as hex would require a mapping
+              });
+            }
+          }
+
+          if (attrName === "Size" && attrValue) {
+            if (!sizes.includes(attrValue)) {
+              sizes.push(attrValue);
+            }
+          }
+        });
+      }
+    });
+  }
+
   return {
     ...raw,
     images:
@@ -52,8 +108,10 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
               altText: "No Image",
             },
           ],
-    colors: raw.colors ?? [],
-    sizes: raw.sizes ?? [],
+    // Use extracted colors from variants, fallback to existing colors
+    colors: colors.length > 0 ? colors : raw.colors ?? [],
+    // Use extracted sizes from variants, fallback to existing sizes
+    sizes: sizes.length > 0 ? sizes : raw.sizes ?? [],
     details: raw.details ?? [],
     description: raw.description ?? "",
   };

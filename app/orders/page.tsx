@@ -40,6 +40,20 @@ interface ApiOrderResponse {
 }
 
 // Order Item type for detailed order
+interface OrderItemAttribute {
+  variantId: number;
+  attributeValueId: number;
+  attributeValue: {
+    id: number;
+    value: string;
+    attributeId: number;
+    attribute: {
+      id: number;
+      name: string;
+    };
+  };
+}
+
 interface OrderItem {
   id: number;
   variantId: number;
@@ -52,6 +66,7 @@ interface OrderItem {
       id: number;
       name: string;
     };
+    attributes?: OrderItemAttribute[];
   };
 }
 
@@ -82,6 +97,31 @@ const mapStatus = (status: string): string => {
     CANCELED: "cancelled",
   };
   return statusMap[status.toUpperCase()] || "pending";
+};
+
+// Helper function to extract size and color from variant attributes
+const getVariantAttributes = (item: OrderItem) => {
+  const attributes = item.variant?.attributes;
+  if (!attributes || !Array.isArray(attributes)) {
+    return { size: "", color: "" };
+  }
+
+  let size = "";
+  let color = "";
+
+  attributes.forEach((attr) => {
+    const attrName = attr.attributeValue?.attribute?.name;
+    const attrValue = attr.attributeValue?.value;
+
+    if (attrName === "Size") {
+      size = attrValue || "";
+    }
+    if (attrName === "Color") {
+      color = attrValue || "";
+    }
+  });
+
+  return { size, color };
 };
 
 const statusConfig = {
@@ -416,29 +456,35 @@ const OrdersPage = () => {
                   Items
                 </h3>
                 <div className="space-y-3">
-                  {orderDetails.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                          <Package className="h-6 w-6 text-muted-foreground" />
+                  {orderDetails.items.map((item) => {
+                    const { size, color } = getVariantAttributes(item);
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                            <Package className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {item.variant.product.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              SKU: {item.variant.sku}
+                              {size && <span> · Size: {size}</span>}
+                              {color && <span> · Color: {color}</span>}
+                              <span> × {item.quantity}</span>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">
-                            {item.variant.product.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            SKU: {item.variant.sku} × {item.quantity}
-                          </p>
-                        </div>
+                        <p className="font-medium">
+                          ৳{Number(item.price) * item.quantity}
+                        </p>
                       </div>
-                      <p className="font-medium">
-                        ৳{Number(item.price) * item.quantity}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

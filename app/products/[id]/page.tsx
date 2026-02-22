@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -26,12 +26,11 @@ import {
   getProductCategories,
 } from "@/hooks/useProduct";
 import { TypeImage } from "@/types";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
 
   const { product, loading } = useProductById(id, { refreshInterval: 30_000 });
@@ -41,11 +40,71 @@ export default function ProductDetailsPage() {
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { isAuthenticated } = useAuthStore();
 
+  // State for selected size and color
+  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedColor, setSelectedColor] = useState<string>("");
+
+  // Extract available colors for a specific size from variants
+  const getColorsForSize = (size: string): string[] => {
+    if (!product?.variants || !size) return [];
+    const colors: string[] = [];
+    
+    product.variants.forEach((variant: any) => {
+      if (variant.attributes && Array.isArray(variant.attributes)) {
+        const variantSize = variant.attributes.find(
+          (attr: any) => attr.attributeValue?.attribute?.name === "Size" && attr.attributeValue?.value === size
+        );
+        if (variantSize) {
+          const colorAttr = variant.attributes.find(
+            (attr: any) => attr.attributeValue?.attribute?.name === "Color"
+          );
+          if (colorAttr?.attributeValue?.value && !colors.includes(colorAttr.attributeValue.value)) {
+            colors.push(colorAttr.attributeValue.value);
+          }
+        }
+      }
+    });
+    return colors;
+  };
+
+  // Get all available sizes from variants
+  const availableSizes = product?.sizes ?? [];
+  
+  // Get available colors for the currently selected size
+  const availableColorsForSelectedSize = getColorsForSize(selectedSize);
+
+  // Initialize defaults when product loads - this is intentional for initializing from fetched data
+  useEffect(() => {
+    if (product && availableSizes.length > 0 && !selectedSize) {
+      // Auto-select first size
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedSize(availableSizes[0]);
+      // Auto-select first available color for this size
+      const initialColors = getColorsForSize(availableSizes[0]);
+      if (initialColors.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSelectedColor(initialColors[0]);
+      }
+    }
+    // We only want this to run when product first loads
+  }, [product]);
+
+  // Update color when size changes - handle size-specific color availability
+  useEffect(() => {
+    if (selectedSize && availableColorsForSelectedSize.length > 0) {
+      // If current color is not available for the new size, select a valid one
+      if (selectedColor && !availableColorsForSelectedSize.includes(selectedColor)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSelectedColor(availableColorsForSelectedSize[0]);
+      }
+    }
+  }, [selectedSize]);
+
   // Related products: same category, different id
   const relatedProducts = product
     ? allProducts
         .filter(
-          (p) => p.id !== product.id && p.categoryId === product.categoryId
+          (p) => p.id !== product.id && p.categoryId === product.categoryId,
         )
         .slice(0, 4)
     : [];
@@ -63,7 +122,6 @@ export default function ProductDetailsPage() {
           },
         ];
 
-  const sizes = product?.sizes ?? [];
   const details = product?.details ?? [];
   const categories = product ? getProductCategories(product) : null;
 
@@ -74,9 +132,21 @@ export default function ProductDetailsPage() {
     }
     if (!product) return;
 
+    // Validate size selection if product has sizes
+    if ((product.sizes ?? []).length > 0 && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
+
+    // Validate color selection if product has colors for the selected size
+    if (availableColorsForSelectedSize.length > 0 && !selectedColor) {
+      toast.error("Please select a color");
+      return;
+    }
+
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img
+          typeof img === "string" ? { url: img, altText: product.name } : img,
         )
       : [];
 
@@ -88,7 +158,7 @@ export default function ProductDetailsPage() {
       },
       selectedSize || "One Size",
       selectedColor || "Default",
-      quantity
+      quantity,
     );
   };
 
@@ -199,49 +269,54 @@ export default function ProductDetailsPage() {
               {product.isSale && product.originalPrice && (
                 <span className="badge-sale">
                   {Math.round(
-                    (1 - product.price / product.originalPrice) * 100
+                    (1 - product.price / product.originalPrice) * 100,
                   )}
                   % Off
                 </span>
               )}
             </div>
 
-            {/* Color Selection - commented out as color selection is not available yet */}
-            {/* <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-label">Color</span>
-                <span className="text-sm text-muted-foreground">
-                  {selectedColor}
-                </span>
+            {/* Color Selection */}
+            {availableColorsForSelectedSize.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-label">Color</span>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedColor}
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  {availableColorsForSelectedSize.map((color: string) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-10 h-10 rounded-full transition-all ${
+                        selectedColor === color
+                          ? "ring-2 ring-offset-2 ring-foreground"
+                          : "hover:ring-2 hover:ring-offset-2 hover:ring-muted-foreground"
+                      }`}
+                      style={{ backgroundColor: color.toLowerCase() }}
+                      title={color}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-3">
-                {(product.colors ?? []).map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => setSelectedColor(color.name)}
-                    className={`w-10 h-10 rounded-full transition-all ${
-                      selectedColor === color.name
-                        ? "ring-2 ring-offset-2 ring-foreground"
-                        : "hover:ring-2 hover:ring-offset-2 hover:ring-muted-foreground"
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-            </div> */}
+            )}
 
             {/* Size Selection */}
-            {sizes.length > 0 && (
+            {(product.sizes ?? []).length > 0 && (
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-label">Size</span>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedSize}
+                  </span>
                   <button className="text-sm text-primary hover:underline">
                     Size Guide
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  {sizes.map((size) => (
+                  {(product.sizes ?? []).map((size: any) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -388,6 +463,7 @@ export default function ProductDetailsPage() {
           </div>
         </section>
       )}
+      <Toaster />
     </div>
   );
 }
