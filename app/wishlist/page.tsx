@@ -10,6 +10,9 @@ const WishlistPage = () => {
   const { items, removeItem } = useWishlistStore();
   const addToCart = useCartStore((state) => state.addItem);
 
+  // Filter out inactive products
+  const activeItems = items.filter((item) => item.product.isActive !== false);
+
   const handleAddToCart = (productId: string | number) => {
     const item = items.find((i) => String(i.product.id) === String(productId));
     if (!item) return;
@@ -23,7 +26,7 @@ const WishlistPage = () => {
     removeItem(String(productId));
   };
 
-  if (items.length === 0) {
+  if (activeItems.length === 0) {
     return (
       <div className="container-fashion py-16">
         <EmptyState
@@ -42,10 +45,10 @@ const WishlistPage = () => {
 
   return (
     <div className="container-fashion py-8 md:py-12">
-      <h1 className="heading-section mb-8">Wishlist ({items.length})</h1>
+      <h1 className="heading-section mb-8">Wishlist ({activeItems.length})</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {items.map((item, index) => (
+        {activeItems.map((item, index) => (
           <motion.article
             key={item.product.id}
             initial={{ opacity: 0, y: 20 }}

@@ -114,6 +114,8 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
     sizes: sizes.length > 0 ? sizes : raw.sizes ?? [],
     details: raw.details ?? [],
     description: raw.description ?? "",
+    // Include isActive property
+    isActive: raw.isActive ?? true,
   };
 }
 
@@ -177,8 +179,10 @@ export function useProducts(options: UseProductsOptions = {}) {
 
       const response = await get<ProductsApiResponse>(url, { skipAuth: true });
       const normalized = (response.data || []).map(normalizeProduct);
-      setProducts(normalized);
-      setTotal(normalized.length);
+      // Filter out inactive products
+      const activeProducts = normalized.filter((product) => product.isActive !== false);
+      setProducts(activeProducts);
+      setTotal(activeProducts.length);
     } catch (err) {
       console.error("Failed to fetch products:", err);
     }

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import "animate.css";
+import { TypeImage } from "@/types";
 
 // API Response type
 interface ApiOrderResponse {
@@ -43,6 +44,7 @@ interface ApiOrderResponse {
 interface OrderItemAttribute {
   variantId: number;
   attributeValueId: number;
+  Images: TypeImage[];
   attributeValue: {
     id: number;
     value: string;
@@ -60,6 +62,7 @@ interface OrderItem {
   quantity: number;
   price: string;
   variant: {
+    images: TypeImage[];
     id: number;
     sku: string;
     product: {
@@ -264,6 +267,8 @@ const OrdersPage = () => {
     );
   }
 
+  console.log(orderDetails);
+
   return (
     <div className="container-fashion py-8 md:py-12">
       <h1 className="heading-section mb-8">Order History</h1>
@@ -305,7 +310,7 @@ const OrdersPage = () => {
                 <div className="text-right">
                   <p className="font-medium">৳{order.total}</p>
                   <p className="text-sm text-muted-foreground">
-                    Payment: {order.paymentMethod.replace("_", " ")}
+                    Payment: {order.paymentMethod.replace(/_/g, " ")}
                   </p>
                 </div>
               </div>
@@ -465,18 +470,28 @@ const OrdersPage = () => {
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                            <img
+                              src={item?.variant?.images?.[0]?.url}
+                              alt={item.variant.images?.[0]?.altText}
+                              className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
+                            />
                             <Package className="h-6 w-6 text-muted-foreground" />
                           </div>
-                          <div>
+                          <div className="space-y-1">
                             <p className="font-medium">
-                              {item.variant.product.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              SKU: {item.variant.sku}
-                              {size && <span> · Size: {size}</span>}
-                              {color && <span> · Color: {color}</span>}
+                              {item.variant.product.name}{" "}
                               <span> × {item.quantity}</span>
                             </p>
+                            <p className="text-sm text-muted-foreground">
+                              {" "}
+                              {size && <span>Size: {size}</span>}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {color && <span>Color: {color}</span>}
+                            </p>
+                            {/* <p className="text-xs text-muted-foreground">
+                              SKU: {item.variant.sku}
+                            </p> */}
                           </div>
                         </div>
                         <p className="font-medium">

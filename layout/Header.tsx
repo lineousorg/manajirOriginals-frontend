@@ -14,8 +14,8 @@ import { useCategories } from "@/hooks/useProduct";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/products", label: "Shop" },
   { href: "/products", label: "Products", hasDropdown: true },
+  { href: "/cart", label: "Cart" },
 ];
 
 export const Header = () => {
@@ -27,8 +27,6 @@ export const Header = () => {
   const { isAuthenticated, user } = useAuthStore();
   const { categories, categoryTree } = useCategories(60_000);
   const [isScrolled, setIsScrolled] = useState(false);
-
-
 
   useEffect(() => {
     const onScroll = () => {
@@ -44,8 +42,9 @@ export const Header = () => {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-500 ${isScrolled ? "bg-primary backdrop-blur-xl shadow-md" : "bg-transparent"
-        }`}
+      className={`sticky top-0 z-50 transition-all duration-500 ${
+        isScrolled ? "bg-primary backdrop-blur-xl shadow-md" : "bg-transparent"
+      }`}
     >
       <div className="container-fashion">
         <div className="grid grid-cols-3 h-20 md:h-16">
@@ -76,9 +75,7 @@ export const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav
-            className="hidden md:grid grid-cols-3 items-center gap-10"
-          >
+          <nav className="hidden md:grid grid-cols-3 items-center gap-10">
             {navLinks.map((link) => (
               <div
                 key={link.href + link.label}
@@ -86,10 +83,11 @@ export const Header = () => {
               >
                 <Link
                   href={link.href}
-                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${pathname === link.href && !link.hasDropdown
-                    ? "text-foreground after:w-full"
-                    : "text-foreground hover:text-foreground"
-                    } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-secondary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
+                  className={`relative text-sm uppercase tracking-widest font-medium transition-all duration-300 ${
+                    pathname === link.href && !link.hasDropdown
+                      ? "text-foreground after:w-full"
+                      : "text-foreground hover:text-foreground"
+                  } after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-linear-to-r after:from-secondary after:to-primary/50 after:transition-all after:duration-300 after:w-0 hover:after:w-full`}
                 >
                   {link.label}
                 </Link>
@@ -172,12 +170,17 @@ export const Header = () => {
                   alt={user.name}
                   className="w-8 h-8 rounded-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    (e.target as HTMLImageElement).parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                    (e.target as HTMLImageElement).style.display = "none";
+                    (e.target as HTMLImageElement).parentElement
+                      ?.querySelector(".fallback-icon")
+                      ?.classList.remove("hidden");
                   }}
                 />
               ) : null}
-              <TiUser size={22} className={`fallback-icon ${user?.avatar ? 'hidden' : ''}`} />
+              <TiUser
+                size={22}
+                className={`fallback-icon ${user?.avatar ? "hidden" : ""}`}
+              />
             </Link>
           </div>
         </div>

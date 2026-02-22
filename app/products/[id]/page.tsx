@@ -170,7 +170,7 @@ export default function ProductDetailsPage() {
     );
   }
 
-  if (!product) {
+  if (!product || product.isActive === false) {
     return (
       <div className="container-fashion py-16 text-center min-h-screen">
         <p className="text-muted-foreground">Product not found.</p>
