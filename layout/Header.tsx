@@ -10,7 +10,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TiShoppingCart, TiThMenu, TiUser } from "react-icons/ti";
 import { IoClose } from "react-icons/io5";
-import { useCategories } from "@/hooks/useProduct";
+import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -26,6 +26,7 @@ export const Header = () => {
   const openCart = useCartStore((state) => state.openCart);
   const { isAuthenticated, user } = useAuthStore();
   const { categories, categoryTree } = useCategories(60_000);
+  const { getCountBySlug } = useCategoryProductCounts(60_000);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export const Header = () => {
                       {categoryTree.map((category) => (
                         <div key={category.id} className="relative group/sub">
                           <Link
-                            href={"/products?category=" + category.slug}
+                            href={"/products/category/" + category.slug}
                             className="flex items-center justify-between px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
                           >
                             {category.name}
@@ -115,10 +116,13 @@ export const Header = () => {
                                   {category.children.map((child) => (
                                     <Link
                                       key={child.id}
-                                      href={"/products?category=" + child.slug}
-                                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200"
+                                      href={"/products/category/" + child.slug}
+                                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200 flex justify-between items-center"
                                     >
-                                      {child.name}
+                                      <span>{child.name}</span>
+                                      <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                        {getCountBySlug(child.slug)}
+                                      </span>
                                     </Link>
                                   ))}
                                 </div>
@@ -210,7 +214,7 @@ export const Header = () => {
                       {categories.map((category) => (
                         <Link
                           key={category.id}
-                          href={"/products?category=" + category.slug}
+                          href={"/products/category/" + category.slug}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="text-sm uppercase tracking-wider py-2 text-muted-foreground"
                         >

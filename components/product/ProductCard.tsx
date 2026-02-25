@@ -44,121 +44,185 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
   const lowStock = product.variants?.[0]?.stock < 10;
 
+  console.log(product);
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      whileHover={{ y: -4 }}
-      className="group border border-border rounded-xl p-3 bg-background hover:shadow-xl transition-all duration-300"
+      transition={{
+        delay: index * 0.08,
+        duration: 0.5,
+        ease: [0.23, 1, 0.32, 1],
+      }}
+      whileHover={{ y: -6 }}
+      className="group relative bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-slate-200 hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500"
     >
-      <Link href={`/products/${product.id}`}>
-        <div className="relative overflow-hidden rounded-lg aspect-3/4 bg-muted">
+      <Link href={`/products/${product.id}`} className="block">
+        {/* Image Container */}
+        <div className="relative aspect-3/4 overflow-hidden bg-slate-50">
           <motion.img
-            src={images[0]?.url}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            src={
+              (product?.images && product?.images[0]?.url) ||
+              "/placeholder-product.jpg"
+            }
+            alt={
+              (product?.images && product?.images[0]?.altText) || product.name
+            }
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             loading="lazy"
+            whileHover={{ scale: 1.05 }}
           />
 
-          {/* Sale Badge */}
-          {discountPercent && (
-            <span className="absolute top-3 left-3 bg-black text-white text-xs px-2 py-1 rounded-full">
-              -{discountPercent}%
-            </span>
+          {/* Gradient Overlay on Hover */}
+          <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+          {/* Premium Badges */}
+          <div className="absolute top-4 left-4 flex flex-col gap-2">
+            {discountPercent && discountPercent > 0 && (
+              <span className="inline-flex items-center px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold tracking-wider uppercase rounded-full shadow-lg">
+                {discountPercent}% Off
+              </span>
+            )}
+            {!product.isActive && (
+              <span className="inline-flex items-center px-3 py-1.5 bg-slate-400 text-white text-[10px] font-semibold tracking-wider uppercase rounded-full">
+                Unavailable
+              </span>
+            )}
+          </div>
+
+          {/* Stock Indicator */}
+          {lowStock && product.variants[0]?.stock > 0 && (
+            <div className="absolute bottom-4 left-4">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded-full border border-amber-200">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                Only {product.variants[0].stock} left
+              </span>
+            </div>
           )}
 
-          {/* Low Stock */}
-          {lowStock && (
-            <span className="absolute bottom-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded">
-              Only {product.variants[0].stock} left
-            </span>
+          {/* Out of Stock Overlay */}
+          {product.variants[0]?.stock === 0 && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
+              <span className="px-4 py-2 bg-slate-900 text-white text-xs font-medium tracking-wider uppercase rounded-full">
+                Out of Stock
+              </span>
+            </div>
           )}
 
-          {/* Wishlist */}
+          {/* Wishlist Button */}
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               if (!isAuthenticated) {
                 router.push("/login");
                 return;
               }
-
-              const normalizedImages: TypeImage[] =
-                product.images?.map((img) =>
-                  typeof img === "string"
-                    ? { url: img, altText: product.name }
-                    : img,
-                ) ?? [];
-
               toggleItem({
                 ...product,
                 id: productId,
-                images: normalizedImages,
+                images: product.images,
               });
             }}
-            className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition ${
-              inWishlist ? "bg-black text-white" : "bg-white/80 hover:bg-white"
+            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 transform hover:scale-110 ${
+              inWishlist
+                ? "bg-slate-900 text-white shadow-lg"
+                : "bg-white/90 text-slate-600 hover:bg-white hover:text-red-500 shadow-md"
             }`}
           >
-            <Heart size={16} fill={inWishlist ? "currentColor" : "none"} />
+            <Heart
+              size={18}
+              fill={inWishlist ? "currentColor" : "none"}
+              strokeWidth={inWishlist ? 0 : 2}
+            />
           </button>
+
+          {/* Quick View Hint */}
+          <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+            <span className="inline-flex items-center px-4 py-2 bg-white/95 text-slate-900 text-xs font-medium rounded-full shadow-lg backdrop-blur-sm">
+              Quick View
+            </span>
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="p-5 space-y-3">
+          {/* Category & Brand */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
+              {product.category?.name || "Uncategorized"}
+            </span>
+            {product.brand && (
+              <span className="text-[10px] font-medium text-slate-500">
+                {product.brand}
+              </span>
+            )}
+          </div>
+
+          {/* Product Name */}
+          <h3 className="text-lg font-sans font-bold text-slate-900 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
+            {product.name}
+          </h3>
+
+          {/* Price Section */}
+          <div className="flex items-baseline gap-3">
+            <span className="text-lg font-bold text-slate-900">
+              ৳{basePrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+            {originalPrice && originalPrice > basePrice && (
+              <span className="text-sm text-slate-400 line-through">
+                ৳
+                {originalPrice.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            )}
+          </div>
+
+          {/* Attributes Preview */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+            {/* Colors */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                {product.colors.slice(0, 3).map((color, idx) => (
+                  <span
+                    key={color.name}
+                    className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
+                    style={{ backgroundColor: color.value.toLowerCase() }}
+                    title={color.name}
+                  />
+                ))}
+                {product.colors.length > 3 && (
+                  <span className="w-5 h-5 rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 flex items-center justify-center border-2 border-white ring-1 ring-slate-200">
+                    +{product.colors.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Sizes */}
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  Size
+                </span>
+                <span className="text-xs font-medium text-slate-700">
+                  {product.sizes[0]}
+                  {product.sizes.length > 1 && ` +${product.sizes.length - 1}`}
+                </span>
+              </div>
+            )}
+
+            {/* Variant Count */}
+            {product.variants && product.variants.length > 1 && (
+              <span className="text-[10px] text-slate-400">
+                {product.variants.length} options
+              </span>
+            )}
+          </div>
         </div>
       </Link>
-
-      {/* Info Section */}
-      <div className="mt-4 space-y-2">
-        {/* Brand */}
-        {product.brand && (
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            {product.brand}
-          </p>
-        )}
-
-        {/* Name */}
-        <h3 className="text-sm font-medium leading-snug">
-          <Link
-            href={`/products/${product.id}`}
-            className="hover:text-primary transition"
-          >
-            {product.name}
-          </Link>
-        </h3>
-
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-base">
-            ৳ {basePrice.toFixed(2)}
-          </span>
-
-          {originalPrice && (
-            <span className="text-sm line-through text-muted-foreground">
-              ৳ {originalPrice.toFixed(2)}
-            </span>
-          )}
-        </div>
-
-        {/* Colors */}
-        {product.colors && product.colors?.length > 0 && (
-          <div className="flex gap-1 pt-1">
-            {product.colors.slice(0, 4).map((color) => (
-              <span
-                key={color.name}
-                className="w-4 h-4 rounded-full border border-border"
-                style={{ backgroundColor: color.value.toLowerCase() }}
-                title={color.name}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Sizes */}
-        {/* {product.sizes && product.sizes?.length > 0 && (
-          <div className="text-xs text-muted-foreground">
-            Sizes: {product.sizes.join(" · ")}
-          </div>
-        )} */}
-      </div>
     </motion.article>
   );
 };

@@ -274,6 +274,100 @@ export function useProductById(
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// useCategoryProductCounts – get product counts per category from products API
+// ═══════════════════════════════════════════════════════════════════
+interface CategoryProductCount {
+  categorySlug: string;
+  categoryId: string | number;
+  count: number;
+}
+
+export function useCategoryProductCounts(refreshInterval = 60_000) {
+  const { get, loading, error } = useApi();
+  const [categoryCounts, setCategoryCounts] = useState<CategoryProductCount[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchCategoryCounts = useCallback(async () => {
+    try {
+      const response = await get<ProductsApiResponse>("/products?limit=1000", { skipAuth: true });
+      const products = response.data || [];
+
+      const countMap = new Map<string, { id: string | number; count: number }>();
+
+      products.forEach((product) => {
+        if (product.category) {
+          const categorySlug = product.category.slug;
+          const categoryId = product.category.id;
+
+          const existing = countMap.get(categorySlug);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            countMap.set(categorySlug, { id: categoryId, count: 1 });
+          }
+
+          if (product.category.parent) {
+            const parentSlug = product.category.parent.slug;
+            const parentId = product.category.parent.id;
+
+            const parentExisting = countMap.get(parentSlug);
+            if (parentExisting) {
+              parentExisting.count += 1;
+            } else {
+              countMap.set(parentSlug, { id: parentId, count: 1 });
+            }
+          }
+        }
+      });
+
+      const counts: CategoryProductCount[] = Array.from(countMap.entries()).map(
+        ([categorySlug, { id, count }]) => ({
+          categorySlug,
+          categoryId: id,
+          count,
+        })
+      );
+
+      setCategoryCounts(counts);
+    } catch (err) {
+      console.error("Failed to fetch category product counts:", err);
+    }
+  }, [get]);
+
+  // Initial fetch - using useEffect is intentional for async data fetching
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    fetchCategoryCounts();
+  }, [fetchCategoryCounts]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (refreshInterval > 0) {
+      intervalRef.current = setInterval(fetchCategoryCounts, refreshInterval);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [refreshInterval, fetchCategoryCounts]);
+
+  const getCountBySlug = useCallback(
+    (slug: string) => {
+      const found = categoryCounts.find((c) => c.categorySlug === slug);
+      return found?.count ?? 0;
+    },
+    [categoryCounts]
+  );
+
+  return {
+    categoryCounts,
+    getCountBySlug,
+    loading,
+    error,
+    refetch: fetchCategoryCounts,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // useCategories – fetch categories with auto-refresh
 // ═══════════════════════════════════════════════════════════════════
 export function useCategories(refreshInterval = 60_000) {
