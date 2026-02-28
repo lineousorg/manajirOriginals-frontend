@@ -411,7 +411,7 @@ export function useCategories(refreshInterval = 60_000) {
 
   const getParentCategories = () =>
     categories.filter((c) => c.parentId === null);
-  const getChildCategories = (parentId?: string) =>
+  const getChildCategories = (parentId?: number) =>
     parentId
       ? categories.filter((c) => c.parentId === parentId)
       : categories.filter((c) => c.parentId !== null);

@@ -198,7 +198,7 @@
     box-shadow: var(--button-shadow);
   }
 
-    .btn-primary-fashion:hover {
+  .btn-primary-fashion:hover {
     box-shadow: 0 6px 20px 0 hsl(40 20% 55% / 0.25);
     @apply -translate-y-0.5;
   }
@@ -340,8 +340,7 @@
 }
 
 .bg-luxury-cream-black {
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle at top left,
       rgba(200, 180, 160, 0.4),
       transparent 45%
@@ -357,7 +356,19 @@
     rgba(255, 255, 255, 0.06),
     rgba(255, 255, 255, 0.01)
   );
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.45),
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@keyframes subtle-zoom {
+  0%,
+  100% {
+    transform: scale(1.05);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+.animate-subtle-zoom {
+  animation: subtle-zoom 20s ease-in-out infinite;
 }

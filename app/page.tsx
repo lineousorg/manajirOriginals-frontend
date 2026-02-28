@@ -7,10 +7,48 @@ import { ArrowRight } from "lucide-react";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useProducts, useCategories } from "@/hooks/useProduct";
+import Banner from "@/components/sections/Banner";
+
+// Animation variants for scroll fade-in
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" as const },
+  },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const fadeInScale = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, ease: "easeOut" as const },
+  },
+};
 
 export default function Home() {
-  const { products, loading: productsLoading } = useProducts({ refreshInterval: 30_000 });
-  const { categories, loading: categoriesLoading } = useCategories(60_000);
+  const { products, loading: productsLoading } = useProducts({
+    refreshInterval: 30_000,
+  });
+  const {
+    categories,
+    loading: categoriesLoading,
+    getChildCategories,
+  } = useCategories(60_000);
+  console.log(categories);
 
   const loading = productsLoading || categoriesLoading;
 
@@ -19,69 +57,50 @@ export default function Home() {
   // Use next 4 as "best sellers"
   const bestSellers = products.slice(4, 8);
 
+  // Get all child categories (categories with a parentId), sorted alphabetically
+  const allChildCategories = getChildCategories();
+  const sortedChildCategories = [...allChildCategories].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+  const displayCategories = sortedChildCategories.slice(0, 6);
+
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative h-dvh min-h-150 flex items-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1920&q=80)",
-          }}
-        >
-          {/* <div className="absolute inset-0 bg-foreground/30" /> */}
-        </div>
-        <div className="container-fashion relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-2xl text-background"
-          >
-            <p className="text-label text-background/80 mb-4">New Collection</p>
-            <h1 className="heading-display mb-6">
-              Timeless
-              <br />
-              Elegance
-            </h1>
-            <p className="text-lg text-background/80 mb-8 max-w-md">
-              Discover our curated collection of premium essentials, crafted for
-              the modern wardrobe.
-            </p>
-            <Link href="/products" className="btn-primary-fashion">
-              Explore Collection
-              <ArrowRight size={18} className="ml-2" />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+      <Banner />
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="py-20">
+        <section
+          className="py-20 bg-white rounded-t-[30px] -mt-7 relative z-999"
+          // style={{
+          //   backgroundImage: "./section-bg.png",
+          //   backgroundSize: "cover",
+          // }}
+        >
           <div className="container-fashion">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ margin: "-100px" }}
+              variants={fadeInUp}
               className="text-center mb-12"
             >
               <h2 className="heading-section">Shop by Category</h2>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-              {categories.slice(0, 6).map((category, index) => (
-                <motion.div
-                  key={category.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
+            <motion.div
+              className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ margin: "-50px" }}
+              variants={staggerContainer}
+            >
+              {displayCategories.map((category, index) => (
+                <motion.div key={category.id} variants={fadeInUp}>
                   <Link
-                    href={`/products?category=${category.slug}`}
-                    className="group block relative aspect-4/5 overflow-hidden rounded-lg"
+                    href={`/products?cat=${category.slug}`}
+                    className="group block relative aspect-4/5 overflow-hidden rounded-2xl"
                   >
                     {category.image ? (
                       <img
@@ -101,24 +120,28 @@ export default function Home() {
                         {category.name}
                       </h3>
                       <p className="text-sm text-background/70 mt-1">
-                        {category._count?.products ?? category.productCount ?? 0} items
+                        {category._count?.products ??
+                          category.productCount ??
+                          0}{" "}
+                        items
                       </p>
                     </div>
                   </Link>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
       )}
 
       {/* Featured Products */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-muted z-999 relative">
         <div className="container-fashion">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-100px" }}
+            variants={fadeInUp}
             className="flex items-end justify-between mb-12"
           >
             <div>
@@ -136,22 +159,31 @@ export default function Home() {
           {loading && featuredProducts.length === 0 ? (
             <ProductGridSkeleton count={4} />
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <motion.div
+              className="grid grid-cols-2 md:grid-cols-3 gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ margin: "-50px" }}
+              variants={staggerContainer}
+            >
               {featuredProducts.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <motion.div variants={fadeInUp} key={product.id}>
+                  <ProductCard product={product} index={index} />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </section>
 
       {/* Banner */}
-      <section className="py-20">
+      <section className="py-20 z-999 relative bg-white">
         <div className="container-fashion">
           <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-100px" }}
+            variants={fadeInScale}
             className="relative h-125 rounded-2xl overflow-hidden"
           >
             <img
@@ -182,12 +214,13 @@ export default function Home() {
 
       {/* Best Sellers */}
       {bestSellers.length > 0 && (
-        <section className="py-20">
+        <section className="py-20 z-999 relative bg-white">
           <div className="container-fashion">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ margin: "-100px" }}
+              variants={fadeInUp}
               className="flex items-end justify-between mb-12"
             >
               <div>
@@ -205,11 +238,19 @@ export default function Home() {
             {loading && bestSellers.length === 0 ? (
               <ProductGridSkeleton count={4} />
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <motion.div
+                className="grid grid-cols-2 md:grid-cols-4 gap-6"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ margin: "-50px" }}
+                variants={staggerContainer}
+              >
                 {bestSellers.map((product, index) => (
-                  <ProductCard key={product.id} product={product} index={index} />
+                  <motion.div variants={fadeInUp} key={product.id}>
+                    <ProductCard product={product} index={index} />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
         </section>

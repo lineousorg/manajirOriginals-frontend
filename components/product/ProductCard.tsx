@@ -8,6 +8,7 @@ import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MdArrowOutward } from "react-icons/md";
 
 interface ProductCardProps {
   product: ApiProduct;
@@ -55,12 +56,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         duration: 0.5,
         ease: [0.23, 1, 0.32, 1],
       }}
-      whileHover={{ y: -6 }}
-      className="group relative bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-slate-200 hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500"
+      // whileHover={{ y: -6 }}
+      className="group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500"
     >
-      <Link href={`/products/${product.id}`} className="block">
+      <div className="block p-2">
         {/* Image Container */}
-        <div className="relative aspect-3/4 overflow-hidden bg-slate-50">
+        <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl">
           <motion.img
             src={
               (product?.images && product?.images[0]?.url) ||
@@ -69,7 +70,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
             alt={
               (product?.images && product?.images[0]?.altText) || product.name
             }
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 "
             loading="lazy"
             whileHover={{ scale: 1.05 }}
           />
@@ -125,10 +126,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
                 images: product.images,
               });
             }}
-            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 transform hover:scale-110 ${
+            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 transform hover:scale-110 cursor-pointer ${
               inWishlist
                 ? "bg-slate-900 text-white shadow-lg"
-                : "bg-white/90 text-slate-600 hover:bg-white hover:text-red-500 shadow-md"
+                : "text-white/90 bg-slate-600/40 hover:bg-white hover:text-red-500 shadow-md backdrop-blur-xs"
             }`}
           >
             <Heart
@@ -139,70 +140,97 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </button>
 
           {/* Quick View Hint */}
-          <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+          {/* <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
             <span className="inline-flex items-center px-4 py-2 bg-white/95 text-slate-900 text-xs font-medium rounded-full shadow-lg backdrop-blur-sm">
               Quick View
             </span>
-          </div>
+          </div> */}
         </div>
 
         {/* Product Info */}
-        <div className="p-5 space-y-3">
+        <div className="p-4 space-y-4">
           {/* Category & Brand */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
+          <div className="text-left">
+            <span className="text-[10px] font-semibold tracking-widest text-[#b04646] uppercase border border-[#b04646] rounded-full p-2">
               {product.category?.name || "Uncategorized"}
             </span>
-            {product.brand && (
-              <span className="text-[10px] font-medium text-slate-500">
-                {product.brand}
-              </span>
-            )}
           </div>
 
-          {/* Product Name */}
-          <h3 className="text-lg font-sans font-bold text-slate-900 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
-            {product.name}
-          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2">
+            {/* Product Name */}
+            <h3 className="text-lg font-sans font-bold text-slate-700 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
+              {product.name}
+            </h3>
 
-          {/* Price Section */}
-          <div className="flex items-baseline gap-3">
-            <span className="text-lg font-bold text-slate-900">
-              ৳{basePrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </span>
-            {originalPrice && originalPrice > basePrice && (
-              <span className="text-sm text-slate-400 line-through">
-                ৳
-                {originalPrice.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                })}
+            {/* Price Section */}
+            <div className="flex gap-3 justify-end">
+              <span className="">
+                ৳{" "}
+                <span className="text-lg font-bold text-slate-700">
+                  {basePrice.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
               </span>
-            )}
+              {originalPrice && originalPrice > basePrice && (
+                <span className="text-sm text-slate-400 line-through">
+                  ৳
+                  {originalPrice.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Attributes Preview */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-            {/* Colors */}
-            {product.colors && product.colors.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                {product.colors.slice(0, 3).map((color, idx) => (
-                  <span
-                    key={color.name}
-                    className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
-                    style={{ backgroundColor: color.value.toLowerCase() }}
-                    title={color.name}
-                  />
-                ))}
-                {product.colors.length > 3 && (
-                  <span className="w-5 h-5 rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 flex items-center justify-center border-2 border-white ring-1 ring-slate-200">
-                    +{product.colors.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
+          <p className="text-sm font-sans text-slate-400 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left -mt-2">
+            {product.description}
+          </p>
+        </div>
+        {/* Attributes Preview */}
+        <div
+          className={`grid grid-cols-2 ${
+            product.colors &&
+            product?.colors?.length > 0 &&
+            "bg-secondary-foreground"
+          } rounded-full px-2 py-2`}
+        >
+          {/* Colors */}
+          {product.colors && (
+            <div className="flex items-center gap-1.5">
+              {product.colors.slice(0, 3).map((color, idx) => (
+                <span
+                  key={color.name}
+                  className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
+                  style={{ backgroundColor: color.value.toLowerCase() }}
+                  title={color.name}
+                />
+              ))}
+              {product.colors.length > 3 && (
+                <span className="w-5 h-5 rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 flex items-center justify-center border-2 border-white ring-1 ring-slate-200">
+                  +{product.colors.length - 3}
+                </span>
+              )}
+            </div>
+          )}
 
-            {/* Sizes */}
-            {product.sizes && product.sizes.length > 0 && (
+          <div className="flex items-center justify-end">
+            <Link
+              href={`/products/${product.id}`}
+              className="group relative flex items-center bg-[#741111] hover:bg-primary hover:font-bold text-white rounded-full h-10 px-3 overflow-hidden transition-all duration-300"
+            >
+              {/* Icon */}
+              <MdArrowOutward className="text-lg transition-all duration-300 rotate-45 group-hover:rotate-12" />
+
+              {/* Animated Text */}
+              <span className="group-hover:ml-2 whitespace-nowrap opacity-0 translate-x-2 max-w-0 overflow-hidden transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:max-w-30">
+                View Details
+              </span>
+            </Link>
+          </div>
+
+          {/* Sizes */}
+          {/* {product.sizes && product.sizes.length > 0 && (
               <div className="flex items-center gap-1">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider">
                   Size
@@ -212,17 +240,16 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
                   {product.sizes.length > 1 && ` +${product.sizes.length - 1}`}
                 </span>
               </div>
-            )}
+            )} */}
 
-            {/* Variant Count */}
-            {product.variants && product.variants.length > 1 && (
+          {/* Variant Count */}
+          {/* {product.variants && product.variants.length > 1 && (
               <span className="text-[10px] text-slate-400">
                 {product.variants.length} options
               </span>
-            )}
-          </div>
+            )} */}
         </div>
-      </Link>
+      </div>
     </motion.article>
   );
 };
