@@ -176,7 +176,7 @@ const CheckoutPage = () => {
 
   if (step === "success") {
     return (
-      <div className="container-fashion py-8 md:py-12">
+      <div className="container-fashion py-8 md:py-12 mt-20">
         <div className=" mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -220,7 +220,7 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="container-fashion py-8 md:py-12">
+    <div className="container-fashion py-8 md:py-12 mt-20">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
         <Link href="/cart" className="hover:text-foreground transition-colors">

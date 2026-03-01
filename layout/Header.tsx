@@ -18,11 +18,13 @@ import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
+import path from "path";
 
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Collection", hasDropdown: true },
   { href: "/cart", label: "Cart" },
+  { href: "/orders", label: "Orders" },
 ];
 
 export const Header = () => {
@@ -59,12 +61,12 @@ export const Header = () => {
         initial={{ y: 0 }}
         animate={{
           y: 0,
-          backgroundColor: isScrolled
-            ? "rgba(10, 10, 10, 0.85)"
-            : "rgba(10, 10, 10, 0)",
+          backgroundColor: isScrolled 
+            ? "#631515"
+            : pathname === "/" ? "rgba(10, 10, 10, 0)" : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 right-0 z-[9999] backdrop-blur-md border-b transition-colors duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${
           isScrolled ? "border-white/10" : "border-transparent"
         }`}
       >
@@ -140,7 +142,7 @@ export const Header = () => {
 
                     {/* Animated underline */}
                     <motion.div
-                      className="absolute bottom-0 left-0 h-[1px] bg-white"
+                      className="absolute bottom-0 left-0 h-px bg-white"
                       initial={{
                         width: pathname === link.href ? "100%" : "0%",
                       }}
@@ -167,13 +169,13 @@ export const Header = () => {
                         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute top-full left-1/2 -translate-x-1/2 pt-6"
                       >
-                        <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-[600px]">
+                        <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-150">
                           <div className="p-8">
                             <div className="flex items-center justify-between mb-6">
                               <span className="text-[10px] tracking-[0.3em] text-white/40 uppercase">
                                 Browse Categories
                               </span>
-                              <div className="h-[1px] flex-1 ml-4 bg-gradient-to-r from-white/10 to-transparent" />
+                              <div className="h-px flex-1 ml-4 bg-linear-to-r from-white/10 to-transparent" />
                             </div>
 
                             <div className="grid grid-cols-3 gap-8">
@@ -234,7 +236,7 @@ export const Header = () => {
                             </span>
                             <Link
                               href="/products"
-                              className="text-[11px] uppercase tracking-wider text-white/60 hover:text-white transition-colors flex items-center gap-2 group"
+                              className="text-[11px] uppercase tracking-wider text-primary-foreground hover:text-white transition-colors flex items-center gap-2 group"
                             >
                               View All
                               <ArrowRight

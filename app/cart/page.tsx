@@ -15,13 +15,13 @@ const CartPage = () => {
 
   if (items.length === 0) {
     return (
-      <div className="container-fashion py-16">
+      <div className="border flex items-center justify-center py-16 min-h-[90dvh] mt-20">
         <EmptyState
           icon={<ShoppingBag size={64} />}
           title="Your bag is empty"
           description="Looks like you haven't added anything to your bag yet."
           action={
-            <Link href="/products" className="btn-primary-fashion">
+            <Link href="/products" className="btn-primary-fashion rounded-lg">
               Start Shopping
             </Link>
           }
@@ -33,7 +33,7 @@ const CartPage = () => {
   console.log(items);
 
   return (
-    <div className="container-fashion py-8 md:py-12">
+    <div className="container-fashion py-8 md:py-12 mt-20 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <h1 className="heading-section">Shopping Bag</h1>
         <button
@@ -60,7 +60,7 @@ const CartPage = () => {
                 className="w-20 h-24 md:w-28 md:h-36 shrink-0 overflow-hidden rounded-lg"
               >
                 <img
-               src={item?.product?.images?.[0]?.url}
+                  src={item?.product?.images?.[0]?.url}
                   alt={item.product.name}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />

@@ -75,7 +75,7 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
   };
 
   return (
-    <div className="min-h-screen py-8 md:py-12 px-4 md:px-6">
+    <div className="min-h-screen py-8 md:py-12 px-4 md:px-6 mt-20">
       {/* Action Buttons (Outside Card) */}
       <div className="max-w-5xl mx-auto mb-8 flex justify-end gap-4">
         <button

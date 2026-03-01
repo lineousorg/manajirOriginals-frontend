@@ -126,7 +126,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="container-fashion py-8 md:py-12 min-h-screen">
+    <div className="container-fashion py-8 md:py-12 min-h-screen mt-20">
       <div className=" mx-auto">
         <h1 className="heading-section mb-8 text-left">My Account</h1>
 

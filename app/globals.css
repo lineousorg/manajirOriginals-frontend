@@ -44,8 +44,8 @@
     --popover-foreground: 40 20% 25%;
 
     /* Soft cream accent */
-    --primary: 40 20% 55%;
-    --primary-foreground: 40 20% 98%;
+    --primary:0 60% 35%;
+    --primary-foreground: 100 100% 100%;
 
     /* Soft stone secondary */
     --secondary: 30 15% 90%;

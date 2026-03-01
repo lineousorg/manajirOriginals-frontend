@@ -270,7 +270,7 @@ const OrdersPage = () => {
   console.log(orderDetails);
 
   return (
-    <div className="container-fashion py-8 md:py-12">
+    <div className="container-fashion py-8 md:py-12 mt-20">
       <h1 className="heading-section mb-8">Order History</h1>
 
       <div className="space-y-6 min-h-screen">

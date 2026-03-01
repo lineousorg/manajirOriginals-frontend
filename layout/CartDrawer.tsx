@@ -60,7 +60,7 @@ export const CartDrawer = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-50 shadow-2xl flex flex-col"
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-9999 shadow-2xl flex flex-col"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
@@ -114,7 +114,7 @@ export const CartDrawer = () => {
                         className="flex gap-4 bg-card/50 p-3 rounded-xl"
                       >
                         <img
-                         src={item?.product?.images?.[0]?.url}
+                          src={item?.product?.images?.[0]?.url}
                           alt={item.product.name}
                           className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg shrink-0"
                         />
