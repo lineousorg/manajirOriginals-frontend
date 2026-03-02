@@ -71,9 +71,10 @@ const LoginPage = () => {
             Sign in to access your account, orders, and wishlist.
           </p>
         </div>
+
         <div className="text-center md:border-l md:border-border md:pl-8 px-4 md:px-0">
-          <div className="w-14 h-14 md:w-20 md:h-20 bg-muted rounded-full flex items-center justify-center mb-4 md:mb-6">
-            <User size={32} className="md:size-40 text-muted-foreground" />
+          <div className="w-full flex items-center justify-center mb-4 md:mb-6 ">
+            <User size={25} className="md:size-25 text-muted-foreground" />
           </div>
           <form
             onSubmit={handleLogin}

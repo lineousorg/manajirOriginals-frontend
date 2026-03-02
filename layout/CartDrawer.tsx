@@ -70,7 +70,7 @@ export const CartDrawer = () => {
                     Your Bag
                   </h2>
                   <span className="text-sm text-gray-700">
-                    ({items.length} {items.length === 1 ? "item" : "items"})
+                    ({items?.length} {items?.length === 1 ? "item" : "items"})
                   </span>
                 </div>
                 <button

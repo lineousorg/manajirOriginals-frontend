@@ -73,7 +73,7 @@ const Banner = () => {
         className="absolute bottom-0 right-0 w-200 h-200 bg-linear-to-tl from-amber-900/10 to-transparent rounded-full blur-[120px]"
       /> */}
 
-      <div className="w-full lg:w-[82%] mx-auto px-6 relative z-10 ">
+      <div className="w-full lg:w-[1220px] mx-auto relative z-10 ">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center min-h-screen py-20">
           {/* LEFT: Text Content */}
           <div className="order-2 lg:order-1 flex flex-col justify-center">

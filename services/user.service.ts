@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { User } from "@/types";
 import { apiClient } from "@/hooks/useApi";
 
@@ -13,17 +14,26 @@ export interface LoginResponse {
 
 export const userService = {
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await apiClient.post<LoginResponse>("/auth/login", {
-      email,
-      password,
-    });
+    try {
+      const response = await apiClient.post<LoginResponse>("/auth/login", {
+        email,
+        password,
+      });
 
-    // Store token
-    if (typeof window !== "undefined") {
-      localStorage.setItem("accessToken", response.data.accessToken);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("accessToken", response.data.accessToken);
+      }
+
+      return response.data;
+    } catch (err: any) {
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Login failed. Please try again.";
+
+      throw new Error(backendMessage);
     }
-
-    return response.data;
   },
 
   async logout(): Promise<void> {

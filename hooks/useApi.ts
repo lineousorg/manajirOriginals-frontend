@@ -28,7 +28,9 @@ apiClient.interceptors.request.use(
       return config;
     }
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      typeof window !== "undefined"
+        ? localStorage.getItem("accessToken")
+        : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,6 +38,22 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error),
 );
+
+// Interceptor for error msg
+// apiClient.interceptors.response.use(
+//   (response) => response,
+
+//   (error) => {
+//     const backendMessage =
+//       error?.response?.data?.message ||
+//       error?.response?.data?.detail ||
+//       error?.response?.data?.error ||
+//       error?.response?.data?.non_field_errors?.[0] ||
+//       "Something went wrong";
+
+//     return Promise.reject(new Error(backendMessage));
+//   },
+// );
 
 // Transform function type
 type Transformer<T> = (data: any) => T;
@@ -142,8 +160,16 @@ const useApi = () => {
 
         return transform ? transform(response.data) : response.data;
       } catch (err: any) {
-        setError(err);
-        throw err;
+        const backendMessage =
+          err?.response?.data?.message ||
+          err?.response?.data?.detail ||
+          err?.response?.data?.error ||
+          err?.message ||
+          "Something went wrong";
+
+        const formattedError = new Error(backendMessage);
+        setError(formattedError);
+        throw formattedError;
       } finally {
         setLoading(false);
       }
