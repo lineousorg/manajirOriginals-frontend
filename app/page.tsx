@@ -73,10 +73,10 @@ export default function Home() {
       {categories.length > 0 && (
         <section
           className="py-20 bg-white rounded-t-[30px] -mt-7 relative z-999"
-          // style={{
-          //   backgroundImage: "./section-bg.png",
-          //   backgroundSize: "cover",
-          // }}
+        // style={{
+        //   backgroundImage: "./section-bg.png",
+        //   backgroundSize: "cover",
+        // }}
         >
           <div className="container-fashion">
             <motion.div
@@ -86,7 +86,8 @@ export default function Home() {
               variants={fadeInUp}
               className="text-center mb-12"
             >
-              <h2 className="heading-section">Shop by Category</h2>
+              <p className="text-label mb-2">We Offer</p>
+              <h2 className="heading-section text-left">Shop by Category</h2>
             </motion.div>
 
             <motion.div

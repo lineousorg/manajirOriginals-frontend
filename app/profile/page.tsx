@@ -126,135 +126,167 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="container-fashion py-8 md:py-12 min-h-screen mt-20">
-      <div className=" mx-auto">
-        <h1 className="heading-section mb-8 text-left">My Account</h1>
+    <div className="min-h-screen bg-gray-50/50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">My Account</h1>
+          <p className="mt-2 text-gray-500">Manage your profile and preferences</p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {/* Sidebar */}
-          <aside className="flex flex-row md:flex-col md:space-y-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0 *:hover:bg-gray-200 *:hover:scale-105 ">
-            <button className="flex items-center gap-3 p-3 rounded-lg bg-white/30 text-left transition-all duration-300 ease-in-out whitespace-nowrap">
-              <User size={18} />
-              Profile
-            </button>
-            <Link
-              href="/orders"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/30 text-left text-muted-foreground transition-all duration-300 ease-in-out whitespace-nowrap"
-            >
-              <Package size={18} />
-              Orders
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/30 transition-all duration-300 ease-in-out text-left text-muted-foreground cursor-pointer whitespace-nowrap"
-            >
-              <LogOut size={18} />
-              Sign Out
-            </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Sidebar - Modern Card Style */}
+          <aside className="lg:col-span-3 h-full bg-white rounded-2xl shadow-sm">
+            <nav className=" border border-gray-100 p-2 space-y-1 flex flex-col justify-between h-full">
+              <div>
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-900 text-white shadow-md transition-all duration-200">
+                  <User size={18} strokeWidth={2} />
+                  <span className="font-medium">Profile</span>
+                </button>
+
+                <Link
+                  href="/orders"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 group"
+                >
+                  <Package size={18} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
+                  <span className="font-medium">Orders</span>
+                </Link>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group cursor-pointer"
+              >
+                <LogOut size={18} strokeWidth={2} className="group-hover:translate-x-1 transition-transform" />
+                <span className="font-medium">Sign Out</span>
+              </button>
+            </nav>
           </aside>
 
           {/* Main Content */}
-          <div className="md:col-span-2 space-y-8">
-            {/* Profile Info */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Profile Card - Modern Glassmorphism */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-muted rounded-xl p-6"
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                      <User size={24} className="text-muted-foreground" />
+              <div className="p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-5">
+                    <div className="relative">
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-20 h-20 rounded-full object-cover ring-4 ring-gray-50"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-4 ring-gray-50">
+                          <User size={28} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
-                  )}
-                  <div>
-                    {/* <h2 className="font-serif text-xl font-medium text-left">
-                      {user?.name}
-                    </h2> */}
-                    <p className="text-sm text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
-                >
-                  <Edit2 size={18} />
-                </button>
-              </div>
 
-              {isEditing && (
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-label block mb-2">
-                        First Name
+                      <h2 className="text-xl font-semibold text-gray-900 text-left">
+                        {user?.name || 'Guest User'}
+                      </h2>
+                      <p className="text-gray-500 text-sm mt-0.5">{user?.email}</p>
+                      <span className="flex items-center justify-start px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 mt-2">
+                        Member
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 self-start sm:self-center"
+                  >
+                    <Edit2 size={16} />
+                    {isEditing ? 'Cancel' : 'Edit Profile'}
+                  </button>
+                </div>
+
+                {/* Edit Form - Clean Inputs */}
+                {isEditing && (
+                  <motion.form
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="border-t border-gray-100 pt-6 mt-6"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue={user?.name?.split(" ")[0]}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-100 transition-all duration-200 outline-none text-gray-900 placeholder-gray-400"
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue={user?.name?.split(" ")[1]}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-100 transition-all duration-200 outline-none text-gray-900 placeholder-gray-400"
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Email Address
                       </label>
                       <input
-                        type="text"
-                        defaultValue={user?.name.split(" ")[0]}
-                        className="input-fashion rounded-md"
+                        type="email"
+                        defaultValue={user?.email}
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-100 transition-all duration-200 outline-none text-gray-900 placeholder-gray-400"
+                        placeholder="Enter email"
                       />
                     </div>
-                    <div>
-                      <label className="text-label block mb-2">Last Name</label>
-                      <input
-                        type="text"
-                        defaultValue={user?.name.split(" ")[1]}
-                        className="input-fashion rounded-md"
-                      />
+
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 shadow-sm"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(false)}
+                        className="px-6 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-label block mb-2">Email</label>
-                    <input
-                      type="email"
-                      defaultValue={user?.email}
-                      className="input-fashion rounded-md"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button type="submit" className="btn-primary-fashion">
-                      Save Changes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(false)}
-                      className="btn-outline-fashion"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
+                  </motion.form>
+                )}
+              </div>
             </motion.div>
 
-            {/* Addresses */}
+            {/* Addresses Section - Minimalist Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8"
             >
-              {/* <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-lg font-medium">
-                  Saved Addresses
-                </h3>
-                <button
-                  onClick={handleAddNew}
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <Plus size={16} />
-                  Add New
-                </button>
-              </div> */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 text-left">Saved Addresses</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Manage your delivery locations</p>
+                </div>
+              </div>
 
               <AddressSelector
                 onAddNewClick={handleAddNew}
