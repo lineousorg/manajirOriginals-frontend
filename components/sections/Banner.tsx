@@ -2,24 +2,28 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import banner1 from "../../public/Banner images/banner1.png"
+import banner2 from "../../public/Banner images/banner2.png"
+import banner3 from "../../public/Banner images/banner3.png"
+import Image from "next/image";
 
 const slides = [
   {
     id: 1,
     image:
-      "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200&q=80",
+      banner1,
     alt: "Fashion Editorial 1",
   },
   {
     id: 2,
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80",
+      banner2,
     alt: "Fashion Editorial 2",
   },
   {
     id: 3,
     image:
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200&q=80",
+      banner3,
     alt: "Fashion Editorial 3",
   },
 ];
@@ -73,7 +77,7 @@ const Banner = () => {
         className="absolute bottom-0 right-0 w-200 h-200 bg-linear-to-tl from-amber-900/10 to-transparent rounded-full blur-[120px]"
       /> */}
 
-      <div className="w-full lg:w-[1220px] mx-auto relative z-10 ">
+      <div className="w-full lg:w-305 mx-auto relative z-10 ">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center min-h-screen py-20">
           {/* LEFT: Text Content */}
           <div className="order-2 lg:order-1 flex flex-col justify-center">
@@ -155,7 +159,7 @@ const Banner = () => {
               className="flex flex-wrap items-center gap-6 mb-16"
             >
               <Link
-                href="/collection"
+                href="/products"
                 className="group relative px-8 py-4 bg-white text-black text-sm font-medium tracking-wider overflow-hidden rounded-none hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-500"
               >
                 <span className="relative z-10 flex items-center gap-3">
@@ -234,11 +238,14 @@ const Banner = () => {
                   transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                   className="absolute inset-0"
                 >
-                  <img
-                    src={slides[currentSlide].image}
-                    alt={slides[currentSlide].alt}
-                    className="w-full h-full object-cover"
-                  />
+                  {slides.map((image, index) => (
+                    <Image
+                      src={slides[currentSlide].image}
+                      alt={slides[currentSlide].alt}
+                      fill
+                      className="object-cover"
+                    />
+                  ))}
                   {/* Cinematic Overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
                   <div className="absolute inset-0 bg-linear-to-l from-transparent via-transparent to-black/20" />

@@ -15,7 +15,7 @@ const CartPage = () => {
 
   if (items.length === 0) {
     return (
-      <div className="border flex items-center justify-center py-16 min-h-[90dvh] mt-20">
+      <div className="border flex items-center justify-center py-16 min-h-[90dvh] pt-40">
         <EmptyState
           icon={<ShoppingBag size={64} />}
           title="Your bag is empty"
@@ -33,7 +33,7 @@ const CartPage = () => {
   console.log(items);
 
   return (
-    <div className="container-fashion py-8 md:py-12 mt-20 min-h-screen">
+    <div className="container-fashion py-8 md:py-12 pt-40 min-h-screen">
       <div className="flex items-center justify-between mb-8">
         <h1 className="heading-section">Shopping Bag</h1>
         <button

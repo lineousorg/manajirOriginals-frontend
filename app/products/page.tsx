@@ -8,7 +8,7 @@ export default function ProductsPage() {
   const { products, loading } = useProducts({ refreshInterval: 30_000 });
 
   return (
-    <div className="container-fashion py-8 min-h-screen mt-20">
+    <div className="container-fashion py-8 min-h-screen pt-40">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground">All Products</h1>
         <p className="text-muted-foreground mt-2">

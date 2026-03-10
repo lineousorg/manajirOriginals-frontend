@@ -40,7 +40,7 @@ export const Footer = () => {
               className="font-serif text-2xl font-medium tracking-tight"
             >
               <img
-                src={"/logo.jpeg"}
+                src={"/Manajir-logo.jpeg"}
                 alt={"logo"}
                 className="w-16 h-16 rounded-full object-cover"
               />
@@ -126,7 +126,7 @@ export const Footer = () => {
 
         <div className="border-t border-background/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-background/50">
-            © {new Date().getFullYear()} Maison. All rights reserved.
+            © {new Date().getFullYear()} Manajir Originals. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-background/50">
             <a href="#" className="hover:text-background transition-colors">

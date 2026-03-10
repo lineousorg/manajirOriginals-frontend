@@ -270,10 +270,10 @@ const OrdersPage = () => {
   console.log(orderDetails);
 
   return (
-    <div className="container-fashion py-8 md:py-12 mt-20">
-      <h1 className="heading-section mb-8">Order History</h1>
+    <div className="container-fashion py-8 md:py-12  min-h-screen">
+      <h1 className="heading-section mb-8 pt-40">Order History</h1>
 
-      <div className="space-y-6 min-h-screen">
+      <div className="space-y-6">
         {orders.map((order, index) => {
           const orderStatus = mapStatus(order.status);
           const status = statusConfig[orderStatus as keyof typeof statusConfig];
@@ -285,7 +285,7 @@ const OrdersPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-muted/30 rounded-xl p-6"
+              className="bg-muted/50 rounded-xl p-6 shadow-md"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
@@ -341,19 +341,17 @@ const OrdersPage = () => {
                             {/* Line */}
                             {!isLast && (
                               <div
-                                className={`absolute top-4 left-1/2 w-full h-1 -z-10 ${
-                                  i < stepIndex ? "bg-primary" : "bg-muted"
-                                }`}
+                                className={`absolute top-4 left-1/2 w-full h-1 -z-10 ${i < stepIndex ? "bg-primary" : "bg-muted"
+                                  }`}
                               />
                             )}
 
                             {/* Circle */}
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                                isCompleted
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground"
-                              } ${isCurrent ? "ring-4 ring-primary/20" : ""}`}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isCompleted
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                                } ${isCurrent ? "ring-4 ring-primary/20" : ""}`}
                             >
                               {i + 1}
                             </div>
@@ -414,19 +412,17 @@ const OrdersPage = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      statusConfig[
-                        mapStatus(
-                          orderDetails.status,
-                        ) as keyof typeof statusConfig
-                      ]?.bg || "bg-gray-100"
-                    } ${
-                      statusConfig[
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig[
+                      mapStatus(
+                        orderDetails.status,
+                      ) as keyof typeof statusConfig
+                    ]?.bg || "bg-gray-100"
+                      } ${statusConfig[
                         mapStatus(
                           orderDetails.status,
                         ) as keyof typeof statusConfig
                       ]?.color || "text-gray-600"
-                    }`}
+                      }`}
                   >
                     {statusConfig[
                       mapStatus(

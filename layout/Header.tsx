@@ -61,16 +61,15 @@ export const Header = () => {
         initial={{ y: 0 }}
         animate={{
           y: 0,
-          backgroundColor: isScrolled 
+          backgroundColor: isScrolled
             ? "#631515"
             : pathname === "/" ? "rgba(10, 10, 10, 0)" : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${
-          isScrolled ? "border-white/10" : "border-transparent"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${isScrolled ? "border-white/10" : "border-transparent"
+          }`}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-2">
           <div className="flex items-center justify-between h-20">
             {/* Left: Mobile Menu + Logo */}
             <div className="flex items-center gap-6">
@@ -110,16 +109,19 @@ export const Header = () => {
               <Link href="/" className="relative group">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
-                  className="flex flex-col items-start"
+                  className="flex flex-col items-start relative"
                 >
-                  <span className="text-2xl font-light tracking-[0.2em] text-white uppercase font-serif">
-                    Manajir
-                  </span>
-                  {/* <span className="text-[9px] tracking-[0.4em] text-white/40 uppercase -mt-1">
-                    Atelier
-                  </span> */}
+                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center">
+
+                    <img
+                      src={"/logo.png"}
+                      alt={"logo"}
+                      className="w-18 h-18 rounded-full object-cover"
+                    />
+                  </div>
+
                 </motion.div>
-                <div className="absolute -bottom-1 left-0 w-0 h-[1px] bg-gradient-to-r from-white/60 to-transparent group-hover:w-full transition-all duration-500" />
+                {/* <div className="absolute -bottom-1 left-0 w-0 h-px bg-linear-to-r from-white/60 to-transparent group-hover:w-full transition-all duration-500" /> */}
               </Link>
             </div>
 

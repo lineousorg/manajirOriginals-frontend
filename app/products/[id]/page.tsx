@@ -187,7 +187,7 @@ export default function ProductDetailsPage() {
   console.log(product);
 
   return (
-    <div className="mt-20">
+    <div className="pt-40">
       {/* Breadcrumb */}
       <div className="container-fashion py-4">
         <nav className="flex items-center gap-2 text-sm text-muted-foreground">
