@@ -131,7 +131,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ৳{item.product.variants[0]?.price * item.quantity}
+                    ৳{(item.product.variants?.[0]?.price || 0) * item.quantity}
                   </p>
                 </div>
               </div>

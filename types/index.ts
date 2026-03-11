@@ -1,5 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+export interface ProductVariant {
+  id: number;
+  sku: string;
+  price: number;
+  stock: number;
+  productId: number;
+  createdAt?: string;
+  updatedAt?: string;
+  attributes?: {
+    attributeValueId: number;
+    attributeValue?: {
+      id: number;
+      value: string;
+      attributeId: number;
+      attribute?: {
+        id: number;
+        name: string;
+      };
+    };
+  }[];
+}
+
 export interface ProductColor {
   name: string;
   value: string;
@@ -45,8 +67,10 @@ export interface ApiProduct {
   brand?: string;
   colors?: ProductColor[];
   sizes?: string[];
+  variants?: ProductVariant[];
   isNew?: boolean;
   isSale?: boolean;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: any;
@@ -66,6 +90,7 @@ export interface Product {
   categoryId?: number | string;
   colors?: ProductColor[];
   sizes?: string[];
+  variants?: ProductVariant[];
   description?: string;
   isNew?: boolean;
   isSale?: boolean;

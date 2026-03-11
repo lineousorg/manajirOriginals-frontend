@@ -101,7 +101,7 @@ const CheckoutPage = () => {
     e.preventDefault();
     // Build the items array for the API
     const orderItems = items.map((item) => ({
-      variantId: Number(item.product.variants[0]?.id),
+      variantId: Number(item.product.variants?.[0]?.id),
       quantity: item.quantity,
     }));
     console.log(orderItems);
@@ -289,7 +289,7 @@ const CheckoutPage = () => {
                         </span>
                       </p>
                       <p className="text-sm font-medium mt-2 text-primary">
-                        ৳ {(item.product.variants[0]?.price * item.quantity).toFixed(2)}
+                        ৳ {((item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>

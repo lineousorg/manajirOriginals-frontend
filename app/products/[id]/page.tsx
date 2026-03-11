@@ -259,7 +259,7 @@ export default function ProductDetailsPage() {
 
             <div className="flex items-center gap-3 mb-6">
               <span className="text-2xl font-medium">
-                ৳ {product?.variants[0]?.price}
+                ৳ {product?.variants?.[0]?.price}
               </span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">

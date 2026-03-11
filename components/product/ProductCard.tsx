@@ -43,9 +43,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       ? Math.round(((originalPrice - basePrice) / originalPrice) * 100)
       : null;
 
-  const lowStock = product.variants?.[0]?.stock < 10;
-
-  console.log(product);
+  const lowStock = (product.variants?.[0]?.stock ?? 0) < 10;
 
   return (
     <motion.article
@@ -92,17 +90,17 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         </div>
 
         {/* Stock Indicator */}
-        {lowStock && product.variants[0]?.stock > 0 && (
+        {lowStock && (product.variants?.[0]?.stock ?? 0) > 0 && (
           <div className="absolute bottom-4 left-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded-full border border-amber-200">
               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-              Only {product.variants[0].stock} left
+              Only {product.variants?.[0]?.stock} left
             </span>
           </div>
         )}
 
         {/* Out of Stock Overlay */}
-        {product.variants[0]?.stock === 0 && (
+        {product.variants?.[0]?.stock === 0 && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
             <span className="px-4 py-2 bg-slate-900 text-white text-xs font-medium tracking-wider uppercase rounded-full">
               Out of Stock
