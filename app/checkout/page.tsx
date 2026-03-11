@@ -289,7 +289,7 @@ const CheckoutPage = () => {
                         </span>
                       </p>
                       <p className="text-sm font-medium mt-2 text-primary">
-                        ৳ {((item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
+                        ৳ {(Number(item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>

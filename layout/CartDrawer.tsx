@@ -180,9 +180,7 @@ export const CartDrawer = () => {
                             </div>
                             <p className="font-medium text-gray-800">
                               ৳{" "}
-                              {(
-                                (item.product.variants?.[0]?.price || 0) * item.quantity
-                              ).toFixed(2)}
+                              {(Number(item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>

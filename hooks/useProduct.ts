@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import useApi from "@/hooks/useApi";
-import { ApiProduct, Category, ProductColor } from "@/types";
+import { ApiProduct, Category, ProductColor, ProductVariant } from "@/types";
 
 // ─── Response types ───────────────────────────────────────────────
 interface ProductsApiResponse {
@@ -71,7 +71,7 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
   const sizes: string[] = [];
 
   if (raw.variants && Array.isArray(raw.variants)) {
-    raw.variants.forEach((variant: Variant) => {
+    raw.variants.forEach((variant: ProductVariant) => {
       if (variant.attributes && Array.isArray(variant.attributes)) {
         variant.attributes.forEach((attr) => {
           const attrName = attr.attributeValue?.attribute?.name;
