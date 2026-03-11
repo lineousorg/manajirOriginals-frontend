@@ -39,7 +39,7 @@ export const ProductGallery = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`w-full h-full object-contain cursor-zoom-in transition-transform duration-500 ${
+            className={`w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ${
               isZoomed ? "scale-150" : ""
             }`}
             onClick={() => setIsZoomed(!isZoomed)}

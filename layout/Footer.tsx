@@ -1,5 +1,7 @@
 "use client";
+import { motion } from "framer-motion";
 import { Instagram, Twitter, Facebook } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -32,40 +34,48 @@ export const Footer = () => {
   return (
     <footer className="bg-black text-background mt-auto">
       <div className="container-fashion py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link
-              href="/"
-              className="font-serif text-2xl font-medium tracking-tight"
-            >
-              <img
-                src={"/Manajir-logo.jpeg"}
-                alt={"logo"}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            </Link>
+              {/* Logo */}
+              <Link href="/" className="relative group">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="flex flex-col items-start relative"
+                >
+                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center">
+
+                    <img
+                      src={"/logo.png"}
+                      alt={"logo"}
+                      className="w-18 h-18 rounded-full object-cover"
+                    />
+                  </div>
+
+                </motion.div>
+                {/* <div className="absolute -bottom-1 left-0 w-0 h-px bg-linear-to-r from-white/60 to-transparent group-hover:w-full transition-all duration-500" /> */}
+              </Link>
             <p className="mt-4 text-gray-200 max-w-sm text-left text-sm leading-relaxed">
               Timeless elegance meets contemporary design. Crafted with care for
               the modern individual.
             </p>
             <div className="flex gap-4 mt-6 text-rose-700">
               <a
-                href="#"
+                href="https://www.instagram.com/manajiroriginals/" target="_blank" rel="noopener noreferrer"
                 className="p-2 hover:bg-background/10 rounded-full transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram size={20} />
               </a>
               <a
-                href="#"
+                href="https://www.tiktok.com/@manajiroriginals?is_from_webapp=1&sender_device=pc " target="_blank" rel="noopener noreferrer"
                 className="p-2 hover:bg-background/10 rounded-full transition-colors"
                 aria-label="Twitter"
               >
-                <Twitter size={20} />
+                <FaTiktok size={20} />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/people/Manajir-Originals/61585941128531/" target="_blank" rel="noopener noreferrer"
                 className="p-2 hover:bg-background/10 rounded-full transition-colors"
                 aria-label="Facebook"
               >
@@ -75,8 +85,8 @@ export const Footer = () => {
           </div>
 
           {/* Links */}
-          <div>
-            <h4 className="text-label text-background/50 mb-4">Shop</h4>
+          <div className="">
+            {/* <h4 className="text-label text-background/50 mb-4">Shop</h4> */}
             <ul className="space-y-3">
               {footerLinks.shop.map((link, idx) => (
                 <li key={idx}>
@@ -92,7 +102,7 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-label text-background/50 mb-4">Help</h4>
+            {/* <h4 className="text-label text-background/50 mb-4">Help</h4> */}
             <ul className="space-y-3">
               {footerLinks.help.map((link, idx) => (
                 <li key={idx}>
@@ -107,7 +117,7 @@ export const Footer = () => {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <h4 className="text-label text-background/50 mb-4">Company</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link, idx) => (
@@ -121,7 +131,7 @@ export const Footer = () => {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
         </div>
 
         <div className="border-t border-background/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">

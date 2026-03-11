@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import banner1 from "../../public/Banner images/banner1.png"
-import banner2 from "../../public/Banner images/banner2.png"
-import banner3 from "../../public/Banner images/banner3.png"
+import banner1 from "../../public/Banner images/banner1.jpeg"
+import banner2 from "../../public/Banner images/banner2.jpeg"
+import banner3 from "../../public/Banner images/banner3.jpeg"
 import Image from "next/image";
 
 const slides = [

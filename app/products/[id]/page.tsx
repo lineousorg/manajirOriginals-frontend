@@ -396,7 +396,7 @@ export default function ProductDetailsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-6 border-t border-b border-border mb-8">
           <div className="text-center">
             <Truck size={20} className="mx-auto mb-2 text-muted-foreground" />
-            <p className=" text-muted-foreground">Free Shipping</p>
+            <p className=" text-muted-foreground">Cash on Delivery</p>
           </div>
           <div className="text-center">
             <RotateCcw
