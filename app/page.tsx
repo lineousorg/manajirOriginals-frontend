@@ -103,9 +103,9 @@ export default function Home() {
                     href={`/products?cat=${category.slug}`}
                     className="group block relative aspect-4/5 overflow-hidden rounded-2xl"
                   >
-                    {category.image ? (
+                    {category.images ? (
                       <img
-                        src={category.image}
+                        src={category.images[0]?.url}
                         alt={category.name}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
