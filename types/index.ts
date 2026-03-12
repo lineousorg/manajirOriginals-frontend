@@ -3,7 +3,7 @@
 export interface ProductVariant {
   id: number;
   sku: string;
-  price: string;
+  price: number;
   stock: number;
   productId: number;
   createdAt: string;
@@ -145,9 +145,20 @@ export interface Order {
   trackingNumber?: string;
 }
 
+export interface CategoryImage {
+  id: number;
+  url: string;
+  altText: string;
+  position: number;
+  type: string;
+  productId: number;
+  variantId: number;
+  categoryId: number;
+}
+
 export interface Category {
   id: string | number;
-  image?: string;
+  images?: CategoryImage[];
   productCount?: number;
   name: string;
   slug: string;

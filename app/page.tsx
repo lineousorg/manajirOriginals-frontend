@@ -43,11 +43,7 @@ export default function Home() {
   const { products, loading: productsLoading } = useProducts({
     refreshInterval: 30_000,
   });
-  const {
-    categories,
-    loading: categoriesLoading,
-    getChildCategories,
-  } = useCategories(60_000);
+  const { categories, loading: categoriesLoading } = useCategories(60_000);
   console.log(categories);
 
   const loading = productsLoading || categoriesLoading;
@@ -57,12 +53,11 @@ export default function Home() {
   // Use next 4 as "best sellers"
   const bestSellers = products.slice(4, 8);
 
-  // Get all child categories (categories with a parentId), sorted alphabetically
-  const allChildCategories = getChildCategories();
-  const sortedChildCategories = [...allChildCategories].sort((a, b) =>
-    a.name.localeCompare(b.name)
+  // Get all categories from API, sorted alphabetically
+  const sortedCategories = [...categories].sort((a, b) =>
+    a.name.localeCompare(b.name),
   );
-  const displayCategories = sortedChildCategories.slice(0, 6);
+  const displayCategories = sortedCategories.slice(0, 6);
 
   return (
     <div>
@@ -73,10 +68,10 @@ export default function Home() {
       {categories.length > 0 && (
         <section
           className="py-20 bg-white rounded-t-[30px] -mt-7 relative z-999"
-        // style={{
-        //   backgroundImage: "./section-bg.png",
-        //   backgroundSize: "cover",
-        // }}
+          // style={{
+          //   backgroundImage: "./section-bg.png",
+          //   backgroundSize: "cover",
+          // }}
         >
           <div className="container-fashion">
             <motion.div
@@ -101,11 +96,11 @@ export default function Home() {
                 <motion.div key={category.id} variants={fadeInUp}>
                   <Link
                     href={`/products?cat=${category.slug}`}
-                    className="group block relative aspect-4/5 overflow-hidden rounded-2xl"
+                    className="group block relative aspect-4/5 overflow-hidden rounded-2xl shadow-2xl"
                   >
-                    {category.image ? (
+                    {category.images ? (
                       <img
-                        src={category.image}
+                        src={category.images[0]?.url}
                         alt={category.name}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
@@ -116,8 +111,8 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="font-serif text-xl text-background">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black to-transparent">
+                      <h3 className="font-serif text-4xl text-background">
                         {category.name}
                       </h3>
                       <p className="text-sm text-background/70 mt-1">
