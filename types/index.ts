@@ -3,7 +3,7 @@
 export interface ProductVariant {
   id: number;
   sku: string;
-  price: string;
+  price: number;
   stock: number;
   productId: number;
   createdAt: string;
