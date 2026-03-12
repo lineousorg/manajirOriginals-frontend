@@ -678,31 +678,41 @@ export default function ProductDetailsPage() {
               )}
 
               {activeTab === "shipping" && (
-                <div className="max-w-3xl space-y-4 text-muted-foreground">
+                <div className="max-w-3xl space-y-6 text-muted-foreground">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-muted/50 p-6 rounded-lg">
-                      <h4 className="font-medium text-foreground mb-2">
+                      <h4 className="font-medium text-foreground mb-3">
                         Standard Delivery
                       </h4>
-                      <p className="text-sm mb-2">
-                        Free shipping on orders over ৳150
-                      </p>
-                      <p className="text-sm">
+                      <p className="text-sm mb-3">
                         Delivery within 3-5 business days
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Carefully packed with premium packaging to ensure your product arrives in perfect condition.
                       </p>
                     </div>
                     <div className="bg-muted/50 p-6 rounded-lg">
-                      <h4 className="font-medium text-foreground mb-2">
+                      <h4 className="font-medium text-foreground mb-3">
                         Express Delivery
                       </h4>
-                      <p className="text-sm mb-2">৳15 flat rate</p>
-                      <p className="text-sm">
+                      <p className="text-sm mb-3">
                         Delivery within 1-2 business days
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Priority handling with extra care packaging. Track your order in real-time for peace of mind.
                       </p>
                     </div>
                   </div>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h4 className="font-medium text-foreground mb-2">
+                      Cash on Delivery
+                    </h4>
+                    <p className="text-sm">
+                      Pay when you receive. Available for all orders within Bangladesh.
+                    </p>
+                  </div>
                   <p className="text-sm">
-                    Cash on Delivery available for all orders within Bangladesh.
+                    For any delivery-related queries, please contact our customer support team.
                   </p>
                 </div>
               )}

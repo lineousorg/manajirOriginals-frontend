@@ -1,16 +1,50 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
+import { Product, ProductVariant } from "@/types";
+
+// Helper function to get the correct variant price
+const getItemPrice = (product: Product, selectedSize: string, selectedColor: string): number => {
+  let itemPrice = product.price || 0;
+  
+  if (product.variants && product.variants.length > 0) {
+    const matchingVariant = product.variants.find((variant: ProductVariant) => {
+      const sizeAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
+                       attr.attributeValue?.value === selectedSize
+      );
+      const colorAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
+                       attr.attributeValue?.value === selectedColor
+      );
+      return sizeAttr && colorAttr;
+    });
+    
+    if (matchingVariant) {
+      itemPrice = matchingVariant.price || itemPrice;
+    } else {
+      itemPrice = product.variants[0]?.price || itemPrice;
+    }
+  }
+  
+  return itemPrice;
+};
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart } =
     useCartStore();
 
+  const [deliveryLocation, setDeliveryLocation] = useState<
+    "inside_dhaka" | "outside_dhaka"
+  >("inside_dhaka");
+
   const subtotal = getTotal();
-  const shipping = subtotal > 150 ? 0 : 15;
+  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
   const total = subtotal + shipping;
 
   if (items.length === 0) {
@@ -131,7 +165,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ৳{Number(item.product.variants?.[0]?.price || 0) * item.quantity}
+                    ৳{getItemPrice(item.product, item.selectedSize, item.selectedColor) * item.quantity}
                   </p>
                 </div>
               </div>
@@ -149,6 +183,39 @@ const CartPage = () => {
           <div className="bg-muted/30 rounded-xl p-4 md:p-6">
             <h2 className="font-serif text-xl mb-6">Order Summary</h2>
 
+            {/* Delivery Location Selection */}
+            <div className="mb-6">
+              <h4 className="text-sm font-medium mb-3">Delivery Location</h4>
+              <div className="space-y-2">
+                <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "inside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="deliveryLocation"
+                      checked={deliveryLocation === "inside_dhaka"}
+                      onChange={() => setDeliveryLocation("inside_dhaka")}
+                      className="w-4 h-4 text-primary"
+                    />
+                    <span className="text-sm">Inside Dhaka</span>
+                  </div>
+                  <span className="font-medium">৳70</span>
+                </label>
+                <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "outside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="deliveryLocation"
+                      checked={deliveryLocation === "outside_dhaka"}
+                      onChange={() => setDeliveryLocation("outside_dhaka")}
+                      className="w-4 h-4 text-primary"
+                    />
+                    <span className="text-sm">Outside Dhaka</span>
+                  </div>
+                  <span className="font-medium">৳150</span>
+                </label>
+              </div>
+            </div>
+
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -156,13 +223,8 @@ const CartPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Shipping</span>
-                <span>{shipping === 0 ? "Free" : `৳ ${shipping}`}</span>
+                <span>৳ {shipping}</span>
               </div>
-              {shipping > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Free shipping on orders over ৳150
-                </p>
-              )}
               <div className="border-t border-border pt-4 flex justify-between text-base font-medium">
                 <span>Total</span>
                 <span>৳ {total}</span>

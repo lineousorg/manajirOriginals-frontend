@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, Product } from '@/types';
+import { CartItem, Product, ProductVariant } from '@/types';
 
 interface CartState {
   items: CartItem[];
@@ -80,7 +80,33 @@ export const useCartStore = create<CartState>()(
 
       getTotal: () => {
         const { items } = get();
-        return items.reduce((total, item) => total + (item.product.price || 0) * item.quantity, 0);
+        return items.reduce((total, item) => {
+          let itemPrice = item.product.price || 0;
+          
+          // Find the correct variant based on selected size and color
+          if (item.product.variants && item.product.variants.length > 0) {
+            const matchingVariant = item.product.variants.find((variant: ProductVariant) => {
+              const sizeAttr = variant.attributes?.find(
+                (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
+                               attr.attributeValue?.value === item.selectedSize
+              );
+              const colorAttr = variant.attributes?.find(
+                (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
+                               attr.attributeValue?.value === item.selectedColor
+              );
+              return sizeAttr && colorAttr;
+            });
+            
+            if (matchingVariant) {
+              itemPrice = matchingVariant.price || itemPrice;
+            } else {
+              // Fallback to first variant if no match found
+              itemPrice = item.product.variants[0]?.price || itemPrice;
+            }
+          }
+          
+          return total + (Number(itemPrice) * item.quantity);
+        }, 0);
       },
 
       getItemCount: () => {

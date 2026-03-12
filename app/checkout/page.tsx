@@ -16,23 +16,51 @@ import {
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-import { Address } from "@/types";
+import { Address, Product, ProductVariant } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
 import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import toast, { Toaster } from "react-hot-toast";
 
+// Helper function to get the correct variant
+const getItemVariant = (product: Product, selectedSize: string, selectedColor: string): ProductVariant | null => {
+  if (product.variants && product.variants.length > 0) {
+    const matchingVariant = product.variants.find((variant: ProductVariant) => {
+      const sizeAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
+                       attr.attributeValue?.value === selectedSize
+      );
+      const colorAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
+                       attr.attributeValue?.value === selectedColor
+      );
+      return sizeAttr && colorAttr;
+    });
+    
+    return matchingVariant || product.variants[0] || null;
+  }
+  return null;
+};
+
 const CheckoutPage = () => {
-  const { items, getTotal, clearCart } = useCartStore();
+  const { items, getTotal, clearCart, closeCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
+  
+  // Ensure cart drawer is closed when checkout page loads
+  useEffect(() => {
+    closeCart();
+  }, [closeCart]);
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
     "shipping"
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "CASH_ON_DELIVERY" | "ONLINE_PAYMENT"
   >("CASH_ON_DELIVERY");
+  const [deliveryLocation, setDeliveryLocation] = useState<
+    "inside_dhaka" | "outside_dhaka"
+  >("inside_dhaka");
   const [formData, setFormData] = useState({
     email: user?.email || "",
     firstName: "",
@@ -57,9 +85,8 @@ const CheckoutPage = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const subtotal = getTotal();
-  const shipping = subtotal > 150 ? 0 : 15;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
+  const total = subtotal + shipping;
 
   // Update email when user changes
   useEffect(() => {
@@ -100,10 +127,13 @@ const CheckoutPage = () => {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     // Build the items array for the API
-    const orderItems = items.map((item) => ({
-      variantId: Number(item.product.variants?.[0]?.id),
-      quantity: item.quantity,
-    }));
+    const orderItems = items.map((item) => {
+      const variant = getItemVariant(item.product, item.selectedSize, item.selectedColor);
+      return {
+        variantId: Number(variant?.id || item.product.variants?.[0]?.id),
+        quantity: item.quantity,
+      };
+    });
     console.log(orderItems);
 
     // Create the payload
@@ -289,11 +319,44 @@ const CheckoutPage = () => {
                         </span>
                       </p>
                       <p className="text-sm font-medium mt-2 text-primary">
-                        ৳ {(Number(item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
+                        ৳ {(Number(getItemVariant(item.product, item.selectedSize, item.selectedColor)?.price || item.product.price || 0) * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Delivery Location Selection */}
+              <div className="border-t border-border pt-4 mt-4">
+                <h4 className="font-medium text-foreground mb-3">Delivery Location</h4>
+                <div className="space-y-2">
+                  <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "inside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="deliveryLocation"
+                        checked={deliveryLocation === "inside_dhaka"}
+                        onChange={() => setDeliveryLocation("inside_dhaka")}
+                        className="w-4 h-4 text-primary"
+                      />
+                      <span className="text-sm">Inside Dhaka</span>
+                    </div>
+                    <span className="font-medium">৳70</span>
+                  </label>
+                  <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "outside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="deliveryLocation"
+                        checked={deliveryLocation === "outside_dhaka"}
+                        onChange={() => setDeliveryLocation("outside_dhaka")}
+                        className="w-4 h-4 text-primary"
+                      />
+                      <span className="text-sm">Outside Dhaka</span>
+                    </div>
+                    <span className="font-medium">৳150</span>
+                  </label>
+                </div>
               </div>
 
               <div className="border-t border-border pt-4 space-y-3 text-sm">
@@ -304,30 +367,11 @@ const CheckoutPage = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Shipping
-                    {shipping === 0 && (
-                      <span className="ml-2 text-xs text-green-600 font-medium">
-                        FREE
-                      </span>
-                    )}
-                  </span>
+                  <span className="text-muted-foreground">Shipping</span>
                   <span className="font-medium text-gray-600">
-                    {shipping === 0 ? "Free" : `৳${shipping.toFixed(2)}`}
+                    ৳{shipping.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tax (8%)</span>
-                  <span className="font-medium text-gray-600">
-                    ৳{tax.toFixed(2)}
-                  </span>
-                </div>
-                {/* {subtotal < 150 && (
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Free shipping at</span>
-                  <span className="text-gray-600">৳{(150 - subtotal).toFixed(2)} more</span>
-                </div>
-              )} */}
                 <div className="border-t border-border pt-3 flex justify-between text-lg font-semibold text-gray-600">
                   <span>Total</span>
                   <span className="text-gray-600">৳{total.toFixed(2)}</span>

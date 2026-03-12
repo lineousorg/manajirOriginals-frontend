@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 
@@ -8,6 +8,34 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { SignupModal } from "@/components/auth/SignupModal";
 import Link from "next/link";
+import { Product, ProductVariant } from "@/types";
+
+// Helper function to get the correct variant price
+const getItemPrice = (product: Product, selectedSize: string, selectedColor: string): number => {
+  let itemPrice = product.price || 0;
+  
+  if (product.variants && product.variants.length > 0) {
+    const matchingVariant = product.variants.find((variant: ProductVariant) => {
+      const sizeAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
+                       attr.attributeValue?.value === selectedSize
+      );
+      const colorAttr = variant.attributes?.find(
+        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
+                       attr.attributeValue?.value === selectedColor
+      );
+      return sizeAttr && colorAttr;
+    });
+    
+    if (matchingVariant) {
+      itemPrice = matchingVariant.price || itemPrice;
+    } else {
+      itemPrice = product.variants[0]?.price || itemPrice;
+    }
+  }
+  
+  return itemPrice;
+};
 
 export const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal } =
@@ -180,7 +208,7 @@ export const CartDrawer = () => {
                             </div>
                             <p className="font-medium text-gray-800">
                               ৳{" "}
-                              {(Number(item.product.variants?.[0]?.price || 0) * item.quantity).toFixed(2)}
+                              {(getItemPrice(item.product, item.selectedSize, item.selectedColor) * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>
