@@ -118,7 +118,7 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start gap-6 md:mb-20">
           {/* Left: Logo + Company */}
-          <div>
+          {/* <div>
             <div className="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6">
               <img src="/logo.jpeg" alt="" className="rounded-full" />
             </div>
@@ -130,7 +130,7 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
                 Dhaka, Bangladesh
               </p>
             </div>
-          </div>
+          </div> */}
 
           {/* Right: Receipt Title */}
           <div className="text-right">
