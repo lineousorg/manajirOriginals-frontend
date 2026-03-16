@@ -267,8 +267,6 @@ const OrdersPage = () => {
     );
   }
 
-  console.log(orderDetails);
-
   return (
     <div className="container-fashion py-8 md:py-12  min-h-screen">
       <h1 className="heading-section mb-8 pt-40">Order History</h1>

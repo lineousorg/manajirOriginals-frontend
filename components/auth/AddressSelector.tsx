@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Check, Plus, Star, Edit2, Trash2 } from "lucide-react";
 import { Address } from "@/types";
 import useApi from "@/hooks/useApi";
+import { useAddresses } from "@/hooks/useProduct";
 import toast from "react-hot-toast";
 import { confirmToast } from "@/lib/toast-confirm";
 
@@ -21,49 +22,24 @@ export const AddressSelector = ({
   onAddressSelect,
   onAddNewClick,
   selectedAddressId,
-  refreshTrigger,
   showActions = false,
   onEdit,
   onDelete,
 }: AddressSelectorProps) => {
   const api = useApi();
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { addresses, loading, refetch } = useAddresses();
   const [error, setError] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState<number | null>(null);
 
+  // Auto-select default address on mount or when addresses change
   useEffect(() => {
-    fetchAddresses();
-  }, [refreshTrigger]);
-
-  const fetchAddresses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get<{ data: Address[] }>("/addresses");
-      const fetchedAddresses = response.data;
-      setAddresses(fetchedAddresses);
-
-      // Auto-select default address if no address is selected
-      if (
-        !selectedAddressId &&
-        fetchedAddresses.length > 0 &&
-        onAddressSelect
-      ) {
-        const defaultAddr =
-          fetchedAddresses.find((addr) => addr.isDefault) ||
-          fetchedAddresses[0];
-        if (defaultAddr) {
-          onAddressSelect(defaultAddr);
-        }
+    if (addresses.length > 0 && !selectedAddressId && onAddressSelect) {
+      const defaultAddr = addresses.find((addr) => addr.isDefault) || addresses[0];
+      if (defaultAddr) {
+        onAddressSelect(defaultAddr);
       }
-    } catch (err) {
-      console.error("Failed to fetch addresses:", err);
-      setError("Failed to load addresses");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [addresses, selectedAddressId, onAddressSelect]);
 
   const handleSetDefault = async (addressId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent address selection when clicking set default
@@ -86,13 +62,8 @@ export const AddressSelector = ({
       setSettingDefault(addressId);
       await api.patch(`/addresses/${addressId}/set-default`);
 
-      // Update local state
-      setAddresses((prev) =>
-        prev.map((addr) => ({
-          ...addr,
-          isDefault: addr.id === addressId,
-        })),
-      );
+      // Refetch addresses to get updated data
+      await refetch();
 
       toast.success("Default address updated successfully");
 
@@ -158,7 +129,7 @@ export const AddressSelector = ({
         <button
           type="button"
           onClick={onAddNewClick}
-          className="text-xs text-primary hover:text-primary/80 font-medium underline underline-offset-2 transition-colors inline-flex items-center gap-1"
+          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors inline-flex items-center gap-1 border rounded-2xl p-1 bg-accent cursor-pointer"
         >
           <Plus size={14} />
           Add New

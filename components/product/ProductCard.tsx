@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { ApiProduct, TypeImage } from "@/types";
@@ -19,6 +20,8 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const router = useRouter();
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { isAuthenticated } = useAuthStore();
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const productId = String(product.id);
   const inWishlist = isInWishlist(productId);
@@ -59,6 +62,11 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl p-2 row-span-2">
+        {/* Image Skeleton Loader */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-slate-200 animate-pulse rounded-2xl" />
+        )}
+        
         <motion.img
           src={
             (product?.images && product?.images[0]?.url) ||
@@ -70,6 +78,9 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 rounded-2xl"
           loading="lazy"
           whileHover={{ scale: 1.05 }}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => { setImageError(true); setImageLoaded(true); }}
+          style={{ opacity: imageLoaded ? 1 : 0 }}
         />
 
         {/* Gradient Overlay on Hover */}

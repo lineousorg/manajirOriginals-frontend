@@ -30,9 +30,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   useProductById,
-  useProducts,
   getProductCategories,
 } from "@/hooks/useProduct";
+import { useProductStore } from "@/store/product.store";
 import { TypeImage } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -44,8 +44,9 @@ export default function ProductDetailsPage() {
     "details" | "shipping" | "returns"
   >("details");
 
-  const { product, loading } = useProductById(id, { refreshInterval: 30_000 });
-  const { products: allProducts } = useProducts({ refreshInterval: 60_000 });
+  const { product, loading } = useProductById(id);
+  // Use global store for related products instead of making separate API call
+  const globalProducts = useProductStore((state) => state.products);
 
   const addToCart = useCartStore((state) => state.addItem);
   const { isInWishlist, toggleItem } = useWishlistStore();
@@ -124,8 +125,6 @@ export default function ProductDetailsPage() {
       ? Math.round((1 - currentPrice / originalPrice) * 100)
       : 0;
 
-  console.log(selectedVariant);
-
   // Initialize defaults when product loads
   useEffect(() => {
     if (product && availableSizes.length > 0 && !selectedSize) {
@@ -151,10 +150,10 @@ export default function ProductDetailsPage() {
 
   const relatedProducts = useMemo(() => {
     if (!product) return [];
-    return allProducts
+    return globalProducts
       .filter((p) => p.id !== product.id && p.categoryId === product.categoryId)
       .slice(0, 4);
-  }, [product, allProducts]);
+  }, [product, globalProducts]);
 
   const productId = product ? String(product.id) : "";
   const inWishlist = product ? isInWishlist(productId) : false;
@@ -342,7 +341,7 @@ export default function ProductDetailsPage() {
                 </p>
               )}
               <div className="flex items-start justify-between gap-4">
-                <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-medium leading-tight">
+                <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-medium text-left leading-tight">
                   {product.name}
                 </h1>
                 <button
@@ -656,7 +655,7 @@ export default function ProductDetailsPage() {
               className="min-h-50"
             >
               {activeTab === "details" && (
-                <div className="max-w-3xl">
+                <div className="w-full">
                   {details.length > 0 ? (
                     <ul className="space-y-3">
                       {details.map((detail: string, index: number) => (
@@ -688,7 +687,8 @@ export default function ProductDetailsPage() {
                         Delivery within 3-5 business days
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Carefully packed with premium packaging to ensure your product arrives in perfect condition.
+                        Carefully packed with premium packaging to ensure your
+                        product arrives in perfect condition.
                       </p>
                     </div>
                     <div className="bg-muted/50 p-6 rounded-lg">
@@ -699,7 +699,8 @@ export default function ProductDetailsPage() {
                         Delivery within 1-2 business days
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Priority handling with extra care packaging. Track your order in real-time for peace of mind.
+                        Priority handling with extra care packaging. Track your
+                        order in real-time for peace of mind.
                       </p>
                     </div>
                   </div>
@@ -708,11 +709,13 @@ export default function ProductDetailsPage() {
                       Cash on Delivery
                     </h4>
                     <p className="text-sm">
-                      Pay when you receive. Available for all orders within Bangladesh.
+                      Pay when you receive. Available for all orders within
+                      Bangladesh.
                     </p>
                   </div>
                   <p className="text-sm">
-                    For any delivery-related queries, please contact our customer support team.
+                    For any delivery-related queries, please contact our
+                    customer support team.
                   </p>
                 </div>
               )}

@@ -3,13 +3,24 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import useApi from "@/hooks/useApi";
-import { ApiProduct, Category, ProductColor, ProductVariant } from "@/types";
+import { ApiProduct, Category, ProductColor, ProductVariant, Address } from "@/types";
+import { useProductStore } from "@/store/product.store";
+import { useCategoryStore } from "@/store/category.store";
+import { useAddressStore } from "@/store/address.store";
 
 // ─── Response types ───────────────────────────────────────────────
 interface ProductsApiResponse {
   message: string;
   status: string;
   data: ApiProduct[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+  };
 }
 
 interface SingleProductApiResponse {
@@ -24,14 +35,25 @@ interface CategoriesApiResponse {
   data: Category[];
 }
 
-// ─── Hook options ─────────────────────────────────────────────────
-interface UseProductsOptions {
-  /** Auto-refresh interval in milliseconds. Set 0 to disable. Default: 30000 (30s) */
+// ─── Pagination types ───────────────────────────────────────────────
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface UseProductsOptions {
+  /** Auto-refresh interval in milliseconds. Set 0 to disable. Default: 0 (disabled) */
   refreshInterval?: number;
   /** Fetch immediately on mount. Default: true */
   fetchOnMount?: boolean;
   /** Query params to pass to GET /products */
   params?: Record<string, string | number | undefined>;
+  /** Default page size. Default: 10 */
+  defaultLimit?: number;
 }
 
 interface UseProductByIdOptions {
@@ -40,33 +62,7 @@ interface UseProductByIdOptions {
 }
 
 // ─── Helper: normalise API product to a consistent shape ──────────
-interface VariantAttribute {
-  variantId: number;
-  attributeValueId: number;
-  attributeValue: {
-    id: number;
-    value: string;
-    attributeId: number;
-    attribute: {
-      id: number;
-      name: string;
-    };
-  };
-}
-
-interface Variant {
-  id: number;
-  sku: string;
-  price: string;
-  stock: number;
-  productId: number;
-  createdAt: string;
-  updatedAt: string;
-  attributes: VariantAttribute[];
-}
-
 export function normalizeProduct(raw: ApiProduct): ApiProduct {
-  // Extract unique colors and sizes from variants
   const colors: ProductColor[] = [];
   const sizes: string[] = [];
 
@@ -78,11 +74,10 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
           const attrValue = attr.attributeValue?.value;
 
           if (attrName === "Color" && attrValue) {
-            // Check if color already exists
             if (!colors.find((c) => c.name === attrValue)) {
               colors.push({
                 name: attrValue,
-                value: attrValue, // Using value as hex would require a mapping
+                value: attrValue,
               });
             }
           }
@@ -108,13 +103,10 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
               altText: "No Image",
             },
           ],
-    // Use extracted colors from variants, fallback to existing colors
     colors: colors.length > 0 ? colors : raw.colors ?? [],
-    // Use extracted sizes from variants, fallback to existing sizes
     sizes: sizes.length > 0 ? sizes : raw.sizes ?? [],
     details: raw.details ?? [],
     description: raw.description ?? "",
-    // Include isActive property
     isActive: raw.isActive ?? true,
   };
 }
@@ -126,7 +118,6 @@ export function getProductParentCategory(product: ApiProduct): Category | null {
     return product.category.parent as unknown as Category;
   }
   if (product.category.parentId === null) {
-    // The category itself is a parent
     return product.category as unknown as Category;
   }
   return null;
@@ -149,81 +140,173 @@ export function getProductCategories(product: ApiProduct) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// useProducts – fetch list of products with auto-refresh
+// useProducts – fetch list of products with pagination
 // ═══════════════════════════════════════════════════════════════════
 export function useProducts(options: UseProductsOptions = {}) {
-  const { refreshInterval = 30_000, fetchOnMount = true, params } = options;
+  const { refreshInterval = 0, fetchOnMount = true, params, defaultLimit = 10 } = options;
 
   const { get, loading, error } = useApi();
   const [products, setProducts] = useState<ApiProduct[]>([]);
-  const [total, setTotal] = useState(0);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Use global store for caching
+  const globalProducts = useProductStore((state) => state.products);
+  const setGlobalProducts = useProductStore((state) => state.setProducts);
+  const getPageCache = useProductStore((state) => state.getPageCache);
+  const setPageCache = useProductStore((state) => state.setPageCache);
+  const globalLoading = useProductStore((state) => state.isLoading);
+  const setGlobalLoading = useProductStore((state) => state.setLoading);
 
-  // Serialize params to avoid infinite re-renders from object reference changes
+  // Serialize params to avoid infinite re-renders
   const paramsKey = params ? JSON.stringify(params) : "";
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (page = 1, limit = defaultLimit, clearProducts = true) => {
+    // Clear products when fetching new page to show loading state
+    if (clearProducts) {
+      setProducts([]);
+    }
+    
     try {
-      // Build query string from params
-      let url = "/products";
+      // Set global loading
+      setGlobalLoading(true);
+      // Build query string
+      const searchParams = new URLSearchParams();
+      searchParams.append("page", String(page));
+      searchParams.append("limit", String(limit));
+      
+      // Add any additional params
       if (params) {
-        const searchParams = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== "") {
             searchParams.append(key, String(value));
           }
         });
-        const qs = searchParams.toString();
-        if (qs) url += `?${qs}`;
       }
 
+      const url = `/products?${searchParams.toString()}`;
       const response = await get<ProductsApiResponse>(url, { skipAuth: true });
+      
       const normalized = (response.data || []).map(normalizeProduct);
-      // Filter out inactive products
       const activeProducts = normalized.filter((product) => product.isActive !== false);
+      
       setProducts(activeProducts);
-      setTotal(activeProducts.length);
+      
+      // Set pagination info from response
+      if (response.pagination) {
+        setPagination({
+          page: response.pagination.page,
+          limit: response.pagination.limit,
+          total: response.pagination.total,
+          totalPages: response.pagination.totalPages,
+          hasNext: response.pagination.hasNext,
+          hasPrevious: response.pagination.hasPrevious,
+        });
+      } else {
+        // Fallback if no pagination in response
+        setPagination({
+          page: 1,
+          limit: activeProducts.length,
+          total: activeProducts.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
+        });
+      }
+      
+      // Store in global state if fetching first page without filters (for caching)
+      if (page === 1 && !params && activeProducts.length > 0) {
+        setGlobalProducts(activeProducts);
+      }
+      
+      // Cache page data for quick navigation
+      if (!params) {
+        setPageCache(page, {
+          products: activeProducts,
+          total: response.pagination?.total || activeProducts.length,
+          totalPages: response.pagination?.totalPages || 1,
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch products:", err);
+    } finally {
+      setGlobalLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [get, paramsKey]);
+  }, [get, paramsKey, defaultLimit]);
 
-  // Initial fetch - using useEffect is intentional for async data fetching
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Initial fetch - check cache first
   useEffect(() => {
     if (fetchOnMount) {
-      fetchProducts();
+      // Check if we have cached data for page 1
+      const cached = getPageCache(1);
+      if (cached && !params) {
+        setProducts(cached.products);
+        setPagination({
+          page: 1,
+          limit: 10,
+          total: cached.total,
+          totalPages: cached.totalPages,
+          hasNext: cached.totalPages > 1,
+          hasPrevious: false,
+        });
+      } else if (!globalLoading) {
+        // Only fetch if not already loading
+        fetchProducts(1, defaultLimit);
+      }
     }
-  }, [fetchOnMount, fetchProducts]);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+  }, [fetchOnMount]);
 
-  // Auto-refresh
+  // Auto-refresh only if explicitly enabled
   useEffect(() => {
     if (refreshInterval > 0) {
-      intervalRef.current = setInterval(fetchProducts, refreshInterval);
+      intervalRef.current = setInterval(() => fetchProducts(pagination?.page || 1, defaultLimit), refreshInterval);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [refreshInterval, fetchProducts]);
 
+  const goToPage = useCallback((page: number) => {
+    if (pagination && page >= 1 && page <= pagination.totalPages) {
+      fetchProducts(page, pagination.limit);
+    }
+  }, [pagination, fetchProducts]);
+
+  const nextPage = useCallback(() => {
+    if (pagination?.hasNext) {
+      fetchProducts(pagination.page + 1, pagination.limit);
+    }
+  }, [pagination, fetchProducts]);
+
+  const prevPage = useCallback(() => {
+    if (pagination?.hasPrevious) {
+      fetchProducts(pagination.page - 1, pagination.limit);
+    }
+  }, [pagination, fetchProducts]);
+
   return {
     products,
-    total,
+    pagination,
     loading,
     error,
-    refetch: fetchProducts,
+    goToPage,
+    nextPage,
+    prevPage,
+    refetch: () => fetchProducts(pagination?.page || 1, pagination?.limit || defaultLimit),
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// useProductById – fetch a single product by ID with auto-refresh
+// useProductById – fetch a single product by ID (no auto-refresh by default)
 // ═══════════════════════════════════════════════════════════════════
 export function useProductById(
   id: string | number | undefined,
   options: UseProductByIdOptions = {}
 ) {
-  const { refreshInterval = 30_000, fetchOnMount = true } = options;
+  const { refreshInterval = 0, fetchOnMount = true } = options;
 
   const { get, loading, error } = useApi();
   const [product, setProduct] = useState<ApiProduct | null>(null);
@@ -241,17 +324,13 @@ export function useProductById(
     }
   }, [get, id]);
 
-  // Initial fetch - using useEffect is intentional for async data fetching
-  const initialFetchCalled = useRef(false);
+  // Initial fetch
   useEffect(() => {
-    if (!initialFetchCalled.current) {
-      initialFetchCalled.current = true;
-      if (fetchOnMount && id) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        fetchProduct();
-      }
+    if (fetchOnMount && id) {
+      fetchProduct();
     }
-  }, [fetchOnMount, id, fetchProduct]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+  }, [id, fetchOnMount]);
 
   useEffect(() => {
     if (refreshInterval > 0 && id) {
@@ -274,7 +353,8 @@ export function useProductById(
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// useCategoryProductCounts – get product counts per category from products API
+// useCategoryProductCounts – get product counts per category
+// Uses global products store when available (no extra API call)
 // ═══════════════════════════════════════════════════════════════════
 interface CategoryProductCount {
   categorySlug: string;
@@ -282,73 +362,62 @@ interface CategoryProductCount {
   count: number;
 }
 
-export function useCategoryProductCounts(refreshInterval = 60_000) {
-  const { get, loading, error } = useApi();
+interface UseCategoryProductCountsOptions {
+  products?: ApiProduct[];
+}
+
+export function useCategoryProductCounts(options: UseCategoryProductCountsOptions = {}) {
+  const { products: providedProducts } = options;
   const [categoryCounts, setCategoryCounts] = useState<CategoryProductCount[]>([]);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  const globalProducts = useProductStore((state) => state.products);
 
-  const fetchCategoryCounts = useCallback(async () => {
-    try {
-      const response = await get<ProductsApiResponse>("/products?limit=1000", { skipAuth: true });
-      const products = response.data || [];
+  const products = providedProducts || globalProducts || [];
 
-      const countMap = new Map<string, { id: string | number; count: number }>();
+  useEffect(() => {
+    if (products.length === 0) {
+      setCategoryCounts([]);
+      return;
+    }
 
-      products.forEach((product) => {
-        if (product.category) {
-          const categorySlug = product.category.slug;
-          const categoryId = product.category.id;
+    const countMap = new Map<string, { id: string | number; count: number }>();
 
-          const existing = countMap.get(categorySlug);
-          if (existing) {
-            existing.count += 1;
+    products.forEach((product) => {
+      if (product.category) {
+        const categorySlug = product.category.slug;
+        const categoryId = product.category.id;
+
+        const existing = countMap.get(categorySlug);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          countMap.set(categorySlug, { id: categoryId, count: 1 });
+        }
+
+        if (product.category.parent) {
+          const parentSlug = product.category.parent.slug;
+          const parentId = product.category.parent.id;
+
+          const parentExisting = countMap.get(parentSlug);
+          if (parentExisting) {
+            parentExisting.count += 1;
           } else {
-            countMap.set(categorySlug, { id: categoryId, count: 1 });
-          }
-
-          if (product.category.parent) {
-            const parentSlug = product.category.parent.slug;
-            const parentId = product.category.parent.id;
-
-            const parentExisting = countMap.get(parentSlug);
-            if (parentExisting) {
-              parentExisting.count += 1;
-            } else {
-              countMap.set(parentSlug, { id: parentId, count: 1 });
-            }
+            countMap.set(parentSlug, { id: parentId, count: 1 });
           }
         }
-      });
+      }
+    });
 
-      const counts: CategoryProductCount[] = Array.from(countMap.entries()).map(
-        ([categorySlug, { id, count }]) => ({
-          categorySlug,
-          categoryId: id,
-          count,
-        })
-      );
+    const counts: CategoryProductCount[] = Array.from(countMap.entries()).map(
+      ([categorySlug, { id, count }]) => ({
+        categorySlug,
+        categoryId: id,
+        count,
+      })
+    );
 
-      setCategoryCounts(counts);
-    } catch (err) {
-      console.error("Failed to fetch category product counts:", err);
-    }
-  }, [get]);
-
-  // Initial fetch - using useEffect is intentional for async data fetching
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    fetchCategoryCounts();
-  }, [fetchCategoryCounts]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  useEffect(() => {
-    if (refreshInterval > 0) {
-      intervalRef.current = setInterval(fetchCategoryCounts, refreshInterval);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [refreshInterval, fetchCategoryCounts]);
+    setCategoryCounts(counts);
+  }, [products]);
 
   const getCountBySlug = useCallback(
     (slug: string) => {
@@ -361,45 +430,54 @@ export function useCategoryProductCounts(refreshInterval = 60_000) {
   return {
     categoryCounts,
     getCountBySlug,
-    loading,
-    error,
-    refetch: fetchCategoryCounts,
+    loading: false,
+    error: null,
+    refetch: () => {},
   };
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// useCategories – fetch categories with auto-refresh
+// useCategories – fetch categories (with global store caching)
 // ═══════════════════════════════════════════════════════════════════
-export function useCategories(refreshInterval = 60_000) {
+export function useCategories() {
   const { get, loading, error } = useApi();
   const [categories, setCategories] = useState<Category[]>([]);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  const { categories: globalCategories, setCategories: setGlobalCategories, isLoading: globalLoading, setLoading: setGlobalLoading } = useCategoryStore();
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const response = await get<CategoriesApiResponse>("/categories", {
-        skipAuth: true,
-      });
-      setCategories(response.data || []);
-    } catch (err) {
-      console.error("Failed to fetch categories:", err);
-    }
-  }, [get]);
-
-  // Initial fetch - using useEffect is intentional for async data fetching
+  // Use global store categories if available
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
-    if (refreshInterval > 0) {
-      intervalRef.current = setInterval(fetchCategories, refreshInterval);
+    // If already loaded in global store, use it
+    if (globalCategories && globalCategories.length > 0) {
+      setCategories(globalCategories);
+      return;
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    
+    // If already loading globally, wait
+    if (globalLoading) {
+      return;
+    }
+    
+    // Start loading
+    setGlobalLoading(true);
+    
+    const fetchCategories = async () => {
+      try {
+        const response = await get<CategoriesApiResponse>("/categories", {
+          skipAuth: true,
+        });
+        const fetchedCategories = response.data || [];
+        setCategories(fetchedCategories);
+        setGlobalCategories(fetchedCategories);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      } finally {
+        setGlobalLoading(false);
+      }
     };
-  }, [refreshInterval, fetchCategories]);
+    
+    fetchCategories();
+  }, [globalCategories, globalLoading, get, setGlobalCategories, setGlobalLoading]);
 
   // Build tree: parent categories with children nested
   const categoryTree = categories
@@ -423,6 +501,82 @@ export function useCategories(refreshInterval = 60_000) {
     getChildCategories,
     loading,
     error,
-    refetch: fetchCategories,
+    refetch: () => {},
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// useAddresses – fetch addresses (with global store caching)
+// ═══════════════════════════════════════════════════════════════════
+interface AddressesApiResponse {
+  data: Address[];
+}
+
+export function useAddresses() {
+  const { get, loading: apiLoading, error } = useApi();
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [localLoading, setLocalLoading] = useState(true);
+  
+  const { addresses: globalAddresses, setAddresses: setGlobalAddresses, addAddress, updateAddress, removeAddress, isLoading: globalLoading, setLoading: setGlobalLoading } = useAddressStore();
+
+  // Use global store addresses if available
+  useEffect(() => {
+    // If already loaded in global store with data, use it
+    if (globalAddresses && globalAddresses.length > 0) {
+      setAddresses(globalAddresses);
+      setLocalLoading(false);
+      return;
+    }
+    
+    // If already loading globally, wait
+    if (globalLoading) {
+      return;
+    }
+    
+    // Start loading
+    setGlobalLoading(true);
+    setLocalLoading(true);
+    
+    const fetchAddresses = async () => {
+      try {
+        const response = await get<AddressesApiResponse>("/addresses");
+        const fetchedAddresses = response.data || [];
+        setAddresses(fetchedAddresses);
+        setGlobalAddresses(fetchedAddresses);
+      } catch (err) {
+        console.error("Failed to fetch addresses:", err);
+        setAddresses([]);
+      } finally {
+        setGlobalLoading(false);
+        setLocalLoading(false);
+      }
+    };
+    
+    fetchAddresses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalAddresses, get, setGlobalAddresses, setGlobalLoading]);
+
+  const refetch = async () => {
+    setLocalLoading(true);
+    try {
+      const response = await get<AddressesApiResponse>("/addresses");
+      const fetchedAddresses = response.data || [];
+      setAddresses(fetchedAddresses);
+      setGlobalAddresses(fetchedAddresses);
+    } catch (err) {
+      console.error("Failed to fetch addresses:", err);
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  return {
+    addresses,
+    loading: localLoading,
+    error,
+    refetch,
+    addAddress,
+    updateAddress,
+    removeAddress,
   };
 }

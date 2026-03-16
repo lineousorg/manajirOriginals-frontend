@@ -40,11 +40,8 @@ const fadeInScale = {
 };
 
 export default function Home() {
-  const { products, loading: productsLoading } = useProducts({
-    refreshInterval: 30_000,
-  });
-  const { categories, loading: categoriesLoading } = useCategories(60_000);
-  console.log(categories);
+  const { products, loading: productsLoading } = useProducts();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   const loading = productsLoading || categoriesLoading;
 

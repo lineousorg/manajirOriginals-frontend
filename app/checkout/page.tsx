@@ -268,7 +268,7 @@ const CheckoutPage = () => {
         </span>
       </nav>
 
-      <div className="min-h-dvh">
+      <div className="min-h-dvh pt-10">
         <div className="flex items-center gap-2 mb-8">
           <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
             <MapPin size={20} className="text-primary" />
@@ -416,8 +416,7 @@ const CheckoutPage = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      disabled
-                      className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                      className="input-fashion rounded-lg"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -433,8 +432,7 @@ const CheckoutPage = () => {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         required
-                        disabled
-                        className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                        className="input-fashion rounded-lg"
                       />
                     </div>
                     <div>
@@ -447,8 +445,7 @@ const CheckoutPage = () => {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         required
-                        disabled
-                        className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                        className="input-fashion rounded-lg"
                       />
                     </div>
                   </div>
@@ -463,8 +460,7 @@ const CheckoutPage = () => {
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
-                      disabled
-                      className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                      className="input-fashion rounded-lg"
                       placeholder="+1 (555) 000-0000"
                     />
                   </div>
@@ -479,8 +475,7 @@ const CheckoutPage = () => {
                       value={formData.address}
                       onChange={handleInputChange}
                       required
-                      disabled
-                      className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                      className="input-fashion rounded-lg"
                       placeholder="123 Fashion Street, Apt 4"
                     />
                   </div>
@@ -496,8 +491,7 @@ const CheckoutPage = () => {
                         value={formData.city}
                         onChange={handleInputChange}
                         required
-                        disabled
-                        className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                        className="input-fashion rounded-lg"
                       />
                     </div>
                     <div>
@@ -510,8 +504,7 @@ const CheckoutPage = () => {
                         value={formData.zip}
                         onChange={handleInputChange}
                         required
-                        disabled
-                        className="input-fashion rounded-lg bg-muted/50 cursor-not-allowed"
+                        className="input-fashion rounded-lg"
                       />
                     </div>
                   </div>
@@ -834,3 +827,5 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
+
+

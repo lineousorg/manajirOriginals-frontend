@@ -24,7 +24,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Collection", hasDropdown: true },
   { href: "/cart", label: "Cart" },
-  { href: "/orders", label: "Orders" },
+  // { href: "/orders", label: "Orders" },
 ];
 
 export const Header = () => {
@@ -36,8 +36,8 @@ export const Header = () => {
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const { isAuthenticated, user } = useAuthStore();
-  const { categories, categoryTree } = useCategories(60_000);
-  const { getCountBySlug } = useCategoryProductCounts(60_000);
+  const { categories, categoryTree } = useCategories();
+  const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 

@@ -2,28 +2,25 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import banner1 from "../../public/Banner images/banner1.jpeg"
-import banner2 from "../../public/Banner images/banner2.jpeg"
-import banner3 from "../../public/Banner images/banner3.jpeg"
+import banner1 from "../../public/Banner images/banner1.jpeg";
+import banner2 from "../../public/Banner images/banner2.jpeg";
+import banner3 from "../../public/Banner images/banner3.jpeg";
 import Image from "next/image";
 
 const slides = [
   {
     id: 1,
-    image:
-      banner1,
+    image: banner1,
     alt: "Fashion Editorial 1",
   },
   {
     id: 2,
-    image:
-      banner2,
+    image: banner2,
     alt: "Fashion Editorial 2",
   },
   {
     id: 3,
-    image:
-      banner3,
+    image: banner3,
     alt: "Fashion Editorial 3",
   },
 ];
@@ -240,6 +237,7 @@ const Banner = () => {
                 >
                   {slides.map((image, index) => (
                     <Image
+                      key={index}
                       src={slides[currentSlide].image}
                       alt={slides[currentSlide].alt}
                       fill

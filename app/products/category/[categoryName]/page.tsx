@@ -7,6 +7,7 @@ import { ChevronRight, Home } from "lucide-react";
 import { useProducts, useCategories } from "@/hooks/useProduct";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
+import { Pagination } from "@/components/ui/pagination-new";
 import {
   ProductFilters,
   type ProductFiltersState,
@@ -79,7 +80,7 @@ export default function CategoryProductsPage() {
   });
 
   // Fetch categories
-  const { categories, categoryTree, loading: categoriesLoading } = useCategories(60_000);
+  const { categories, categoryTree, loading: categoriesLoading } = useCategories();
   
   // Find the current category from the category tree
   const currentCategory = useMemo(() => {
@@ -105,12 +106,27 @@ export default function CategoryProductsPage() {
   const categoryId = currentCategory?.id ? String(currentCategory.id) : categoryName;
   
   // Fetch products with category filter
-  const { products, loading: productsLoading, total } = useProducts({
-    refreshInterval: 30_000,
+  const { products, loading: productsLoading, pagination, goToPage } = useProducts({
     params: {
       category: categoryId,
     },
   });
+
+  // Pagination loading state
+  const [isPaginating, setIsPaginating] = useState(false);
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
+
+  // Handle page change
+  const handlePageChange = async (page: number) => {
+    setPendingPage(page);
+    setIsPaginating(true);
+    await goToPage(page);
+    setIsPaginating(false);
+    setPendingPage(null);
+  };
+
+  // Get the current page for display
+  const currentPage = pendingPage ?? pagination?.page ?? 1;
 
   // Combined loading state - show loader while categories OR products are loading
   const isLoading = categoriesLoading || productsLoading;
@@ -289,7 +305,7 @@ export default function CategoryProductsPage() {
           {categoryNameDisplay}
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {filteredProducts.length} products found
+          {pagination ? `Showing ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total} products` : `${filteredProducts.length} products found`}
         </p>
       </div>
 
@@ -332,11 +348,29 @@ export default function CategoryProductsPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product, idx) => (
+                  <ProductCard 
+                    key={`${product.id}-${currentPage}`}
+                    product={product} 
+                    index={idx} 
+                  />
+                ))}
+              </div>
+
+              {pagination && pagination.totalPages > 1 && (
+                <div className="mt-12 flex justify-center">
+                  <Pagination
+                    pagination={{
+                      ...pagination,
+                      page: currentPage
+                    }}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>
