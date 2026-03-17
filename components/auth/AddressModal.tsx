@@ -38,7 +38,7 @@ export const AddressModal = ({
     address: "",
     city: "",
     postalCode: "",
-    country: "USA",
+    country: "",
     isDefault: false,
   });
   const [loading, setLoading] = useState(false);
@@ -69,7 +69,7 @@ export const AddressModal = ({
         address: "",
         city: "",
         postalCode: "",
-        country: "USA",
+        country: "fap",
         isDefault: false,
       });
     }
@@ -124,7 +124,7 @@ export const AddressModal = ({
       address: "",
       city: "",
       postalCode: "",
-      country: "USA",
+      country: "",
       isDefault: false,
     });
     setMessage(null);

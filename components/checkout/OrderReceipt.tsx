@@ -97,13 +97,13 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
         </button>
 
         {/* Print button - prints the current page */}
-        <button
+        {/* <button
           onClick={() => window.print()}
           className="text-black flex items-center gap-2 cursor-pointer hover:text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition"
         >
           <Printer size={18} />
           Print
-        </button>
+        </button> */}
       </div>
 
       {/* Error Message */}

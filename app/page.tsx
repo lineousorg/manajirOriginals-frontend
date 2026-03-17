@@ -55,6 +55,7 @@ export default function Home() {
     a.name.localeCompare(b.name),
   );
   const displayCategories = sortedCategories.slice(0, 6);
+  console.log(displayCategories);
 
   return (
     <div>
@@ -92,7 +93,7 @@ export default function Home() {
               {displayCategories.map((category, index) => (
                 <motion.div key={category.id} variants={fadeInUp}>
                   <Link
-                    href={`/products?cat=${category.slug}`}
+                    href={`/products/category/${category.slug}`}
                     className="group block relative aspect-4/5 overflow-hidden rounded-2xl shadow-2xl"
                   >
                     {category.images ? (

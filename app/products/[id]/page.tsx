@@ -28,10 +28,7 @@ import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  useProductById,
-  getProductCategories,
-} from "@/hooks/useProduct";
+import { useProductById, getProductCategories } from "@/hooks/useProduct";
 import { useProductStore } from "@/store/product.store";
 import { TypeImage } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
@@ -49,6 +46,7 @@ export default function ProductDetailsPage() {
   const globalProducts = useProductStore((state) => state.products);
 
   const addToCart = useCartStore((state) => state.addItem);
+  const isItemInCart = useCartStore((state) => state.isItemInCart);
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { isAuthenticated } = useAuthStore();
 
@@ -69,11 +67,11 @@ export default function ProductDetailsPage() {
             const variantSize = variant.attributes.find(
               (attr: any) =>
                 attr.attributeValue?.attribute?.name === "Size" &&
-                attr.attributeValue?.value === size,
+                attr.attributeValue?.value === size
             );
             if (variantSize) {
               const colorAttr = variant.attributes.find(
-                (attr: any) => attr.attributeValue?.attribute?.name === "Color",
+                (attr: any) => attr.attributeValue?.attribute?.name === "Color"
               );
               if (
                 colorAttr?.attributeValue?.value &&
@@ -86,13 +84,13 @@ export default function ProductDetailsPage() {
         });
         return colors;
       },
-    [product?.variants],
+    [product?.variants]
   );
 
   const availableSizes = product?.sizes ?? [];
   const availableColorsForSelectedSize = useMemo(
     () => getColorsForSize(selectedSize),
-    [getColorsForSize, selectedSize],
+    [getColorsForSize, selectedSize]
   );
 
   // Calculate price based on selected variant
@@ -103,14 +101,14 @@ export default function ProductDetailsPage() {
         variant.attributes?.some(
           (attr: any) =>
             attr.attributeValue?.attribute?.name === "Size" &&
-            attr.attributeValue?.value === selectedSize,
+            attr.attributeValue?.value === selectedSize
         ) &&
         (!selectedColor ||
           variant.attributes?.some(
             (attr: any) =>
               attr.attributeValue?.attribute?.name === "Color" &&
-              attr.attributeValue?.value === selectedColor,
-          )),
+              attr.attributeValue?.value === selectedColor
+          ))
     );
   }, [product?.variants, selectedSize, selectedColor]);
 
@@ -168,7 +166,7 @@ export default function ProductDetailsPage() {
               altText: "No Image",
             },
           ],
-    [product?.images],
+    [product?.images]
   );
 
   const details = product?.details ?? [];
@@ -195,27 +193,37 @@ export default function ProductDetailsPage() {
 
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img,
+          typeof img === "string" ? { url: img, altText: product.name } : img
         )
       : [];
 
-    try {
-      await addToCart(
-        {
-          ...product,
-          id: productId,
-          images: normalizedImages,
-        },
-        selectedSize || "One Size",
-        selectedColor || "Default",
-        quantity,
-      );
+    // Check if item already exists in cart
+    const size = selectedSize || "One Size";
+    const color = selectedColor || "Default";
+    const isAlreadyInCart = isItemInCart(productId, size, color);
+    
+    // Add item to cart - returns true if item was already existing
+    const wasExisting = addToCart(
+      {
+        ...product,
+        id: productId,
+        images: normalizedImages,
+      },
+      size,
+      color,
+      quantity
+    );
+    
+    // Provide appropriate feedback
+    if (wasExisting) {
+      toast.success(`Updated quantity in your bag!`);
+    } else if (isAlreadyInCart) {
+      toast.success(`Added another ${product.name} to your bag!`);
+    } else {
       toast.success("Added to bag!");
-    } catch (error) {
-      toast.error("Failed to add to cart");
-    } finally {
-      setIsAddingToCart(false);
     }
+    
+    setIsAddingToCart(false);
   };
 
   const handleShare = async () => {
@@ -438,19 +446,17 @@ export default function ProductDetailsPage() {
                     </div>
                   </div>
                   {/* Size Guide - Show for Ethnic category */}
-                  {(categories?.parent?.name === "Ethnic" ||
-                    categories?.child?.name === "Ethnic") && (
-                    <div
-                      className="mt-3 rounded-xl mb-5 cursor-pointer"
-                      onClick={() => setIsSizeGuideOpen(true)}
-                    >
-                      <img
-                        src="/Size guides/punjabi-size-guide.jpeg"
-                        alt="Size Guide"
-                        className="w-full max-w-xs h-auto rounded"
-                      />
-                    </div>
-                  )}
+
+                  <div
+                    className="mt-3 rounded-xl mb-5 cursor-pointer"
+                    onClick={() => setIsSizeGuideOpen(true)}
+                  >
+                    <img
+                      src="/Size guides/punjabi-size-guide.jpeg"
+                      alt="Size Guide"
+                      className="w-full max-w-xs h-auto rounded"
+                    />
+                  </div>
 
                   {/* Size Guide Fullscreen Modal */}
                   {isSizeGuideOpen && (

@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -24,34 +23,41 @@ import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import toast, { Toaster } from "react-hot-toast";
 
 // Helper function to get the correct variant
-const getItemVariant = (product: Product, selectedSize: string, selectedColor: string): ProductVariant | null => {
+const getItemVariant = (
+  product: Product,
+  selectedSize: string,
+  selectedColor: string
+): ProductVariant | null => {
   if (product.variants && product.variants.length > 0) {
     const matchingVariant = product.variants.find((variant: ProductVariant) => {
       const sizeAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
-                       attr.attributeValue?.value === selectedSize
+        (attr: any) =>
+          attr.attributeValue?.attribute?.name === "Size" &&
+          attr.attributeValue?.value === selectedSize
       );
       const colorAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
-                       attr.attributeValue?.value === selectedColor
+        (attr: any) =>
+          attr.attributeValue?.attribute?.name === "Color" &&
+          attr.attributeValue?.value === selectedColor
       );
       return sizeAttr && colorAttr;
     });
-    
+
     return matchingVariant || product.variants[0] || null;
   }
   return null;
 };
 
 const CheckoutPage = () => {
-  const { items, getTotal, clearCart, closeCart } = useCartStore();
+  const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
-  
+
   // Ensure cart drawer is closed when checkout page loads
   useEffect(() => {
     closeCart();
   }, [closeCart]);
+
   const [step, setStep] = useState<"shipping" | "payment" | "success">(
     "shipping"
   );
@@ -108,7 +114,7 @@ const CheckoutPage = () => {
       city: address.city,
       state: "", // Backend doesn't have state field
       zip: address.postalCode,
-      country: address.country === "USA" ? "United States" : address.country,
+      country: address.country,
     }));
   };
 
@@ -126,20 +132,19 @@ const CheckoutPage = () => {
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Build the items array for the API
-    const orderItems = items.map((item) => {
-      const variant = getItemVariant(item.product, item.selectedSize, item.selectedColor);
-      return {
-        variantId: Number(variant?.id || item.product.variants?.[0]?.id),
-        quantity: item.quantity,
-      };
-    });
+    // Build the items array for the API using stored variantId
+    const orderItems = items.map((item) => ({
+      variantId: Number(item.variantId || item.productId),
+      quantity: item.quantity,
+    }));
     console.log(orderItems);
 
     // Create the payload
     const payload = {
       items: orderItems,
       paymentMethod,
+      addressId: selectedAddress?.id,
+      deliveryType: deliveryLocation === "inside_dhaka" ? "INSIDE_DHAKA" : "OUTSIDE_DHAKA",
     };
 
     // Console log the payload
@@ -187,6 +192,11 @@ const CheckoutPage = () => {
     setRefreshAddresses((prev) => prev + 1);
   };
 
+  // Don't render until hydrated to prevent flash of empty content
+  if (!isHydrated) {
+    return null;
+  }
+
   if (items.length === 0 && step !== "success") {
     return (
       <div className="container-fashion py-16 min-h-[90dvh] flex items-center justify-center">
@@ -206,7 +216,7 @@ const CheckoutPage = () => {
 
   if (step === "success") {
     return (
-      <div className="container-fashion py-8 md:py-12 pt-40">
+      <div className="container-fashion py-8 md:py-12 mt-20">
         <div className=" mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -292,13 +302,13 @@ const CheckoutPage = () => {
               <div className="space-y-4 mb-6">
                 {items.map((item) => (
                   <div
-                    key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
+                    key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                     className="flex gap-4 items-start"
                   >
                     <div className="relative">
                       <img
-                        src={item?.product?.images?.[0]?.url}
-                        alt={item.product.name}
+                        src={item.productImage}
+                        alt={item.productName}
                         className="w-16 h-20 md:w-20 md:h-24 object-cover rounded-lg"
                       />
                       <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center justify-center">
@@ -307,7 +317,7 @@ const CheckoutPage = () => {
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-sm font-medium line-clamp-2 text-gray-600">
-                        {item.product.name}
+                        {item.productName}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         <span className="inline-block text-gray-600">
@@ -319,7 +329,8 @@ const CheckoutPage = () => {
                         </span>
                       </p>
                       <p className="text-sm font-medium mt-2 text-primary">
-                        ৳ {(Number(getItemVariant(item.product, item.selectedSize, item.selectedColor)?.price || item.product.price || 0) * item.quantity).toFixed(2)}
+                        ৳{" "}
+                        {(item.productPrice * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -328,9 +339,17 @@ const CheckoutPage = () => {
 
               {/* Delivery Location Selection */}
               <div className="border-t border-border pt-4 mt-4">
-                <h4 className="font-medium text-foreground mb-3">Delivery Location</h4>
+                <h4 className="font-medium text-foreground mb-3">
+                  Delivery Location
+                </h4>
                 <div className="space-y-2">
-                  <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "inside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                  <label
+                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                      deliveryLocation === "inside_dhaka"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-foreground/50"
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       <input
                         type="radio"
@@ -343,7 +362,13 @@ const CheckoutPage = () => {
                     </div>
                     <span className="font-medium">৳70</span>
                   </label>
-                  <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "outside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
+                  <label
+                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                      deliveryLocation === "outside_dhaka"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-foreground/50"
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       <input
                         type="radio"
@@ -827,5 +852,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-
-

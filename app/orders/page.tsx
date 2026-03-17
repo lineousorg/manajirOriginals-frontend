@@ -175,9 +175,16 @@ const OrdersPage = () => {
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
-      const response = await get<{ data: ApiOrderDetailResponse }>(
+      // Define the full API response type
+      type OrderDetailApiResponse = {
+        message: string;
+        status: string;
+        data: ApiOrderDetailResponse;
+      };
+      
+      const response = await get<OrderDetailApiResponse>(
         `/orders/${orderId}`,
-      );
+      ) as OrderDetailApiResponse;
       setOrderDetails(response.data);
     } catch (err) {
       console.error("Error fetching order details:", err);
@@ -198,14 +205,34 @@ const OrdersPage = () => {
     const loadOrders = async () => {
       setIsOrdersLoading(true);
       try {
-        const response = await get<{ data: ApiOrderResponse[] }>("/orders");
-        const allOrders = response.data || [];
+        // Define the full API response type
+        type OrdersApiResponse = {
+          message: string;
+          status: string;
+          data: ApiOrderResponse[];
+        };
+        
+        // Use explicit typing to handle the API response correctly
+        const response = await get<OrdersApiResponse>("/orders") as OrdersApiResponse | ApiOrderResponse[];
+        
+        // Handle different response formats
+        let allOrders: ApiOrderResponse[] = [];
+        const responseObj = response as OrdersApiResponse;
+        
+        if (Array.isArray(response)) {
+          allOrders = response;
+        } else if (responseObj?.data && Array.isArray(responseObj.data)) {
+          allOrders = responseObj.data;
+        } else if (responseObj?.data && Array.isArray(responseObj.data)) {
+          allOrders = responseObj.data;
+        }
 
         // Filter orders for the logged-in user
         if (user?.id) {
           const userId = Number(user.id);
+          // Check both order.userId (old format) and order.user.id (new format)
           const filteredOrders = allOrders.filter(
-            (order) => order.userId === userId,
+            (order) => order.userId === userId || order.user?.id === userId,
           );
           setOrders(filteredOrders);
         } else {

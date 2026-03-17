@@ -30,23 +30,23 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     product.images && product.images.length > 0
       ? product.images
       : [
-        {
-          url: "https://placehold.co/600x800?text=No+Image",
-          altText: "No Image",
-        },
-      ];
+          {
+            url: "https://placehold.co/600x800?text=No+Image",
+            altText: "No Image",
+          },
+        ];
 
-  const basePrice = Number(product.variants?.[0]?.price || 0);
+  const maxPrice = Number(product.minPrice || product.maxPrice || 0);
   const originalPrice = product.originalPrice
     ? Number(product.originalPrice)
     : null;
 
   const discountPercent =
-    originalPrice && originalPrice > basePrice
-      ? Math.round(((originalPrice - basePrice) / originalPrice) * 100)
+    originalPrice && originalPrice > maxPrice
+      ? Math.round(((originalPrice - maxPrice) / originalPrice) * 100)
       : null;
 
-  const lowStock = (product.variants?.[0]?.stock ?? 0) < 10;
+  const lowStock = (product.totalStock ?? 0) < 10;
 
   return (
     <motion.article
@@ -66,20 +66,23 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-slate-200 animate-pulse rounded-2xl" />
         )}
-        
+
         <motion.img
           src={
-            (product?.images && product?.images[0]?.url) ||
+            product?.thumbnail ||
             "/placeholder-product.jpg"
           }
           alt={
-            (product?.images && product?.images[0]?.altText) || product.name
+            product.name || "Product Image"
           }
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 rounded-2xl"
           loading="lazy"
           whileHover={{ scale: 1.05 }}
           onLoad={() => setImageLoaded(true)}
-          onError={() => { setImageError(true); setImageLoaded(true); }}
+          onError={() => {
+            setImageError(true);
+            setImageLoaded(true);
+          }}
           style={{ opacity: imageLoaded ? 1 : 0 }}
         />
 
@@ -101,17 +104,17 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         </div>
 
         {/* Stock Indicator */}
-        {lowStock && (product.variants?.[0]?.stock ?? 0) > 0 && (
+        {lowStock && product.totalStock > 0 && (
           <div className="absolute bottom-4 left-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded-full border border-amber-200">
               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-              Only {product.variants?.[0]?.stock} left
+              Only {product.totalStock} left
             </span>
           </div>
         )}
 
         {/* Out of Stock Overlay */}
-        {product.variants?.[0]?.stock === 0 && (
+        {product.totalStock === 0 && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
             <span className="px-4 py-2 bg-slate-900 text-white text-xs font-medium tracking-wider uppercase rounded-full">
               Out of Stock
@@ -134,10 +137,11 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               images: product.images,
             });
           }}
-          className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 transform hover:scale-110 cursor-pointer ${inWishlist
-            ? "bg-slate-900 text-white shadow-lg"
-            : "text-white/90 bg-slate-600/40 hover:bg-white hover:text-red-500 shadow-md backdrop-blur-xs"
-            }`}
+          className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 transform hover:scale-110 cursor-pointer ${
+            inWishlist
+              ? "bg-slate-900 text-white shadow-lg"
+              : "text-white/90 bg-slate-600/40 hover:bg-white hover:text-red-500 shadow-md backdrop-blur-xs"
+          }`}
         >
           <Heart
             size={18}
@@ -175,12 +179,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               <span className="">
                 ৳{" "}
                 <span className="text-base font-bold text-slate-700">
-                  {basePrice.toLocaleString("en-US", {
+                  {maxPrice.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                   })}
                 </span>
               </span>
-              {originalPrice && originalPrice > basePrice && (
+              {originalPrice && originalPrice > maxPrice && (
                 <span className="text-sm text-slate-400 line-through">
                   ৳
                   {originalPrice.toLocaleString("en-US", {
@@ -190,26 +194,23 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               )}
             </div>
           </div>
-
-          <p className="text-xs font-sans text-slate-400 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left -mt-2">
-            {product.description}
-          </p>
         </div>
         {/* Attributes Preview */}
         <div
-          className={`grid grid-cols-2 ${product.colors &&
+          className={`grid grid-cols-2 ${
+            product.colors &&
             product?.colors?.length > 0 &&
             "bg-secondary-foreground"
-            } rounded-full px-1 py-1`}
+          } rounded-full px-1 py-1`}
         >
           {/* Colors */}
           {product.colors && (
             <div className="flex items-center gap-1.5">
               {product.colors.slice(0, 3).map((color, idx) => (
                 <span
-                  key={color.name}
+                  key={idx}
                   className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
-                  style={{ backgroundColor: color.value.toLowerCase() }}
+                  style={{ backgroundColor: color.value?.toLowerCase() }}
                   title={color.name}
                 />
               ))}
@@ -256,7 +257,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               </span>
             )} */}
         </div>
-
       </div>
     </motion.article>
   );

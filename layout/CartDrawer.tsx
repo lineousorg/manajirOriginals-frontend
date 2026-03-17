@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 
@@ -8,42 +8,14 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { SignupModal } from "@/components/auth/SignupModal";
 import Link from "next/link";
-import { Product, ProductVariant } from "@/types";
-
-// Helper function to get the correct variant price
-const getItemPrice = (product: Product, selectedSize: string, selectedColor: string): number => {
-  let itemPrice = product.price || 0;
-  
-  if (product.variants && product.variants.length > 0) {
-    const matchingVariant = product.variants.find((variant: ProductVariant) => {
-      const sizeAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
-                       attr.attributeValue?.value === selectedSize
-      );
-      const colorAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
-                       attr.attributeValue?.value === selectedColor
-      );
-      return sizeAttr && colorAttr;
-    });
-    
-    if (matchingVariant) {
-      itemPrice = matchingVariant.price || itemPrice;
-    } else {
-      itemPrice = product.variants[0]?.price || itemPrice;
-    }
-  }
-  
-  return itemPrice;
-};
 
 export const CartDrawer = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal } =
+  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal, isHydrated } =
     useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
 
-  // Reset signup modal when cart closes
+  // Reset signup modal when cart closes - must be called before early return
   useEffect(() => {
     if (!isOpen) {
       // Small delay to allow animation to complete
@@ -53,6 +25,12 @@ export const CartDrawer = () => {
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Don't render until hydrated to prevent flash of empty content
+  // The isHydrated flag is set by the persist middleware after rehydration
+  if (!isHydrated) {
+    return null;
+  }
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -135,23 +113,22 @@ export const CartDrawer = () => {
                   <ul className="space-y-6">
                     {items.map((item) => (
                       <motion.li
-                        key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
+                        key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -100 }}
                         className="flex gap-4 bg-card/50 p-3 rounded-xl"
                       >
                         <img
-                          src={item?.product?.images?.[0]?.url}
-                          alt={item.product.name}
+                          src={item.productImage}
+                          alt={item.productName}
                           className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg shrink-0"
                         />
                         <div className="flex-1 flex flex-col min-w-0">
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
-                              <p className="text-label">{item.product.brand}</p>
                               <h4 className="font-medium text-sm sm:text-base text-gray-800 mt-0.5 line-clamp-2">
-                                {item.product.name}
+                                {item.productName}
                               </h4>
                               <p className="text-xs sm:text-sm text-gray-700 mt-1">
                                 {item.selectedSize} · {item.selectedColor}
@@ -160,7 +137,7 @@ export const CartDrawer = () => {
                             <button
                               onClick={() =>
                                 removeItem(
-                                  String(item.product.id),
+                                  item.productId,
                                   item.selectedSize,
                                   item.selectedColor
                                 )
@@ -176,7 +153,7 @@ export const CartDrawer = () => {
                               <button
                                 onClick={() => {
                                   updateQuantity(
-                                    String(item.product.id),
+                                    item.productId,
                                     item.selectedSize,
                                     item.selectedColor,
                                     item.quantity - 1
@@ -194,7 +171,7 @@ export const CartDrawer = () => {
                               <button
                                 onClick={() => {
                                   updateQuantity(
-                                    String(item.product.id),
+                                    item.productId,
                                     item.selectedSize,
                                     item.selectedColor,
                                     item.quantity + 1
@@ -208,7 +185,7 @@ export const CartDrawer = () => {
                             </div>
                             <p className="font-medium text-gray-800">
                               ৳{" "}
-                              {(getItemPrice(item.product, item.selectedSize, item.selectedColor) * item.quantity).toFixed(2)}
+                              {(item.productPrice * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>

@@ -6,42 +6,19 @@ import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-import { Product, ProductVariant } from "@/types";
-
-// Helper function to get the correct variant price
-const getItemPrice = (product: Product, selectedSize: string, selectedColor: string): number => {
-  let itemPrice = product.price || 0;
-  
-  if (product.variants && product.variants.length > 0) {
-    const matchingVariant = product.variants.find((variant: ProductVariant) => {
-      const sizeAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Size" && 
-                       attr.attributeValue?.value === selectedSize
-      );
-      const colorAttr = variant.attributes?.find(
-        (attr: any) => attr.attributeValue?.attribute?.name === "Color" && 
-                       attr.attributeValue?.value === selectedColor
-      );
-      return sizeAttr && colorAttr;
-    });
-    
-    if (matchingVariant) {
-      itemPrice = matchingVariant.price || itemPrice;
-    } else {
-      itemPrice = product.variants[0]?.price || itemPrice;
-    }
-  }
-  
-  return itemPrice;
-};
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } =
+  const { items, removeItem, updateQuantity, getTotal, clearCart, isHydrated } =
     useCartStore();
 
   const [deliveryLocation, setDeliveryLocation] = useState<
     "inside_dhaka" | "outside_dhaka"
   >("inside_dhaka");
+
+  // Don't render until hydrated to prevent flash of empty content
+  if (!isHydrated) {
+    return null;
+  }
 
   const subtotal = getTotal();
   const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
@@ -81,19 +58,19 @@ const CartPage = () => {
         <div className="lg:col-span-2 space-y-6">
           {items.map((item, index) => (
             <motion.div
-              key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
+              key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="flex gap-3 md:gap-6 pb-6 border-b border-border"
             >
               <Link
-                href={`/products/${item.product.id}`}
+                href={`/products/${item.productId}`}
                 className="w-20 h-24 md:w-28 md:h-36 shrink-0 overflow-hidden rounded-lg"
               >
                 <img
-                  src={item?.product?.images?.[0]?.url}
-                  alt={item.product.name}
+                  src={item.productImage}
+                  alt={item.productName}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
               </Link>
@@ -101,12 +78,11 @@ const CartPage = () => {
               <div className="flex-1 flex flex-col">
                 <div className="flex justify-between gap-4">
                   <div>
-                    <p className="text-label">{item.product.brand}</p>
                     <Link
-                      href={`/products/${item.product.id}`}
+                      href={`/products/${item.productId}`}
                       className="font-medium hover:text-primary transition-colors"
                     >
-                      {item.product.name}
+                      {item.productName}
                     </Link>
                     <p className="text-sm text-muted-foreground mt-1">
                       {item.selectedSize} · {item.selectedColor}
@@ -115,7 +91,7 @@ const CartPage = () => {
                   <button
                     onClick={() =>
                       removeItem(
-                        String(item.product.id),
+                        item.productId,
                         item.selectedSize,
                         item.selectedColor
                       )
@@ -132,7 +108,7 @@ const CartPage = () => {
                     <button
                       onClick={() =>
                         updateQuantity(
-                          String(item.product.id),
+                          item.productId,
                           item.selectedSize,
                           item.selectedColor,
                           item.quantity - 1
@@ -150,7 +126,7 @@ const CartPage = () => {
                     <button
                       onClick={() =>
                         updateQuantity(
-                          String(item.product.id),
+                          item.productId,
                           item.selectedSize,
                           item.selectedColor,
                           item.quantity + 1
@@ -163,7 +139,7 @@ const CartPage = () => {
                     </button>
                   </div>
                   <p className="text-lg font-medium">
-                    ৳{getItemPrice(item.product, item.selectedSize, item.selectedColor) * item.quantity}
+                    ৳{item.productPrice * item.quantity}
                   </p>
                 </div>
               </div>

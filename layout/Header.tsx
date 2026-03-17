@@ -32,7 +32,8 @@ export const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const pathname = usePathname();
-  const cartItemCount = useCartStore((state) => state.getItemCount());
+  const { items: cartItems, getItemCount, isHydrated } = useCartStore();
+  const cartItemCount = getItemCount();
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const { isAuthenticated, user } = useAuthStore();
@@ -40,6 +41,9 @@ export const Header = () => {
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Don't show cart count until hydrated to prevent hydration mismatch
+  const showCartCount = isHydrated && cartItemCount > 0;
 
   useEffect(() => {
     const onScroll = () => {
@@ -310,7 +314,7 @@ export const Header = () => {
                   className="transition-transform group-hover:scale-110"
                 />
                 <AnimatePresence>
-                  {cartItemCount > 0 && (
+                  {showCartCount && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}

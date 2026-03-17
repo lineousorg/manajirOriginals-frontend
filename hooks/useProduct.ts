@@ -1,9 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import useApi from "@/hooks/useApi";
-import { ApiProduct, Category, ProductColor, ProductVariant, Address } from "@/types";
+import {
+  ApiProduct,
+  Category,
+  ProductColor,
+  ProductVariant,
+  Address,
+} from "@/types";
 import { useProductStore } from "@/store/product.store";
 import { useCategoryStore } from "@/store/category.store";
 import { useAddressStore } from "@/store/address.store";
@@ -143,15 +149,19 @@ export function getProductCategories(product: ApiProduct) {
 // useProducts – fetch list of products with pagination
 // ═══════════════════════════════════════════════════════════════════
 export function useProducts(options: UseProductsOptions = {}) {
-  const { refreshInterval = 0, fetchOnMount = true, params, defaultLimit = 10 } = options;
+  const {
+    refreshInterval = 0,
+    fetchOnMount = true,
+    params,
+    defaultLimit = 10,
+  } = options;
 
   const { get, loading, error } = useApi();
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+
   // Use global store for caching
-  const globalProducts = useProductStore((state) => state.products);
   const setGlobalProducts = useProductStore((state) => state.setProducts);
   const getPageCache = useProductStore((state) => state.getPageCache);
   const setPageCache = useProductStore((state) => state.setPageCache);
@@ -161,79 +171,85 @@ export function useProducts(options: UseProductsOptions = {}) {
   // Serialize params to avoid infinite re-renders
   const paramsKey = params ? JSON.stringify(params) : "";
 
-  const fetchProducts = useCallback(async (page = 1, limit = defaultLimit, clearProducts = true) => {
-    // Clear products when fetching new page to show loading state
-    if (clearProducts) {
-      setProducts([]);
-    }
-    
-    try {
-      // Set global loading
-      setGlobalLoading(true);
-      // Build query string
-      const searchParams = new URLSearchParams();
-      searchParams.append("page", String(page));
-      searchParams.append("limit", String(limit));
-      
-      // Add any additional params
-      if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== "") {
-            searchParams.append(key, String(value));
-          }
-        });
+  const fetchProducts = useCallback(
+    async (page = 1, limit = defaultLimit, clearProducts = true) => {
+      // Clear products when fetching new page to show loading state
+      if (clearProducts) {
+        setProducts([]);
       }
 
-      const url = `/products?${searchParams.toString()}`;
-      const response = await get<ProductsApiResponse>(url, { skipAuth: true });
-      
-      const normalized = (response.data || []).map(normalizeProduct);
-      const activeProducts = normalized.filter((product) => product.isActive !== false);
-      
-      setProducts(activeProducts);
-      
-      // Set pagination info from response
-      if (response.pagination) {
-        setPagination({
-          page: response.pagination.page,
-          limit: response.pagination.limit,
-          total: response.pagination.total,
-          totalPages: response.pagination.totalPages,
-          hasNext: response.pagination.hasNext,
-          hasPrevious: response.pagination.hasPrevious,
+      try {
+        // Set global loading
+        setGlobalLoading(true);
+        // Build query string
+        const searchParams = new URLSearchParams();
+        searchParams.append("page", String(page));
+        searchParams.append("limit", String(limit));
+
+        // Add any additional params
+        if (params) {
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== "") {
+              searchParams.append(key, String(value));
+            }
+          });
+        }
+
+        const url = `/products?${searchParams.toString()}`;
+        const response = await get<ProductsApiResponse>(url, {
+          skipAuth: true,
         });
-      } else {
-        // Fallback if no pagination in response
-        setPagination({
-          page: 1,
-          limit: activeProducts.length,
-          total: activeProducts.length,
-          totalPages: 1,
-          hasNext: false,
-          hasPrevious: false,
-        });
+
+        const normalized = (response.data || []).map(normalizeProduct);
+        const activeProducts = normalized.filter(
+          (product) => product.isActive !== false
+        );
+
+        setProducts(activeProducts);
+
+        // Set pagination info from response
+        if (response.pagination) {
+          setPagination({
+            page: response.pagination.page,
+            limit: response.pagination.limit,
+            total: response.pagination.total,
+            totalPages: response.pagination.totalPages,
+            hasNext: response.pagination.hasNext,
+            hasPrevious: response.pagination.hasPrevious,
+          });
+        } else {
+          // Fallback if no pagination in response
+          setPagination({
+            page: 1,
+            limit: activeProducts.length,
+            total: activeProducts.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false,
+          });
+        }
+
+        // Store in global state if fetching first page without filters (for caching)
+        if (page === 1 && !params && activeProducts.length > 0) {
+          setGlobalProducts(activeProducts);
+        }
+
+        // Cache page data for quick navigation
+        if (!params) {
+          setPageCache(page, {
+            products: activeProducts,
+            total: response.pagination?.total || activeProducts.length,
+            totalPages: response.pagination?.totalPages || 1,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setGlobalLoading(false);
       }
-      
-      // Store in global state if fetching first page without filters (for caching)
-      if (page === 1 && !params && activeProducts.length > 0) {
-        setGlobalProducts(activeProducts);
-      }
-      
-      // Cache page data for quick navigation
-      if (!params) {
-        setPageCache(page, {
-          products: activeProducts,
-          total: response.pagination?.total || activeProducts.length,
-          totalPages: response.pagination?.totalPages || 1,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    } finally {
-      setGlobalLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [get, paramsKey, defaultLimit]);
+    },
+    [get, paramsKey, defaultLimit]
+  );
 
   // Initial fetch - check cache first
   useEffect(() => {
@@ -256,24 +272,29 @@ export function useProducts(options: UseProductsOptions = {}) {
       }
     }
     // Only run on mount
-    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [fetchOnMount]);
 
   // Auto-refresh only if explicitly enabled
   useEffect(() => {
     if (refreshInterval > 0) {
-      intervalRef.current = setInterval(() => fetchProducts(pagination?.page || 1, defaultLimit), refreshInterval);
+      intervalRef.current = setInterval(
+        () => fetchProducts(pagination?.page || 1, defaultLimit),
+        refreshInterval
+      );
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [refreshInterval, fetchProducts]);
 
-  const goToPage = useCallback((page: number) => {
-    if (pagination && page >= 1 && page <= pagination.totalPages) {
-      fetchProducts(page, pagination.limit);
-    }
-  }, [pagination, fetchProducts]);
+  const goToPage = useCallback(
+    (page: number) => {
+      if (pagination && page >= 1 && page <= pagination.totalPages) {
+        fetchProducts(page, pagination.limit);
+      }
+    },
+    [pagination, fetchProducts]
+  );
 
   const nextPage = useCallback(() => {
     if (pagination?.hasNext) {
@@ -295,7 +316,8 @@ export function useProducts(options: UseProductsOptions = {}) {
     goToPage,
     nextPage,
     prevPage,
-    refetch: () => fetchProducts(pagination?.page || 1, pagination?.limit || defaultLimit),
+    refetch: () =>
+      fetchProducts(pagination?.page || 1, pagination?.limit || defaultLimit),
   };
 }
 
@@ -329,7 +351,6 @@ export function useProductById(
     if (fetchOnMount && id) {
       fetchProduct();
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [id, fetchOnMount]);
 
   useEffect(() => {
@@ -366,10 +387,14 @@ interface UseCategoryProductCountsOptions {
   products?: ApiProduct[];
 }
 
-export function useCategoryProductCounts(options: UseCategoryProductCountsOptions = {}) {
+export function useCategoryProductCounts(
+  options: UseCategoryProductCountsOptions = {}
+) {
   const { products: providedProducts } = options;
-  const [categoryCounts, setCategoryCounts] = useState<CategoryProductCount[]>([]);
-  
+  const [categoryCounts, setCategoryCounts] = useState<CategoryProductCount[]>(
+    []
+  );
+
   const globalProducts = useProductStore((state) => state.products);
 
   const products = providedProducts || globalProducts || [];
@@ -442,8 +467,13 @@ export function useCategoryProductCounts(options: UseCategoryProductCountsOption
 export function useCategories() {
   const { get, loading, error } = useApi();
   const [categories, setCategories] = useState<Category[]>([]);
-  
-  const { categories: globalCategories, setCategories: setGlobalCategories, isLoading: globalLoading, setLoading: setGlobalLoading } = useCategoryStore();
+
+  const {
+    categories: globalCategories,
+    setCategories: setGlobalCategories,
+    isLoading: globalLoading,
+    setLoading: setGlobalLoading,
+  } = useCategoryStore();
 
   // Use global store categories if available
   useEffect(() => {
@@ -452,15 +482,15 @@ export function useCategories() {
       setCategories(globalCategories);
       return;
     }
-    
+
     // If already loading globally, wait
     if (globalLoading) {
       return;
     }
-    
+
     // Start loading
     setGlobalLoading(true);
-    
+
     const fetchCategories = async () => {
       try {
         const response = await get<CategoriesApiResponse>("/categories", {
@@ -475,9 +505,15 @@ export function useCategories() {
         setGlobalLoading(false);
       }
     };
-    
+
     fetchCategories();
-  }, [globalCategories, globalLoading, get, setGlobalCategories, setGlobalLoading]);
+  }, [
+    globalCategories,
+    globalLoading,
+    get,
+    setGlobalCategories,
+    setGlobalLoading,
+  ]);
 
   // Build tree: parent categories with children nested
   const categoryTree = categories
@@ -513,11 +549,19 @@ interface AddressesApiResponse {
 }
 
 export function useAddresses() {
-  const { get, loading: apiLoading, error } = useApi();
+  const { get, error } = useApi();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [localLoading, setLocalLoading] = useState(true);
-  
-  const { addresses: globalAddresses, setAddresses: setGlobalAddresses, addAddress, updateAddress, removeAddress, isLoading: globalLoading, setLoading: setGlobalLoading } = useAddressStore();
+
+  const {
+    addresses: globalAddresses,
+    setAddresses: setGlobalAddresses,
+    addAddress,
+    updateAddress,
+    removeAddress,
+    isLoading: globalLoading,
+    setLoading: setGlobalLoading,
+  } = useAddressStore();
 
   // Use global store addresses if available
   useEffect(() => {
@@ -527,16 +571,16 @@ export function useAddresses() {
       setLocalLoading(false);
       return;
     }
-    
+
     // If already loading globally, wait
     if (globalLoading) {
       return;
     }
-    
+
     // Start loading
     setGlobalLoading(true);
     setLocalLoading(true);
-    
+
     const fetchAddresses = async () => {
       try {
         const response = await get<AddressesApiResponse>("/addresses");
@@ -551,9 +595,8 @@ export function useAddresses() {
         setLocalLoading(false);
       }
     };
-    
+
     fetchAddresses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalAddresses, get, setGlobalAddresses, setGlobalLoading]);
 
   const refetch = async () => {
@@ -578,5 +621,131 @@ export function useAddresses() {
     addAddress,
     updateAddress,
     removeAddress,
+  };
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// Category Products API types
+// ═════════════════════════════════════════════════════════════════════
+
+export interface CategoryProductsFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  sizes?: string[];
+  colors?: string[];
+  sortBy?: "newest" | "price-asc" | "price-desc" | "name-asc" | "name-desc";
+}
+
+interface CategoryProductsApiResponse {
+  message: string;
+  status: string;
+  data: ApiProduct[];
+  pagination: PaginationInfo;
+}
+
+interface UseCategoryProductsOptions {
+  /** Category slug to fetch products for */
+  categorySlug: string;
+  /** Current page number (default: 1) */
+  page?: number;
+  /** Number of items per page (default: 20) */
+  limit?: number;
+  /** Filter options */
+  filters?: CategoryProductsFilters;
+  /** Auto-fetch on mount (default: true) */
+  fetchOnMount?: boolean;
+}
+
+/**
+ * Hook to fetch products by category using server-side filtering
+ * API: GET /products/category/:slug?page=1&limit=20&minPrice=...&maxPrice=...&sizes=...&colors=...&sortBy=...
+ */
+export function useCategoryProducts(options: UseCategoryProductsOptions) {
+  const {
+    categorySlug,
+    page = 1,
+    limit = 20,
+    filters = {},
+    fetchOnMount = true,
+  } = options;
+
+  const { get, loading, error } = useApi();
+
+  const [category, setCategory] = useState<Category | null>(null);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [availableFilters, setAvailableFilters] = useState<{
+    sizes: string[];
+    colors: Array<{ name: string; hex: string }>;
+    priceRange: { min: number; max: number };
+  } | null>(null);
+
+  // Build query string from filters
+  const buildQueryString = () => {
+    const params = new URLSearchParams();
+    params.set("page", page.toString());
+    params.set("limit", limit.toString());
+
+    if (filters.minPrice !== undefined && filters.minPrice > 0) {
+      params.set("minPrice", filters.minPrice.toString());
+    }
+    if (filters.maxPrice !== undefined && filters.maxPrice > 0) {
+      params.set("maxPrice", filters.maxPrice.toString());
+    }
+    if (filters.sizes && filters.sizes.length > 0) {
+      params.set("sizes", filters.sizes.join(","));
+    }
+    if (filters.colors && filters.colors.length > 0) {
+      params.set("colors", filters.colors.join(","));
+    }
+    if (filters.sortBy) {
+      params.set("sortBy", filters.sortBy);
+    }
+
+    return params.toString();
+  };
+
+  const fetchProducts = useCallback(async () => {
+    if (!categorySlug) return;
+
+    console.log(categorySlug);
+
+    try {
+      const queryString = buildQueryString();
+      const response = await get<CategoryProductsApiResponse>(
+        `/products/category/${categorySlug}?${queryString}`
+      );
+
+      if (response?.data) {
+        setProducts(response.data || []);
+        setPagination(response.pagination || null);
+        // Clear filters since new API doesn't return them
+        setAvailableFilters(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch category products:", err);
+      setProducts([]);
+      setCategory(null);
+    }
+  }, [categorySlug, page, limit, JSON.stringify(filters)]);
+
+  useEffect(() => {
+    if (fetchOnMount && categorySlug) {
+      fetchProducts();
+    }
+  }, [fetchOnMount, categorySlug, fetchProducts]);
+
+  const refetch = useCallback(() => {
+    return fetchProducts();
+  }, [fetchProducts]);
+
+  return {
+    category,
+    products,
+    pagination,
+    availableFilters,
+    loading,
+    error,
+    refetch,
   };
 }

@@ -26,7 +26,7 @@ export function ColorFilter({
         : [...localSelected, colorName];
       setLocalSelected(newSelected);
     },
-    [localSelected],
+    [localSelected]
   );
 
   const handleApply = useCallback(() => {
@@ -42,7 +42,7 @@ export function ColorFilter({
     (colorName: string, checked: boolean) => {
       handleToggle(colorName);
     },
-    [handleToggle],
+    [handleToggle]
   );
 
   // Helper function to check if a color is light or dark
@@ -88,7 +88,7 @@ export function ColorFilter({
                 className={`w-6 h-6 rounded-full border border-border/20 ${
                   isLightColor(color.value) ? "border border-gray-300" : ""
                 }`}
-                style={{ backgroundColor: color.value.toLowerCase() }}
+                style={{ backgroundColor: color.value?.toLowerCase() }}
               />
             </Label>
           </div>

@@ -75,7 +75,7 @@ const useApi = () => {
         const { skipAuth, ...axiosConfig } = config as ApiRequestConfig;
         const response: AxiosResponse = await apiClient.get(url, axiosConfig);
 
-        if (response.data.status.toString() === "failed") {
+        if (response.data?.status?.toString() === "failed") {
           setError(new Error("Failed to fetch data"));
         }
 

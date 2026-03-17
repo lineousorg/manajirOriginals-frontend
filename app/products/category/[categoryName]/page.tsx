@@ -4,70 +4,25 @@ import { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
-import { useProducts, useCategories } from "@/hooks/useProduct";
+import { useCategories, useCategoryProducts, CategoryProductsFilters } from "@/hooks/useProduct";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/pagination-new";
 import {
-  ProductFilters,
   type ProductFiltersState,
   type SortOption,
 } from "@/components/product-filters";
-import { ApiProduct, ProductColor } from "@/types";
-
-// Helper to extract unique sizes from products
-function extractUniqueSizes(products: ApiProduct[]): string[] {
-  const sizeSet = new Set<string>();
-  products.forEach((product) => {
-    if (product.sizes) {
-      product.sizes.forEach((size) => sizeSet.add(size));
-    }
-  });
-  return Array.from(sizeSet).sort();
-}
-
-// Helper to extract unique colors from products
-function extractUniqueColors(products: ApiProduct[]): ProductColor[] {
-  const colorMap = new Map<string, ProductColor>();
-  products.forEach((product) => {
-    if (product.colors) {
-      product.colors.forEach((color) => {
-        if (!colorMap.has(color.name)) {
-          colorMap.set(color.name, color);
-        }
-      });
-    }
-  });
-  return Array.from(colorMap.values());
-}
-
-// Helper to calculate price range from products
-function calculatePriceRange(products: ApiProduct[]): [number, number] {
-  if (products.length === 0) return [0, 10000];
-  
-  let minPrice = Infinity;
-  let maxPrice = 0;
-  
-  products.forEach((product) => {
-    const price = Number(product.price) || 0;
-    const originalPrice = product.originalPrice ? Number(product.originalPrice) : price;
-    if (price < minPrice) minPrice = price;
-    if (originalPrice > maxPrice) maxPrice = originalPrice;
-  });
-  
-  return [Math.floor(minPrice), Math.ceil(maxPrice)];
-}
 
 export default function CategoryProductsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const categoryName = params.categoryName as string;
-  
+
   // Get filters from URL params
   const urlMinPrice = searchParams.get("minPrice");
   const urlMaxPrice = searchParams.get("maxPrice");
   const urlSort = searchParams.get("sortBy");
-  
+
   // Filter state
   const [filters, setFilters] = useState<ProductFiltersState>({
     priceRange: [
@@ -80,16 +35,18 @@ export default function CategoryProductsPage() {
   });
 
   // Fetch categories
-  const { categories, categoryTree, loading: categoriesLoading } = useCategories();
-  
+  const {
+    categories,
+    categoryTree,
+    loading: categoriesLoading,
+  } = useCategories();
+
   // Find the current category from the category tree
   const currentCategory = useMemo(() => {
     // First try to find in flat categories list
-    const flatCategory = categories.find(
-      (cat) => cat.slug === categoryName
-    );
+    const flatCategory = categories.find((cat) => cat.slug === categoryName);
     if (flatCategory) return flatCategory;
-    
+
     // Then try to find in category tree (with children)
     for (const parent of categoryTree) {
       if (parent.slug === categoryName) return parent;
@@ -98,19 +55,40 @@ export default function CategoryProductsPage() {
         if (child) return child;
       }
     }
-    
+
     return null;
   }, [categories, categoryTree, categoryName]);
 
-  // Get category ID for API filtering
-  const categoryId = currentCategory?.id ? String(currentCategory.id) : categoryName;
-  
-  // Fetch products with category filter
-  const { products, loading: productsLoading, pagination, goToPage } = useProducts({
-    params: {
-      category: categoryId,
-    },
+  // Build filters for the API based on URL params and local state
+  const apiFilters: CategoryProductsFilters = useMemo(() => {
+    return {
+      minPrice: urlMinPrice ? Number(urlMinPrice) : undefined,
+      maxPrice: urlMaxPrice ? Number(urlMaxPrice) : undefined,
+      sizes: filters.sizes.length > 0 ? filters.sizes : undefined,
+      colors: filters.colors.length > 0 ? filters.colors : undefined,
+      // Only send sortBy if it's explicitly set in URL (not the default "newest")
+      sortBy: urlSort ? filters.sortBy as CategoryProductsFilters['sortBy'] : undefined,
+    };
+  }, [urlMinPrice, urlMaxPrice, filters.sizes, filters.colors, filters.sortBy, urlSort]);
+
+  // Fetch products by category using server-side filtering
+  const {
+    category: fetchedCategory,
+    products,
+    pagination,
+    availableFilters,
+    loading: productsLoading,
+    refetch,
+  } = useCategoryProducts({
+    categorySlug: categoryName,
+    page: 1,
+    limit: 20,
+    filters: apiFilters,
+    fetchOnMount: true,
   });
+
+  // Use fetched category from API or fallback to local category
+  const displayCategory = fetchedCategory || currentCategory;
 
   // Pagination loading state
   const [isPaginating, setIsPaginating] = useState(false);
@@ -120,99 +98,46 @@ export default function CategoryProductsPage() {
   const handlePageChange = async (page: number) => {
     setPendingPage(page);
     setIsPaginating(true);
-    await goToPage(page);
+    await refetch();
     setIsPaginating(false);
     setPendingPage(null);
   };
 
   // Get the current page for display
-  const currentPage = pendingPage ?? pagination?.page ?? 1;
+  const currentPageValue = pendingPage ?? pagination?.page ?? 1;
 
   // Combined loading state - show loader while categories OR products are loading
   const isLoading = categoriesLoading || productsLoading;
 
-  // Calculate available filter options from fetched products
-  const availableSizes = useMemo(() => extractUniqueSizes(products), [products]);
-  const availableColors = useMemo(() => extractUniqueColors(products), [products]);
-  const priceRange = useMemo(() => calculatePriceRange(products), [products]);
+  // Use available filters from API response
+  const availableSizes = availableFilters?.sizes || [];
+  const availableColors = availableFilters?.colors || [];
+  const priceRange: [number, number] = availableFilters?.priceRange
+    ? [availableFilters.priceRange.min, availableFilters.priceRange.max]
+    : [0, 10000];
 
-  // Filter products based on current filters (client-side filtering as fallback)
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
-    
-    // Also filter by category on client side as fallback
-    // This ensures we only show products that match the category slug
-    const categorySlugLower = categoryName.toLowerCase();
-    result = result.filter((product) => {
-      if (!product.category) return false;
-      const productCatSlug = product.category.slug?.toLowerCase();
-      const productParentSlug = product.category.parent?.slug?.toLowerCase();
-      return productCatSlug === categorySlugLower || productParentSlug === categorySlugLower;
-    });
-    
-    // Apply price filter
-    result = result.filter((product) => {
-      const price = Number(product.price) || 0;
-      return price >= filters.priceRange[0] && price <= filters.priceRange[1];
-    });
-    
-    // Apply size filter
-    if (filters.sizes.length > 0) {
-      result = result.filter((product) => {
-        if (!product.sizes) return false;
-        return product.sizes.some((size) => filters.sizes.includes(size));
-      });
-    }
-    
-    // Apply color filter
-    if (filters.colors.length > 0) {
-      result = result.filter((product) => {
-        if (!product.colors) return false;
-        return product.colors.some((color) => filters.colors.includes(color.name));
-      });
-    }
-    
-    // Apply sorting
-    switch (filters.sortBy) {
-      case "price-asc":
-        result.sort((a, b) => Number(a.price) - Number(b.price));
-        break;
-      case "price-desc":
-        result.sort((a, b) => Number(b.price) - Number(a.price));
-        break;
-      case "newest":
-        result.sort((a, b) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-        break;
-      case "popular":
-        // For now, just keep default order (could be enhanced with a popularity field)
-        break;
-    }
-    
-    return result;
-  }, [products, filters, categoryName]);
+  // Products are already filtered server-side, no need for client-side filtering
+  const filteredProducts = products;
+  console.log(products);
 
-  // Handle filter changes
+  // Handle filter changes - update URL params to trigger API refetch
   const handleFilterChange = useCallback((newFilters: ProductFiltersState) => {
     setFilters(newFilters);
   }, []);
 
   // Generate breadcrumb
   const breadcrumb = useMemo(() => {
-    if (!currentCategory) return [];
-    
+    if (!displayCategory) return [];
+
     const crumbs = [
       { label: "Home", href: "/" },
       { label: "Products", href: "/products" },
     ];
-    
+
     // Check if this is a child category
-    if (currentCategory.parentId) {
+    if (displayCategory.parentId) {
       const parentCategory = categories.find(
-        (cat) => String(cat.id) === String(currentCategory.parentId)
+        (cat) => String(cat.id) === String(displayCategory.parentId)
       );
       if (parentCategory) {
         crumbs.push({
@@ -221,17 +146,17 @@ export default function CategoryProductsPage() {
         });
       }
     }
-    
+
     crumbs.push({
-      label: currentCategory.name,
-      href: `/products/category/${currentCategory.slug}`,
+      label: displayCategory.name,
+      href: `/products/category/${displayCategory.slug}`,
     });
-    
+
     return crumbs;
-  }, [currentCategory, categories]);
+  }, [displayCategory, categories]);
 
   // Show loader while loading
-  if (isLoading && !currentCategory) {
+  if (isLoading && !displayCategory) {
     return (
       <div className="container-fashion py-8 min-h-screen">
         <ProductGridSkeleton count={12} />
@@ -262,7 +187,7 @@ export default function CategoryProductsPage() {
   // }
 
   // Early return if currentCategory is still null after loading
-  if (!currentCategory) {
+  if (!displayCategory) {
     return (
       <div className="container-fashion py-8 min-h-screen">
         <ProductGridSkeleton count={12} />
@@ -270,8 +195,8 @@ export default function CategoryProductsPage() {
     );
   }
 
-  // At this point, currentCategory is guaranteed to be non-null
-  const categoryNameDisplay = currentCategory.name;
+  // At this point, displayCategory is guaranteed to be non-null
+  const categoryNameDisplay = displayCategory.name;
 
   return (
     <div className="container-fashion py-8 min-h-screen pt-40">
@@ -305,7 +230,14 @@ export default function CategoryProductsPage() {
           {categoryNameDisplay}
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {pagination ? `Showing ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total} products` : `${filteredProducts.length} products found`}
+          {pagination
+            ? `Showing ${
+                (pagination.page - 1) * pagination.limit + 1
+              }-${Math.min(
+                pagination.page * pagination.limit,
+                pagination.total
+              )} of ${pagination.total} products`
+            : `${filteredProducts.length} products found`}
         </p>
       </div>
 
@@ -351,10 +283,10 @@ export default function CategoryProductsPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product, idx) => (
-                  <ProductCard 
-                    key={`${product.id}-${currentPage}`}
-                    product={product} 
-                    index={idx} 
+                  <ProductCard
+                    key={`${product.id}-${currentPageValue}`}
+                    product={product}
+                    index={idx}
                   />
                 ))}
               </div>
@@ -364,7 +296,7 @@ export default function CategoryProductsPage() {
                   <Pagination
                     pagination={{
                       ...pagination,
-                      page: currentPage
+                      page: currentPageValue,
                     }}
                     onPageChange={handlePageChange}
                   />
