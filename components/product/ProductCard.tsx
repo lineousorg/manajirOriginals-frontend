@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
-import { ApiProduct, TypeImage } from "@/types";
+import { ApiProduct } from "@/types";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
@@ -47,6 +47,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       : null;
 
   const lowStock = (product.totalStock ?? 0) < 10;
+  const isOutOfStock = !product.totalStock || product.totalStock === 0;
 
   return (
     <motion.article
@@ -73,13 +74,8 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           transition={{ duration: 0.3 }}
         >
           <Image
-            src={
-              product?.thumbnail ||
-              "/placeholder-product.jpg"
-            }
-            alt={
-              product.name || "Product Image"
-            }
+            src={product?.thumbnail || "/placeholder-product.jpg"}
+            alt={product.name || "Product Image"}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 rounded-2xl"
@@ -230,18 +226,24 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           )}
 
           <div className="flex items-center justify-end px-1">
-            <Link
-              href={`/products/${product.id}`}
-              className="group relative flex items-center bg-[#741111] hover:bg-primary hover:font-bold text-white rounded-full h-8 px-2 overflow-hidden transition-all duration-300"
-            >
-              {/* Icon */}
-              <MdArrowOutward className="text-lg transition-all duration-300 rotate-45 group-hover:rotate-12" />
-
-              {/* Animated Text */}
-              <span className="group-hover:ml-1 whitespace-nowrap opacity-0 translate-x-2 max-w-0 overflow-hidden transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:max-w-52 text-sm">
-                View Details
+            {isOutOfStock ? (
+              <span className="group relative flex items-center bg-slate-400 text-white rounded-full h-8 px-2 overflow-hidden cursor-not-allowed text-sm">
+                Out of Stock
               </span>
-            </Link>
+            ) : (
+              <Link
+                href={`/products/${product.id}`}
+                className="group relative flex items-center bg-[#741111] hover:bg-primary hover:font-bold text-white rounded-full h-8 px-2 overflow-hidden transition-all duration-300"
+              >
+                {/* Icon */}
+                <MdArrowOutward className="text-lg transition-all duration-300 rotate-45 group-hover:rotate-12" />
+
+                {/* Animated Text */}
+                <span className="group-hover:ml-1 whitespace-nowrap opacity-0 translate-x-2 max-w-0 overflow-hidden transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:max-w-52 text-sm">
+                  View Details
+                </span>
+              </Link>
+            )}
           </div>
 
           {/* Sizes */}

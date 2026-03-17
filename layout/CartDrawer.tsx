@@ -10,8 +10,15 @@ import { SignupModal } from "@/components/auth/SignupModal";
 import Link from "next/link";
 
 export const CartDrawer = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal, isHydrated } =
-    useCartStore();
+  const {
+    items,
+    isOpen,
+    closeCart,
+    removeItem,
+    updateQuantity,
+    getTotal,
+    isHydrated,
+  } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
 
@@ -57,7 +64,7 @@ export const CartDrawer = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeCart}
-              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
             />
 
             {/* Drawer */}
@@ -65,78 +72,105 @@ export const CartDrawer = () => {
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-9999 shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-border/50">
                 <div className="flex items-center gap-3">
-                  <ShoppingBag className="w-5 h-5 text-primary" />
-                  <h2 className="font-serif text-lg sm:text-xl text-gray-800">
-                    Your Bag
-                  </h2>
-                  <span className="text-sm text-gray-700">
-                    ({items?.length} {items?.length === 1 ? "item" : "items"})
-                  </span>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ShoppingBag
+                      className="w-5 h-5 text-primary"
+                      strokeWidth={2}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-serif text-xl font-medium">
+                      Shopping Bag
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      ({items?.length} {items?.length === 1 ? "item" : "items"})
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={closeCart}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                  className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
                   aria-label="Close cart"
                 >
-                  <X size={20} className="text-gray-800" />
+                  <X size={18} strokeWidth={2} />
                 </button>
               </div>
 
               {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="flex-1 overflow-y-auto px-6 py-6">
                 {items.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                    <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-                      <ShoppingBag size={32} className="text-gray-700" />
-                    </div>
-                    <h3 className="font-serif text-xl text-gray-800 mb-2">
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-24 h-24 rounded-full bg-muted/50 flex items-center justify-center mb-6"
+                    >
+                      <ShoppingBag
+                        size={40}
+                        className="text-muted-foreground/60"
+                        strokeWidth={1.5}
+                      />
+                    </motion.div>
+                    <h3 className="font-serif text-xl mb-2">
                       Your bag is empty
                     </h3>
-                    <p className="text-sm text-gray-700 mb-6 max-w-xs">
-                      Looks like you haven&apos;t added any items to your bag
-                      yet.
+                    <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">
+                      Discover our latest collection and add something beautiful
+                      to your bag
                     </p>
                     <button
                       onClick={closeCart}
-                      className="btn-primary-fashion rounded-full"
+                      className="btn-primary-fashion rounded-full px-8"
                     >
-                      Continue Shopping
+                      Start Shopping
                     </button>
                   </div>
                 ) : (
-                  <ul className="space-y-6">
-                    {items.map((item) => (
+                  <ul className="space-y-5">
+                    {items.map((item, index) => (
                       <motion.li
                         key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
                         exit={{ opacity: 0, x: -100 }}
-                        className="flex gap-4 bg-card/50 p-3 rounded-xl"
+                        className="flex gap-4 group"
                       >
-                        <div className="w-20 h-24 sm:w-24 sm:h-32 relative rounded-lg shrink-0 overflow-hidden">
+                        {/* Image */}
+                        <div className="w-24 h-32 relative rounded-xl overflow-hidden bg-muted shrink-0 ring-1 ring-border/50 group-hover:ring-border transition-all">
                           <Image
                             src={item.productImage}
                             alt={item.productName}
                             fill
-                            sizes="80px"
+                            sizes="96px"
                             className="object-cover"
                           />
                         </div>
-                        <div className="flex-1 flex flex-col min-w-0">
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="min-w-0">
-                              <h4 className="font-medium text-sm sm:text-base text-gray-800 mt-0.5 line-clamp-2">
+
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col min-w-0 py-1">
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors text-left">
                                 {item.productName}
                               </h4>
-                              <p className="text-xs sm:text-sm text-gray-700 mt-1">
-                                {item.selectedSize} · {item.selectedColor}
-                              </p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-xs px-2 py-0.5 bg-muted rounded-md text-muted-foreground">
+                                  {item.selectedSize}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  ·
+                                </span>
+                                <span className="text-xs text-muted-foreground capitalize">
+                                  {item.selectedColor}
+                                </span>
+                              </div>
                             </div>
                             <button
                               onClick={() =>
@@ -146,14 +180,16 @@ export const CartDrawer = () => {
                                   item.selectedColor
                                 )
                               }
-                              className="p-1.5 hover:bg-muted rounded-full transition-colors text-gray-700 hover:text-destructive shrink-0"
+                              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-2 -mt-2"
                               aria-label="Remove item"
                             >
                               <Trash2 size={16} />
                             </button>
                           </div>
-                          <div className="mt-auto pt-2 flex items-center justify-between">
-                            <div className="flex items-center border border-border rounded-full text-gray-400">
+
+                          <div className="mt-auto flex items-center justify-between">
+                            {/* Quantity */}
+                            <div className="flex items-center bg-muted/50 rounded-full border border-border/50">
                               <button
                                 onClick={() => {
                                   updateQuantity(
@@ -164,12 +200,12 @@ export const CartDrawer = () => {
                                   );
                                 }}
                                 disabled={item.quantity <= 1}
-                                className="p-2 hover:bg-muted transition-colors disabled:opacity-50 rounded-l-full"
+                                className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 rounded-l-full"
                                 aria-label="Decrease quantity"
                               >
-                                <Minus size={14} />
+                                <Minus size={14} strokeWidth={2} />
                               </button>
-                              <span className="px-3 text-sm text-gray-500 font-medium min-w-8 text-center">
+                              <span className="w-8 text-center text-sm font-medium tabular-nums">
                                 {item.quantity}
                               </span>
                               <button
@@ -181,15 +217,19 @@ export const CartDrawer = () => {
                                     item.quantity + 1
                                   );
                                 }}
-                                className="p-2 hover:bg-muted transition-colors rounded-r-full text-gray-400"
+                                className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors rounded-r-full"
                                 aria-label="Increase quantity"
                               >
-                                <Plus size={14} />
+                                <Plus size={14} strokeWidth={2} />
                               </button>
                             </div>
-                            <p className="font-medium text-gray-800">
-                              ৳{" "}
-                              {(item.productPrice * item.quantity).toFixed(2)}
+
+                            {/* Price */}
+                            <p className="font-semibold text-sm">
+                              ৳
+                              {(
+                                item.productPrice * item.quantity
+                              ).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -201,37 +241,38 @@ export const CartDrawer = () => {
 
               {/* Footer */}
               {items.length > 0 && (
-                <div className="border-t border-border p-4 sm:p-6 space-y-4 bg-card/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Subtotal</span>
-                    <span className="text-xl font-medium text-gray-800">
-                      ৳ {getTotal().toFixed(2)}
+                <div className="border-t border-border/50 bg-muted/20 px-6 py-6 space-y-5">
+                  {/* Subtotal */}
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-muted-foreground">
+                      Subtotal
+                    </span>
+                    <span className="text-2xl font-semibold tracking-tight">
+                      ৳{getTotal().toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-700 text-center">
-                    Shipping and taxes calculated at checkout
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      href="/cart"
+
+                  {/* Actions */}
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+                    <button
                       onClick={closeCart}
-                      className="btn-outline-fashion rounded-full text-center text-xs sm:text-sm"
+                      className="text-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-3/4 hover:border-2 hover:border-muted-foreground rounded-lg"
                     >
-                      View Bag
-                    </Link>
+                      Continue Shopping
+                    </button>
+
                     <button
                       onClick={handleCheckout}
-                      className="btn-primary-fashion rounded-full text-center text-xs sm:text-sm"
+                      className="w-4/5 btn-primary-fashion rounded-lg py-3.5 text-sm font-medium cursor-pointer"
                     >
                       Checkout
                     </button>
                   </div>
-                  <button
-                    onClick={closeCart}
-                    className="w-full text-center text-sm text-gray-700 hover:text-gray-800 transition-colors py-2"
-                  >
-                    Continue Shopping
-                  </button>
+
+                  {/* Shipping Note */}
+                  <p className="text-xs text-muted-foreground text-center">
+                    Shipping & taxes calculated at checkout
+                  </p>
                 </div>
               )}
             </motion.div>

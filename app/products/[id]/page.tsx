@@ -65,7 +65,7 @@ export default function ProductDetailsPage() {
         product.variants.forEach((variant: any) => {
           // Only consider variants with stock > 0
           if (!variant.stock || variant.stock <= 0) return;
-          
+
           if (variant.attributes && Array.isArray(variant.attributes)) {
             const variantSize = variant.attributes.find(
               (attr: any) =>
@@ -94,22 +94,24 @@ export default function ProductDetailsPage() {
   const availableSizes = useMemo(() => {
     if (!product?.variants || !product?.sizes) return product?.sizes ?? [];
     const sizesWithStock: string[] = [];
-    
+
     product.sizes.forEach((size: string) => {
       // Check if there's any variant with this size that has stock > 0
       const hasStock = product.variants?.some((variant: any) => {
         if (!variant.stock || variant.stock <= 0) return false;
         const variantSize = variant.attributes?.find(
-          (attr: any) => attr.attributeValue?.attribute?.name === "Size" && attr.attributeValue?.value === size
+          (attr: any) =>
+            attr.attributeValue?.attribute?.name === "Size" &&
+            attr.attributeValue?.value === size
         );
         return !!variantSize;
       });
-      
+
       if (hasStock) {
         sizesWithStock.push(size);
       }
     });
-    
+
     return sizesWithStock;
   }, [product?.variants, product?.sizes]);
   const availableColorsForSelectedSize = useMemo(
@@ -225,7 +227,10 @@ export default function ProductDetailsPage() {
     const size = selectedSize || "One Size";
     const color = selectedColor || "Default";
     const isAlreadyInCart = isItemInCart(productId, size, color);
-    
+
+    // Check if product is out of stock
+    const isOutOfStock = !product?.totalStock || product.totalStock === 0;
+
     // Add item to cart - returns { success, isExisting }
     const result = addToCart(
       {
@@ -237,15 +242,17 @@ export default function ProductDetailsPage() {
       color,
       quantity
     );
-    
+
     // Handle different outcomes
     if (!result.success) {
       // Validation failed - no matching variant
-      toast.error("Selected size or color is not available. Please choose different options.");
+      toast.error(
+        "Selected size or color is not available. Please choose different options."
+      );
       setIsAddingToCart(false);
       return;
     }
-    
+
     // Provide appropriate feedback
     if (result.isExisting) {
       toast.success(`Updated quantity in your bag!`);
@@ -254,7 +261,7 @@ export default function ProductDetailsPage() {
     } else {
       toast.success("Added to bag!");
     }
-    
+
     setIsAddingToCart(false);
   };
 
@@ -274,6 +281,26 @@ export default function ProductDetailsPage() {
       toast.success("Link copied to clipboard");
     }
   };
+
+  // Calculate if product is in cart with current selections
+  const isInCart = useMemo(() => {
+    if (!product) return false;
+    const size = selectedSize || "One Size";
+    const color = selectedColor || "Default";
+    return isItemInCart(productId, size, color);
+  }, [product, selectedSize, selectedColor, productId, isItemInCart]);
+
+  const isOutOfStock = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) {
+      // If no variants, check for a direct stock property
+      return !product?.stock || product.stock === 0;
+    }
+    // Check if ALL variants have 0 stock
+    const allVariantsOutOfStock = product.variants.every(
+      (variant: any) => !variant.stock || variant.stock === 0
+    );
+    return allVariantsOutOfStock;
+  }, [product?.variants, product?.stock]);
 
   if (loading && !product) {
     return (
@@ -361,7 +388,7 @@ export default function ProductDetailsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="order-1"
+            className="order-1 z-0"
           >
             <ProductGallery images={images} productName={product.name} />
           </motion.div>
@@ -373,205 +400,232 @@ export default function ProductDetailsPage() {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="order-2 lg:sticky lg:top-28 lg:self-start"
           >
-            {/* Header */}
-            <div className="mb-6">
-              {product.brand && (
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  {product.brand}
-                </p>
-              )}
-              <div className="flex items-start justify-between gap-4">
-                <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-medium text-left leading-tight">
+            <div className="mb-8">
+              {/* Header Row: Title + Share */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <h1 className="font-serif text-3xl md:text-4xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left">
                   {product.name}
                 </h1>
                 <button
                   onClick={handleShare}
-                  className="p-2 hover:bg-muted rounded-full transition-colors shrink-0"
+                  className="p-2.5 hover:bg-muted rounded-full transition-colors shrink-0 mt-1"
                   aria-label="Share product"
                 >
-                  <Share2 size={20} />
+                  <Share2 size={20} strokeWidth={1.5} />
                 </button>
               </div>
 
+              {/* Description */}
               {product.description && (
-                <p className="text-muted-foreground mt-4 text-base text-left leading-relaxed">
+                <p className="text-muted-foreground text-base leading-relaxed mb-8 max-w-2xl text-left">
                   {product.description}
                 </p>
               )}
-            </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3 mb-8 pb-8 border-b border-border">
-              <span className="text-3xl md:text-2xl font-medium tracking-tight">
-                ৳ {currentPrice.toLocaleString()}
-              </span>
-              {originalPrice && originalPrice > currentPrice && (
-                <span className="text-lg text-muted-foreground line-through">
-                  ৳{originalPrice.toLocaleString()}
+              {/* Price Row */}
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-3xl font-semibold tracking-tight">
+                  ৳ {currentPrice.toLocaleString()}
                 </span>
-              )}
-              {discountPercentage > 0 && (
-                <span className="badge-sale text-sm px-3 py-1">
-                  Save {discountPercentage}%
-                </span>
-              )}
+                {originalPrice && originalPrice > currentPrice && (
+                  <span className="text-lg text-muted-foreground line-through decoration-2">
+                    ৳{originalPrice.toLocaleString()}
+                  </span>
+                )}
+                {discountPercentage > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                    Save {discountPercentage}%
+                  </span>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border w-full" />
             </div>
 
             {/* Variant Selection */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-8 mb-8">
               {/* Color Selection */}
               {availableColorsForSelectedSize.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
                       Color
                     </span>
-                    {/* <span className="text-sm font-medium">{selectedColor}</span> */}
-                  </div>
-                  <div className="flex gap-3 flex-wrap">
-                    {availableColorsForSelectedSize.map((color: string) => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`relative min-w-16 h-12 px-4 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
-                          selectedColor === color
-                            ? "border-foreground bg- text-gray-800"
-                            : "border-border hover:border-foreground/50 bg-background"
-                        }`}
-                        title={color}
-                      >
-                        {color}
-                        {selectedColor === color && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute -top-2 -right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center"
-                          >
-                            <Check
-                              size={12}
-                              className="text-background"
-                              strokeWidth={3}
-                            />
-                          </motion.div>
-                        )}
-                      </button>
-                    ))}
+                    <div className="flex flex-wrap gap-2">
+                      {availableColorsForSelectedSize.map((color: string) => (
+                        <button
+                          key={color}
+                          onClick={() => setSelectedColor(color)}
+                          className={`
+                relative px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer
+                ${
+                  selectedColor === color
+                    ? "bg-foreground text-background shadow-lg scale-105"
+                    : "bg-muted/50 text-foreground hover:bg-muted border border-border"
+                }
+              `}
+                        >
+                          {color}
+                          {selectedColor === color && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm"
+                            >
+                              <Check
+                                size={10}
+                                className="text-background"
+                                strokeWidth={3}
+                              />
+                            </motion.div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Size Selection */}
               {availableSizes.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
                       Size
                     </span>
-                    <div className="flex items-center gap-3">
-                      {/* <span className="text-sm font-medium">
-                        {selectedSize}
-                      </span> */}
-                      {/* <button className="text-sm text-primary hover:underline flex items-center gap-1">
-                        <Ruler size={14} />
-                        Size Guide
-                      </button> */}
-                    </div>
-                  </div>
-                  {/* Size Guide - Show for Ethnic category */}
-
-                  <div
-                    className="mt-3 rounded-xl mb-5 cursor-pointer"
-                    onClick={() => setIsSizeGuideOpen(true)}
-                  >
-                    <Image
-                      src="/Size guides/punjabi-size-guide.jpeg"
-                      alt="Size Guide"
-                      width={300}
-                      height={200}
-                      className="w-full max-w-xs h-auto rounded"
-                    />
-                  </div>
-
-                  {/* Size Guide Fullscreen Modal */}
-                  {isSizeGuideOpen && (
-                    <div
-                      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                      onClick={() => setIsSizeGuideOpen(false)}
-                    >
-                      <div className="relative max-w-4xl w-full max-h-[90vh] overflow-auto">
+                    <div className="flex flex-wrap gap-2">
+                      {availableSizes.map((size: any) => (
                         <button
-                          className="absolute top-4 right-4 bg-white rounded-full p-2 z-10"
-                          onClick={() => setIsSizeGuideOpen(false)}
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          className={`
+                w-12 h-12 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer
+                ${
+                  selectedSize === size
+                    ? "bg-foreground text-background shadow-md scale-105"
+                    : "bg-background text-foreground border-2 border-border hover:border-primary/50 hover:bg-muted/30"
+                }
+              `}
                         >
-                          <Plus size={24} className="rotate-45" />
+                          {size}
                         </button>
-                        <Image
-                          src="/Size guides/punjabi-size-guide.jpeg"
-                          alt="Size Guide"
-                          width={800}
-                          height={600}
-                          className="w-full h-auto"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
+                      ))}
                     </div>
-                  )}
-                  <div className="flex gap-2 flex-wrap">
-                    {availableSizes.map((size: any) => (
-                      <button
-                        key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`min-w-12 h-12 px-4 border-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          selectedSize === size
-                            ? "border-foreground bg-foreground text-background"
-                            : "border-border hover:border-foreground/50 bg-background"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}
 
               {/* Quantity */}
-              <div>
-                <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-3 block">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
                   Quantity
                 </span>
-                <div className="inline-flex items-center border-2 border-border rounded-lg">
+                <div className="inline-flex items-center bg-muted/30 rounded-full border border-border ">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-3 hover:bg-muted transition-colors disabled:opacity-50"
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     disabled={quantity <= 1}
                     aria-label="Decrease quantity"
                   >
-                    <Minus size={18} />
+                    <Minus size={16} strokeWidth={2.5} />
                   </button>
-                  <span className="w-16 text-center font-medium text-lg">
+                  <span className="w-12 text-center font-semibold text-lg tabular-nums">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-3 hover:bg-muted transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors cursor-pointer"
                     aria-label="Increase quantity"
                   >
-                    <Plus size={18} />
+                    <Plus size={16} strokeWidth={2.5} />
                   </button>
                 </div>
               </div>
+
+              {/* Size Guide Thumbnail */}
+              <div
+                className="mt-6 cursor-pointer group w-fit"
+                onClick={() => setIsSizeGuideOpen(true)}
+              >
+                <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20 p-2 transition-all duration-200 group-hover:border-primary/50 group-hover:shadow-md">
+                  <Image
+                    src="/Size guides/punjabi-size-guide.jpeg"
+                    alt="Size Guide"
+                    width={280}
+                    height={180}
+                    className="w-64 h-auto rounded-lg object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/50 rounded-xl">
+                    <span className="text-xs font-medium bg-background/90 px-3 py-1.5 rounded-full shadow-sm">
+                      Click to enlarge
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Size Guide
+                </p>
+              </div>
+
+              {/* Size Guide Modal */}
+              {isSizeGuideOpen && (
+                <div
+                  className="fixed inset-0 z-999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                  onClick={() => setIsSizeGuideOpen(false)}
+                >
+                  <div
+                    className="relative"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      className="absolute -top-8 -right-8 bg-background rounded-full p-2.5 shadow-lg transition-colors z-10 cursor-pointer hover:bg-primary hover:text-background"
+                      onClick={() => setIsSizeGuideOpen(false)}
+                    >
+                      <Plus size={20} className="rotate-45" />
+                    </button>
+                    <Image
+                      src="/Size guides/punjabi-size-guide.jpeg"
+                      alt="Size Guide"
+                      width={500}
+                      height={500}
+                      className="w-full h-auto rounded-2xl"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
             <div className="flex gap-3 mb-8">
               <motion.button
                 onClick={handleAddToCart}
-                disabled={isAddingToCart}
+                disabled={isAddingToCart || isOutOfStock}
                 whileTap={{ scale: 0.98 }}
-                className="flex-1 btn-primary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden"
+                className="flex-1 btn-primary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg cursor-pointer"
               >
                 <AnimatePresence mode="wait">
-                  {isAddingToCart ? (
+                  {isOutOfStock ? (
+                    <motion.span
+                      key="outofstock"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      Out of Stock
+                    </motion.span>
+                  ) : isInCart ? (
+                    <motion.span
+                      key="incart"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <Check size={18} />
+                      Added to Bag
+                    </motion.span>
+                  ) : isAddingToCart ? (
                     <motion.span
                       key="adding"
                       initial={{ opacity: 0, y: 10 }}
@@ -836,10 +890,16 @@ export default function ProductDetailsPage() {
           </div>
           <button
             onClick={handleAddToCart}
-            disabled={isAddingToCart}
-            className="flex-1 btn-primary-fashion h-12 text-sm font-medium disabled:opacity-70"
+            disabled={isAddingToCart || isOutOfStock}
+            className="flex-1 btn-primary-fashion h-12 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isAddingToCart ? "Adding..." : "Add to Bag"}
+            {isOutOfStock
+              ? "Out of Stock"
+              : isInCart
+              ? "Added to Bag"
+              : isAddingToCart
+              ? "Adding..."
+              : "Add to Bag"}
           </button>
         </div>
       </div>

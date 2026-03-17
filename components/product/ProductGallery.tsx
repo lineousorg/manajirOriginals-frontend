@@ -104,7 +104,7 @@ export const ProductGallery = ({
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-3/4 rounded-md transition-all ${
+            className={`aspect-square rounded-md transition-all ${
               index === currentIndex
                 ? "ring-2 ring-foreground"
                 : "opacity-60 hover:opacity-100"
@@ -113,11 +113,11 @@ export const ProductGallery = ({
             <Image
               src={images[index].url}
               alt={`${productName} thumbnail ${index + 1}`}
-              width={350}
-              height={350}
+              width={250}
+              height={250}
               // fill
               sizes="(max-width: 768px) 20vw, 10vw"
-              className="object-cover border"
+              className="object-cover"
             />
           </button>
         ))}
