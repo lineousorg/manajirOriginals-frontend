@@ -2,12 +2,14 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
 const WishlistPage = () => {
+  const router = useRouter();
   const { items, removeItem } = useWishlistStore();
   const addToCart = useCartStore((state) => state.addItem);
 
@@ -18,13 +20,31 @@ const WishlistPage = () => {
     const item = items.find((i) => String(i.product.id) === String(productId));
     if (!item) return;
     const { product } = item;
-    addToCart(
+    
+    // Check if product requires size or color selection
+    const hasSizes = (product.sizes?.length ?? 0) > 0;
+    const hasColors = (product.colors?.length ?? 0) > 0;
+    const hasVariants = (product.variants?.length ?? 0) > 0;
+    
+    // If product requires size/color selection (has variants), redirect to product page
+    // Do NOT auto-add with default values - this causes wrong size/color bugs
+    if (hasSizes || hasColors || hasVariants) {
+      // Redirect to product page for proper selection
+      router.push(`/products/${productId}`);
+      return;
+    }
+    
+    // For products without variants, add directly with "One Size" and "Default"
+    const result = addToCart(
       product,
-      product.sizes?.[0] || "One Size",
-      product.colors?.[0]?.name || "Default",
+      "One Size",
+      "Default",
       1,
     );
-    removeItem(String(productId));
+    
+    if (result?.success) {
+      removeItem(String(productId));
+    }
   };
 
   if (activeItems.length === 0) {

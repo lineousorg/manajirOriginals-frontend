@@ -107,11 +107,11 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
       </div>
 
       {/* Error Message */}
-      {error && (
+      {/* {error && (
         <div className="max-w-5xl mx-auto mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
           {error}
         </div>
-      )}
+      )} */}
 
       {/* Receipt Display */}
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-2xl p-10 text-gray-900">

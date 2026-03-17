@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product } from '@/types';
@@ -18,7 +19,7 @@ interface CartState {
   items: MinimalCartItem[];
   isOpen: boolean;
   isHydrated: boolean;
-  addItem: (product: Product, size: string, color: string, quantity?: number) => boolean;
+  addItem: (product: Product, size: string, color: string, quantity?: number) => { success: boolean; isExisting: boolean };
   removeItem: (productId: string | number, size: string, color: string) => void;
   updateQuantity: (productId: string | number, size: string, color: string, quantity: number) => void;
   clearCart: () => void;
@@ -38,20 +39,83 @@ export const useCartStore = create<CartState>()(
       isOpen: false,
       isHydrated: false,
 
-      addItem: (product, size, color, quantity = 1) => {
+      addItem: (product, size, color, quantity = 1): { success: boolean; isExisting: boolean } => {
+        // Return type: { success: boolean, isExisting: boolean }
+        // - { success: true, isExisting: true } = existing item updated
+        // - { success: true, isExisting: false } = new item added
+        // - { success: false, isExisting: false } = validation failed
+        
+        // Determine if product has variants (sizes/colors defined in variants)
+        const hasVariants = (product.variants?.length ?? 0) > 0;
+        const hasSizes = (product.sizes?.length ?? 0) > 0;
+        const hasColorsDefined = (product.colors?.length ?? 0) > 0;
+        
+        // If product has variants, size is required
+        if (hasVariants && hasSizes && !size) {
+          console.error('Size is required for this product');
+          return { success: false, isExisting: false };
+        }
+        
+        // Color check: if product has explicit colors array OR has variants with color attributes
+        const hasColorAttributesInVariants = hasVariants && product.variants?.some((v: any) => 
+          v.attributes?.some((a: any) => a.attributeValue?.attribute?.name === "Color")
+        );
+        
+        if ((hasColorsDefined || hasColorAttributesInVariants) && !color) {
+          console.error('Color is required for this product');
+          return { success: false, isExisting: false };
+        }
+        
         let isExisting = false;
         
         // Extract minimal product data to reduce storage size
         const productImage = product.images?.[0]?.url || product.thumbnail || '';
         
-        // Get the correct price - check multiple sources like the product detail page does
-        // Priority: selectedVariant (first variant for now), product.price, product.maxPrice
-        const productPrice = 
-          product.variants?.[0]?.price ||
-          product.price ||
-          product.maxPrice ||
-          product.minPrice ||
-          0;
+        // Find the variant that matches the selected size and color
+        // This is critical for correct variantId and price
+        let selectedVariant = null;
+        let productPrice = product.price || product.maxPrice || product.minPrice || 0;
+        
+        if (product.variants && product.variants.length > 0) {
+          // If product has variants, we MUST find a matching one
+          // Normalize the inputs for comparison
+          const normalizedSize = size?.trim();
+          const normalizedColor = color?.trim();
+          
+          selectedVariant = product.variants.find((variant) => {
+            const variantSizeAttr = variant.attributes?.find(
+              (attr) => attr.attributeValue?.attribute?.name === "Size"
+            );
+            const variantColorAttr = variant.attributes?.find(
+              (attr) => attr.attributeValue?.attribute?.name === "Color"
+            );
+            
+            const variantSize = variantSizeAttr?.attributeValue?.value?.trim();
+            const variantColor = variantColorAttr?.attributeValue?.value?.trim();
+            
+            // Check if both size and color match
+            // If size is provided, it must match. If not provided (One Size), skip size check
+            const sizeMatch = !normalizedSize || normalizedSize === "One Size" || variantSize === normalizedSize;
+            // If color is provided and not "Default", it must match
+            const colorMatch = !normalizedColor || normalizedColor === "Default" || variantColor === normalizedColor;
+            
+            return sizeMatch && colorMatch;
+          });
+          
+          if (!selectedVariant) {
+            // Product has variants but no matching one found - log for debugging
+            console.error('No matching variant found for size:', size, 'color:', color);
+            console.error('Available variants:', product.variants.map((v: any) => ({
+              id: v.id,
+              size: v.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Size")?.attributeValue?.value,
+              color: v.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Color")?.attributeValue?.value
+            })));
+            return { success: false, isExisting: false };
+          }
+          
+          // Use the matched variant's price
+          productPrice = selectedVariant.price || productPrice;
+        }
         
         set((state) => {
           const existingIndex = state.items.findIndex(
@@ -68,13 +132,13 @@ export const useCartStore = create<CartState>()(
             return { items: newItems, isOpen: true };
           }
 
-          // Store minimal data only
+          // Store minimal data only - use the CORRECT variantId
           const newItem: MinimalCartItem = {
             productId: product.id,
             productName: product.name || 'Product',
             productImage,
             productPrice,
-            variantId: product.variants?.[0]?.id,
+            variantId: selectedVariant?.id, // Use the matched variant ID, not first variant!
             quantity,
             selectedSize: size,
             selectedColor: color,
@@ -85,7 +149,9 @@ export const useCartStore = create<CartState>()(
             isOpen: true,
           };
         });
-        return isExisting;
+        
+        // Return success=true, and isExisting tells us if it was an update or new add
+        return { success: true, isExisting };
       },
 
       removeItem: (productId, size, color) => {

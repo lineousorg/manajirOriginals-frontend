@@ -10,12 +10,14 @@ interface AddressStore {
   removeAddress: (id: number) => void;
   isLoading: boolean;
   setLoading: (loading: boolean) => void;
+  hasAttemptedFetch: boolean;
+  setHasAttemptedFetch: (hasAttempted: boolean) => void;
 }
 
 export const useAddressStore = create<AddressStore>((set) => ({
   addresses: [],
   setAddresses: (addresses) => set({ addresses }),
-  clearAddresses: () => set({ addresses: [], isLoading: false }),
+  clearAddresses: () => set({ addresses: [], isLoading: false, hasAttemptedFetch: false }),
   addAddress: (address) =>
     set((state) => ({ addresses: [...state.addresses, address] })),
   updateAddress: (id, updatedAddress) =>
@@ -30,4 +32,6 @@ export const useAddressStore = create<AddressStore>((set) => ({
     })),
   isLoading: false,
   setLoading: (isLoading) => set({ isLoading }),
+  hasAttemptedFetch: false,
+  setHasAttemptedFetch: (hasAttemptedFetch) => set({ hasAttemptedFetch }),
 }));

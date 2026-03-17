@@ -552,7 +552,6 @@ export function useAddresses() {
   const { get, error: apiError } = useApi();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [localLoading, setLocalLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<Error | null>(null);
 
   const {
     addresses: globalAddresses,
@@ -562,12 +561,15 @@ export function useAddresses() {
     removeAddress,
     isLoading: globalLoading,
     setLoading: setGlobalLoading,
+    hasAttemptedFetch: globalHasAttemptedFetch,
+    setHasAttemptedFetch: setGlobalHasAttemptedFetch,
   } = useAddressStore();
 
   // Use global store addresses if available
   useEffect(() => {
-    // Don't re-fetch if we already tried and got an error
-    if (fetchError) {
+    // If we've already attempted to fetch globally, don't fetch again (prevents infinite loop)
+    // This handles both: success with empty array AND error cases
+    if (globalHasAttemptedFetch) {
       setLocalLoading(false);
       return;
     }
@@ -576,6 +578,7 @@ export function useAddresses() {
     if (globalAddresses && globalAddresses.length > 0) {
       setAddresses(globalAddresses);
       setLocalLoading(false);
+      setGlobalHasAttemptedFetch(true); // Mark as attempted
       return;
     }
 
@@ -587,6 +590,7 @@ export function useAddresses() {
     // Start loading
     setGlobalLoading(true);
     setLocalLoading(true);
+    setGlobalHasAttemptedFetch(true); // Mark as attempted BEFORE fetching
 
     const fetchAddresses = async () => {
       try {
@@ -594,12 +598,10 @@ export function useAddresses() {
         const fetchedAddresses = response.data || [];
         setAddresses(fetchedAddresses);
         setGlobalAddresses(fetchedAddresses);
-        setFetchError(null); // Clear any previous error on success
       } catch (err) {
         console.error("Failed to fetch addresses:", err);
         setAddresses([]);
         setGlobalAddresses([]); // Also set global to empty to prevent re-fetching
-        setFetchError(err as Error);
       } finally {
         setGlobalLoading(false);
         setLocalLoading(false);
@@ -607,21 +609,22 @@ export function useAddresses() {
     };
 
     fetchAddresses();
-  }, [globalAddresses, get, setGlobalAddresses, setGlobalLoading, fetchError]);
+  }, [globalAddresses, globalLoading, get, setGlobalAddresses, setGlobalLoading, globalHasAttemptedFetch, setGlobalHasAttemptedFetch]);
 
   const refetch = async () => {
-    setFetchError(null); // Clear error before refetching
+    // Allow refetch by resetting the flag
+    setGlobalHasAttemptedFetch(false);
     setLocalLoading(true);
     try {
       const response = await get<AddressesApiResponse>("/addresses");
       const fetchedAddresses = response.data || [];
       setAddresses(fetchedAddresses);
       setGlobalAddresses(fetchedAddresses);
+      setGlobalHasAttemptedFetch(true);
     } catch (err) {
       console.error("Failed to fetch addresses:", err);
       setAddresses([]);
       setGlobalAddresses([]);
-      setFetchError(err as Error);
     } finally {
       setLocalLoading(false);
     }
@@ -630,7 +633,7 @@ export function useAddresses() {
   return {
     addresses,
     loading: localLoading,
-    error: fetchError || apiError,
+    error: apiError,
     refetch,
     addAddress,
     updateAddress,

@@ -31,7 +31,7 @@ export const ProductGallery = ({
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative h-[50dvh] md:h-[70dvh] overflow-hidden rounded-lg bg-muted group">
+      <div className="relative h-[50vh] md:h-[70vh] lg:h-[80vh] max-h-200 overflow-hidden rounded-lg bg-muted group">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
@@ -39,16 +39,15 @@ export const ProductGallery = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute inset-0"
+            className="absolute inset-0 z-10"
           >
             <Image
               src={images[currentIndex].url}
               alt={`${productName} - ${images[currentIndex].altText}`}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
-              className={`object-cover cursor-zoom-in transition-transform duration-500 ${
-                isZoomed ? "scale-150" : ""
-              }`}
+              className="object-cover object-top cursor-zoom-in transition-transform duration-500"
+              style={{ transform: isZoomed ? "scale(1.5)" : "" }}
               onClick={() => setIsZoomed(!isZoomed)}
               priority={currentIndex === 0}
             />
@@ -105,7 +104,7 @@ export const ProductGallery = ({
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-3/4 overflow-hidden rounded-md transition-all ${
+            className={`aspect-3/4 rounded-md transition-all ${
               index === currentIndex
                 ? "ring-2 ring-foreground"
                 : "opacity-60 hover:opacity-100"
@@ -114,9 +113,11 @@ export const ProductGallery = ({
             <Image
               src={images[index].url}
               alt={`${productName} thumbnail ${index + 1}`}
-              fill
+              width={350}
+              height={350}
+              // fill
               sizes="(max-width: 768px) 20vw, 10vw"
-              className="object-cover"
+              className="object-cover border"
             />
           </button>
         ))}

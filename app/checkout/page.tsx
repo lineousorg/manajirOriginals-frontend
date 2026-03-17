@@ -15,38 +15,12 @@ import {
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-import { Address, Product, ProductVariant } from "@/types";
+import { Address } from "@/types";
 import { AddressModal } from "@/components/auth/AddressModal";
 import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import toast, { Toaster } from "react-hot-toast";
-
-// Helper function to get the correct variant
-const getItemVariant = (
-  product: Product,
-  selectedSize: string,
-  selectedColor: string
-): ProductVariant | null => {
-  if (product.variants && product.variants.length > 0) {
-    const matchingVariant = product.variants.find((variant: ProductVariant) => {
-      const sizeAttr = variant.attributes?.find(
-        (attr: any) =>
-          attr.attributeValue?.attribute?.name === "Size" &&
-          attr.attributeValue?.value === selectedSize
-      );
-      const colorAttr = variant.attributes?.find(
-        (attr: any) =>
-          attr.attributeValue?.attribute?.name === "Color" &&
-          attr.attributeValue?.value === selectedColor
-      );
-      return sizeAttr && colorAttr;
-    });
-
-    return matchingVariant || product.variants[0] || null;
-  }
-  return null;
-};
 
 const CheckoutPage = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -132,9 +106,22 @@ const CheckoutPage = () => {
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all items have proper variantId if product has variants
+    for (const item of items) {
+      // Check if product has variants (sizes/colors)
+      const hasVariants = (item.selectedSize && item.selectedSize !== "One Size") || 
+                          (item.selectedColor && item.selectedColor !== "Default");
+      
+      if (hasVariants && !item.variantId) {
+        toast.error(`Please select a valid size/color for "${item.productName}"`);
+        return;
+      }
+    }
+    
     // Build the items array for the API using stored variantId
     const orderItems = items.map((item) => ({
-      variantId: Number(item.variantId || item.productId),
+      variantId: Number(item.variantId),
       quantity: item.quantity,
     }));
     console.log(orderItems);
@@ -305,13 +292,13 @@ const CheckoutPage = () => {
                     key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                     className="flex gap-4 items-start"
                   >
-                    <div className="relative w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden">
+                    <div className="relative w-16 h-20 md:w-20 md:h-24 rounded-lg">
                       <Image
                         src={item.productImage}
                         alt={item.productName}
                         fill
                         sizes="64px"
-                        className="object-cover"
+                        className="object-cover rounded-lg"
                       />
                       <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center justify-center">
                         {item.quantity}

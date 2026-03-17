@@ -55,7 +55,7 @@ export default function ProductDetailsPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
-  // Extract available colors for a specific size from variants
+  // Extract available colors for a specific size from variants (only with stock > 0)
   const getColorsForSize = useMemo(
     () =>
       (size: string): string[] => {
@@ -63,6 +63,9 @@ export default function ProductDetailsPage() {
         const colors: string[] = [];
 
         product.variants.forEach((variant: any) => {
+          // Only consider variants with stock > 0
+          if (!variant.stock || variant.stock <= 0) return;
+          
           if (variant.attributes && Array.isArray(variant.attributes)) {
             const variantSize = variant.attributes.find(
               (attr: any) =>
@@ -87,7 +90,28 @@ export default function ProductDetailsPage() {
     [product?.variants]
   );
 
-  const availableSizes = product?.sizes ?? [];
+  // Filter sizes to only show those with stock > 0
+  const availableSizes = useMemo(() => {
+    if (!product?.variants || !product?.sizes) return product?.sizes ?? [];
+    const sizesWithStock: string[] = [];
+    
+    product.sizes.forEach((size: string) => {
+      // Check if there's any variant with this size that has stock > 0
+      const hasStock = product.variants?.some((variant: any) => {
+        if (!variant.stock || variant.stock <= 0) return false;
+        const variantSize = variant.attributes?.find(
+          (attr: any) => attr.attributeValue?.attribute?.name === "Size" && attr.attributeValue?.value === size
+        );
+        return !!variantSize;
+      });
+      
+      if (hasStock) {
+        sizesWithStock.push(size);
+      }
+    });
+    
+    return sizesWithStock;
+  }, [product?.variants, product?.sizes]);
   const availableColorsForSelectedSize = useMemo(
     () => getColorsForSize(selectedSize),
     [getColorsForSize, selectedSize]
@@ -202,8 +226,8 @@ export default function ProductDetailsPage() {
     const color = selectedColor || "Default";
     const isAlreadyInCart = isItemInCart(productId, size, color);
     
-    // Add item to cart - returns true if item was already existing
-    const wasExisting = addToCart(
+    // Add item to cart - returns { success, isExisting }
+    const result = addToCart(
       {
         ...product,
         id: productId,
@@ -214,8 +238,16 @@ export default function ProductDetailsPage() {
       quantity
     );
     
+    // Handle different outcomes
+    if (!result.success) {
+      // Validation failed - no matching variant
+      toast.error("Selected size or color is not available. Please choose different options.");
+      setIsAddingToCart(false);
+      return;
+    }
+    
     // Provide appropriate feedback
-    if (wasExisting) {
+    if (result.isExisting) {
       toast.success(`Updated quantity in your bag!`);
     } else if (isAlreadyInCart) {
       toast.success(`Added another ${product.name} to your bag!`);
@@ -429,7 +461,7 @@ export default function ProductDetailsPage() {
               )}
 
               {/* Size Selection */}
-              {(product.sizes ?? []).length > 0 && (
+              {availableSizes.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
@@ -485,7 +517,7 @@ export default function ProductDetailsPage() {
                     </div>
                   )}
                   <div className="flex gap-2 flex-wrap">
-                    {(product.sizes ?? []).map((size: any) => (
+                    {availableSizes.map((size: any) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
@@ -740,7 +772,7 @@ export default function ProductDetailsPage() {
                       <li className="flex items-start gap-2">
                         <Check
                           size={16}
-                          className="mt-0.5 flex-shrink-0 text-green-600"
+                          className="mt-0.5 shrink-0 text-green-600"
                         />
                         <span>
                           Items must be unworn with original tags attached
@@ -749,14 +781,14 @@ export default function ProductDetailsPage() {
                       <li className="flex items-start gap-2">
                         <Check
                           size={16}
-                          className="mt-0.5 flex-shrink-0 text-green-600"
+                          className="mt-0.5 shrink-0 text-green-600"
                         />
                         <span>Free returns on all orders</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check
                           size={16}
-                          className="mt-0.5 flex-shrink-0 text-green-600"
+                          className="mt-0.5 shrink-0 text-green-600"
                         />
                         <span>Refunds processed within 5-7 business days</span>
                       </li>
