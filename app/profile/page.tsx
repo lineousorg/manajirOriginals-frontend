@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { User, Package, LogOut, Edit2 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
@@ -151,12 +152,14 @@ const ProfilePage = () => {
               <div className="p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div className="flex items-center gap-5">
-                    <div className="relative">
+                    <div className="relative w-20 h-20">
                       {user?.avatar ? (
-                        <img
+                        <Image
                           src={user.avatar}
-                          alt={user.name}
-                          className="w-20 h-20 rounded-full object-cover ring-4 ring-gray-50"
+                          alt={user.name || "User avatar"}
+                          fill
+                          sizes="80px"
+                          className="rounded-full object-cover ring-4 ring-gray-50"
                         />
                       ) : (
                         <div className="w-20 h-20 rounded-full bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-4 ring-gray-50">
@@ -178,14 +181,14 @@ const ProfilePage = () => {
                       </span> */}
                     </div>
                   </div>
-
+{/* 
                   <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 self-start sm:self-center"
                   >
                     <Edit2 size={16} />
                     {isEditing ? "Cancel" : "Edit Profile"}
-                  </button>
+                  </button> */}
                 </div>
 
                 {/* Edit Form - Clean Inputs */}

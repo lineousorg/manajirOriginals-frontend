@@ -69,7 +69,7 @@ export const AddressModal = ({
         address: "",
         city: "",
         postalCode: "",
-        country: "fap",
+        country: "Bangladesh",
         isDefault: false,
       });
     }

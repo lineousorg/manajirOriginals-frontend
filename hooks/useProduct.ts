@@ -549,9 +549,10 @@ interface AddressesApiResponse {
 }
 
 export function useAddresses() {
-  const { get, error } = useApi();
+  const { get, error: apiError } = useApi();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [localLoading, setLocalLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
 
   const {
     addresses: globalAddresses,
@@ -565,6 +566,12 @@ export function useAddresses() {
 
   // Use global store addresses if available
   useEffect(() => {
+    // Don't re-fetch if we already tried and got an error
+    if (fetchError) {
+      setLocalLoading(false);
+      return;
+    }
+
     // If already loaded in global store with data, use it
     if (globalAddresses && globalAddresses.length > 0) {
       setAddresses(globalAddresses);
@@ -587,9 +594,12 @@ export function useAddresses() {
         const fetchedAddresses = response.data || [];
         setAddresses(fetchedAddresses);
         setGlobalAddresses(fetchedAddresses);
+        setFetchError(null); // Clear any previous error on success
       } catch (err) {
         console.error("Failed to fetch addresses:", err);
         setAddresses([]);
+        setGlobalAddresses([]); // Also set global to empty to prevent re-fetching
+        setFetchError(err as Error);
       } finally {
         setGlobalLoading(false);
         setLocalLoading(false);
@@ -597,9 +607,10 @@ export function useAddresses() {
     };
 
     fetchAddresses();
-  }, [globalAddresses, get, setGlobalAddresses, setGlobalLoading]);
+  }, [globalAddresses, get, setGlobalAddresses, setGlobalLoading, fetchError]);
 
   const refetch = async () => {
+    setFetchError(null); // Clear error before refetching
     setLocalLoading(true);
     try {
       const response = await get<AddressesApiResponse>("/addresses");
@@ -608,6 +619,9 @@ export function useAddresses() {
       setGlobalAddresses(fetchedAddresses);
     } catch (err) {
       console.error("Failed to fetch addresses:", err);
+      setAddresses([]);
+      setGlobalAddresses([]);
+      setFetchError(err as Error);
     } finally {
       setLocalLoading(false);
     }
@@ -616,7 +630,7 @@ export function useAddresses() {
   return {
     addresses,
     loading: localLoading,
-    error,
+    error: fetchError || apiError,
     refetch,
     addAddress,
     updateAddress,

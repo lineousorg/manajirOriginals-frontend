@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
@@ -15,9 +16,33 @@ const CartPage = () => {
     "inside_dhaka" | "outside_dhaka"
   >("inside_dhaka");
 
-  // Don't render until hydrated to prevent flash of empty content
+  // Show loading skeleton while hydrating to prevent layout shift
   if (!isHydrated) {
-    return null;
+    return (
+      <div className="container-fashion py-8 md:py-12 mt-20 min-h-screen">
+        <div className="flex items-center justify-between mb-8">
+          <div className="h-10 w-40 bg-gray-200 animate-pulse rounded-lg"></div>
+        </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-6 pb-6 border-b border-border">
+                <div className="w-28 h-36 bg-gray-200 animate-pulse rounded-lg"></div>
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="h-6 w-20 bg-gray-200 animate-pulse rounded mt-4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="h-8 w-full bg-gray-200 animate-pulse rounded"></div>
+            <div className="h-12 w-full bg-gray-200 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const subtotal = getTotal();
@@ -66,12 +91,14 @@ const CartPage = () => {
             >
               <Link
                 href={`/products/${item.productId}`}
-                className="w-20 h-24 md:w-28 md:h-36 shrink-0 overflow-hidden rounded-lg"
+                className="w-20 h-24 md:w-28 md:h-36 shrink-0 overflow-hidden rounded-lg relative"
               >
-                <img
+                <Image
                   src={item.productImage}
                   alt={item.productName}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(max-width: 768px) 80px, 112px"
+                  className="object-cover hover:scale-105 transition-transform duration-500"
                 />
               </Link>
 

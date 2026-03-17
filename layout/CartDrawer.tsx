@@ -1,6 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
 
@@ -119,11 +119,15 @@ export const CartDrawer = () => {
                         exit={{ opacity: 0, x: -100 }}
                         className="flex gap-4 bg-card/50 p-3 rounded-xl"
                       >
-                        <img
-                          src={item.productImage}
-                          alt={item.productName}
-                          className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg shrink-0"
-                        />
+                        <div className="w-20 h-24 sm:w-24 sm:h-32 relative rounded-lg shrink-0 overflow-hidden">
+                          <Image
+                            src={item.productImage}
+                            alt={item.productName}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                          />
+                        </div>
                         <div className="flex-1 flex flex-col min-w-0">
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">

@@ -1,10 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
@@ -451,9 +451,11 @@ export default function ProductDetailsPage() {
                     className="mt-3 rounded-xl mb-5 cursor-pointer"
                     onClick={() => setIsSizeGuideOpen(true)}
                   >
-                    <img
+                    <Image
                       src="/Size guides/punjabi-size-guide.jpeg"
                       alt="Size Guide"
+                      width={300}
+                      height={200}
                       className="w-full max-w-xs h-auto rounded"
                     />
                   </div>
@@ -471,9 +473,11 @@ export default function ProductDetailsPage() {
                         >
                           <Plus size={24} className="rotate-45" />
                         </button>
-                        <img
+                        <Image
                           src="/Size guides/punjabi-size-guide.jpeg"
                           alt="Size Guide"
+                          width={800}
+                          height={600}
                           className="w-full h-auto"
                           onClick={(e) => e.stopPropagation()}
                         />

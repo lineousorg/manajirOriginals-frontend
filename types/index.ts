@@ -42,6 +42,7 @@ export interface ApiProduct {
   description?: string;
   price: number;
   maxPrice?: number;
+  minPrice?: number;
   originalPrice?: number;
   stock?: number;
   sku?: string;

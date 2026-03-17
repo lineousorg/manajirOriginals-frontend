@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
@@ -18,7 +19,6 @@ import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
-import path from "path";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -115,12 +115,15 @@ export const Header = () => {
                   whileHover={{ scale: 1.02 }}
                   className="flex flex-col items-start relative"
                 >
-                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center">
+                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden">
 
-                    <img
-                      src={"/logo.png"}
-                      alt={"logo"}
-                      className="w-18 h-18 rounded-full object-cover"
+                    <Image
+                      src="/logo.png"
+                      alt="Manajir Originals Logo"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      priority
                     />
                   </div>
 
@@ -338,14 +341,18 @@ export const Header = () => {
                   aria-label="Profile"
                 >
                   {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
+                    <div className="w-full h-full relative">
+                      <Image
+                        src={user.avatar}
+                        alt={user.name || "User avatar"}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
                   ) : (
                     <User
                       size={18}

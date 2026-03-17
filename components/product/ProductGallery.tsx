@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { TypeImage } from "@/types";
@@ -32,18 +33,26 @@ export const ProductGallery = ({
       {/* Main Image */}
       <div className="relative h-[50dvh] md:h-[70dvh] overflow-hidden rounded-lg bg-muted group">
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={currentIndex}
-            src={images[currentIndex].url}
-            alt={`${productName} - ${images[currentIndex].altText}`}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ${
-              isZoomed ? "scale-150" : ""
-            }`}
-            onClick={() => setIsZoomed(!isZoomed)}
-          />
+            className="absolute inset-0"
+          >
+            <Image
+              src={images[currentIndex].url}
+              alt={`${productName} - ${images[currentIndex].altText}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className={`object-cover cursor-zoom-in transition-transform duration-500 ${
+                isZoomed ? "scale-150" : ""
+              }`}
+              onClick={() => setIsZoomed(!isZoomed)}
+              priority={currentIndex === 0}
+            />
+          </motion.div>
         </AnimatePresence>
 
         {/* Navigation Arrows */}
@@ -102,10 +111,12 @@ export const ProductGallery = ({
                 : "opacity-60 hover:opacity-100"
             }`}
           >
-            <img
+            <Image
               src={images[index].url}
               alt={`${productName} thumbnail ${index + 1}`}
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 768px) 20vw, 10vw"
+              className="object-cover"
             />
           </button>
         ))}

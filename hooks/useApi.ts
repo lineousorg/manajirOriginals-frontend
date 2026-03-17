@@ -39,21 +39,21 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Interceptor for error msg
-// apiClient.interceptors.response.use(
-//   (response) => response,
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
 
-//   (error) => {
-//     const backendMessage =
-//       error?.response?.data?.message ||
-//       error?.response?.data?.detail ||
-//       error?.response?.data?.error ||
-//       error?.response?.data?.non_field_errors?.[0] ||
-//       "Something went wrong";
+  (error) => {
+    const backendMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.detail ||
+      error?.response?.data?.error ||
+      error?.response?.data?.non_field_errors?.[0] ||
+      "Something went wrong";
 
-//     return Promise.reject(new Error(backendMessage));
-//   },
-// );
+    return Promise.reject(new Error(backendMessage));
+  },
+);
 
 // Transform function type
 type Transformer<T> = (data: any) => T;

@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { ApiProduct, TypeImage } from "@/types";
@@ -67,24 +67,31 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           <div className="absolute inset-0 bg-slate-200 animate-pulse rounded-2xl" />
         )}
 
-        <motion.img
-          src={
-            product?.thumbnail ||
-            "/placeholder-product.jpg"
-          }
-          alt={
-            product.name || "Product Image"
-          }
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 rounded-2xl"
-          loading="lazy"
+        <motion.div
+          className="w-full h-full"
           whileHover={{ scale: 1.05 }}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => {
-            setImageError(true);
-            setImageLoaded(true);
-          }}
-          style={{ opacity: imageLoaded ? 1 : 0 }}
-        />
+          transition={{ duration: 0.3 }}
+        >
+          <Image
+            src={
+              product?.thumbnail ||
+              "/placeholder-product.jpg"
+            }
+            alt={
+              product.name || "Product Image"
+            }
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 rounded-2xl"
+            loading="lazy"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(true);
+            }}
+            style={{ opacity: imageLoaded ? 1 : 0 }}
+          />
+        </motion.div>
 
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

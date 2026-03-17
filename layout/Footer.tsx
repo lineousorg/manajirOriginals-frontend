@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Instagram, Twitter, Facebook } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
@@ -43,12 +44,14 @@ export const Footer = () => {
                   whileHover={{ scale: 1.02 }}
                   className="flex flex-col items-start relative"
                 >
-                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center">
+                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden">
 
-                    <img
-                      src={"/logo.png"}
-                      alt={"logo"}
-                      className="w-18 h-18 rounded-full object-cover"
+                    <Image
+                      src="/logo.png"
+                      alt="Manajir Originals Logo"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
                     />
                   </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag, X } from "lucide-react";
 import { useWishlistStore } from "@/store/wishlist.store";
@@ -57,11 +58,13 @@ const WishlistPage = () => {
             className="group"
           >
             <div className="relative overflow-hidden rounded-lg aspect-3/4 bg-muted">
-              <Link href={`/products/${item.product.id}`}>
-                <img
-                  src={item?.product?.images?.[0]?.url}
+              <Link href={`/products/${item.product.id}`} className="absolute inset-0">
+                <Image
+                  src={item?.product?.images?.[0]?.url || "/placeholder-product.jpg"}
                   alt={item.product.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </Link>
 

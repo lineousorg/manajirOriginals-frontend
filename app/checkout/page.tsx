@@ -1,7 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import useApi from "@/hooks/useApi";
 import {
@@ -305,11 +305,13 @@ const CheckoutPage = () => {
                     key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                     className="flex gap-4 items-start"
                   >
-                    <div className="relative">
-                      <img
+                    <div className="relative w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden">
+                      <Image
                         src={item.productImage}
                         alt={item.productName}
-                        className="w-16 h-20 md:w-20 md:h-24 object-cover rounded-lg"
+                        fill
+                        sizes="64px"
+                        className="object-cover"
                       />
                       <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center justify-center">
                         {item.quantity}

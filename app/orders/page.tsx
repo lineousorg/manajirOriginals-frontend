@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Package,
@@ -490,13 +491,18 @@ const OrdersPage = () => {
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <img
-                              src={item?.variant?.images?.[0]?.url}
-                              alt={item.variant.images?.[0]?.altText}
-                              className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
-                            />
-                            <Package className="h-6 w-6 text-muted-foreground" />
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center relative overflow-hidden">
+                            {item?.variant?.images?.[0]?.url ? (
+                              <Image
+                                src={item.variant.images[0].url}
+                                alt={item.variant.images[0].altText || "Product image"}
+                                fill
+                                sizes="48px"
+                                className="object-contain"
+                              />
+                            ) : (
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            )}
                           </div>
                           <div className="space-y-1">
                             <p className="font-medium">

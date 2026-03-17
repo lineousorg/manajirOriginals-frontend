@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
@@ -97,11 +98,15 @@ export default function Home() {
                     className="group block relative aspect-4/5 overflow-hidden rounded-2xl shadow-2xl"
                   >
                     {category.images ? (
-                      <img
-                        src={category.images[0]?.url}
-                        alt={category.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
+                      <div className="absolute inset-0">
+                        <Image
+                          src={category.images[0]?.url}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
                         <span className="text-muted-foreground text-lg">
@@ -180,10 +185,13 @@ export default function Home() {
             variants={fadeInScale}
             className="relative h-125 rounded-2xl overflow-hidden"
           >
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80"
               alt="Sustainable Fashion"
-              className="w-full h-full object-cover"
+              fill
+              sizes="100vw"
+              className="object-cover"
+              priority
             />
             <div className="absolute inset-0 flex items-center justify-center text-center">
               <div className="max-w-xl px-6 text-background">
