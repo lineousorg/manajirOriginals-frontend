@@ -59,7 +59,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         ease: [0.23, 1, 0.32, 1],
       }}
       // whileHover={{ y: -6 }}
-      className="grid grid-rows-3 group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 pb-2"
+      className="grid grid-rows-2 group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 pb-2"
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl p-2 row-span-2">
@@ -164,67 +164,34 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       <div className="flex flex-col justify-between px-2">
         {/* Product Info */}
         <div className=" space-y-4 mb-3">
-          {/* Category & Brand */}
-          {/* <div className="text-left">
-            <span className="text-[10px] font-semibold tracking-widest text-[#e68c8c] uppercase border border-[#e68c8c] rounded-full p-1">
-              {product.category?.name || "Uncategorized"}
-            </span>
-          </div> */}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 mt-3">
+          <div className="mt-3">
             {/* Product Name */}
-            <h3 className="text-base font-sans font-bold text-slate-700 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
+            <h3 className="text-base font-sans text-slate-600 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
               {product.name}
             </h3>
-
-            {/* Price Section */}
-            <div className="flex gap-3 justify-end">
-              <span className="">
-                ৳{" "}
-                <span className="text-base font-bold text-slate-700">
-                  {maxPrice.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              </span>
-              {originalPrice && originalPrice > maxPrice && (
-                <span className="text-sm text-slate-400 line-through">
-                  ৳
-                  {originalPrice.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
-              )}
-            </div>
           </div>
         </div>
         {/* Attributes Preview */}
-        <div
-          className={`grid grid-cols-2 ${
-            product.colors &&
-            product?.colors?.length > 0 &&
-            "bg-secondary-foreground"
-          } rounded-full px-1 py-1`}
-        >
-          {/* Colors */}
-          {product.colors && (
-            <div className="flex items-center gap-1.5">
-              {product.colors.slice(0, 3).map((color, idx) => (
-                <span
-                  key={idx}
-                  className="w-5 h-5 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-200"
-                  style={{ backgroundColor: color.value?.toLowerCase() }}
-                  title={color.name}
-                />
-              ))}
-              {product.colors.length > 3 && (
-                <span className="w-5 h-5 rounded-full bg-slate-100 text-[9px] font-medium text-slate-600 flex items-center justify-center border-2 border-white ring-1 ring-slate-200">
-                  +{product.colors.length - 3}
-                </span>
-              )}
-            </div>
-          )}
-
+        <div className={`grid grid-cols-2 rounded-full px-1 py-1 mt-8`}>
+          {/* Price Section */}
+          <div className="flex gap-3">
+            <span className="">
+              ৳{" "}
+              <span className="text-lg font-bold text-slate-700">
+                {maxPrice.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            </span>
+            {originalPrice && originalPrice > maxPrice && (
+              <span className="text-sm text-slate-400 line-through">
+                ৳
+                {originalPrice.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            )}
+          </div>
           <div className="flex items-center justify-end px-1">
             {isOutOfStock ? (
               <span className="group relative flex items-center bg-slate-400 text-white rounded-full h-8 px-2 overflow-hidden cursor-not-allowed text-sm">
@@ -245,26 +212,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               </Link>
             )}
           </div>
-
-          {/* Sizes */}
-          {/* {product.sizes && product.sizes.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                  Size
-                </span>
-                <span className="text-xs font-medium text-slate-700">
-                  {product.sizes[0]}
-                  {product.sizes.length > 1 && ` +${product.sizes.length - 1}`}
-                </span>
-              </div>
-            )} */}
-
-          {/* Variant Count */}
-          {/* {product.variants && product.variants.length > 1 && (
-              <span className="text-[10px] text-slate-400">
-                {product.variants.length} options
-              </span>
-            )} */}
         </div>
       </div>
     </motion.article>

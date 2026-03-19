@@ -20,12 +20,12 @@ const WishlistPage = () => {
     const item = items.find((i) => String(i.product.id) === String(productId));
     if (!item) return;
     const { product } = item;
-    
+
     // Check if product requires size or color selection
     const hasSizes = (product.sizes?.length ?? 0) > 0;
     const hasColors = (product.colors?.length ?? 0) > 0;
     const hasVariants = (product.variants?.length ?? 0) > 0;
-    
+
     // If product requires size/color selection (has variants), redirect to product page
     // Do NOT auto-add with default values - this causes wrong size/color bugs
     if (hasSizes || hasColors || hasVariants) {
@@ -33,15 +33,10 @@ const WishlistPage = () => {
       router.push(`/products/${productId}`);
       return;
     }
-    
+
     // For products without variants, add directly with "One Size" and "Default"
-    const result = addToCart(
-      product,
-      "One Size",
-      "Default",
-      1,
-    );
-    
+    const result = addToCart(product, "One Size", "Default", 1);
+
     if (result?.success) {
       removeItem(String(productId));
     }
@@ -65,7 +60,7 @@ const WishlistPage = () => {
   }
 
   return (
-    <div className="container-fashion py-8 md:py-12">
+    <div className="container-fashion py-8 md:py-12 mt-20 min-h-screen">
       <h1 className="heading-section mb-8">Wishlist ({activeItems.length})</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -78,9 +73,12 @@ const WishlistPage = () => {
             className="group"
           >
             <div className="relative overflow-hidden rounded-lg aspect-3/4 bg-muted">
-              <Link href={`/products/${item.product.id}`} className="absolute inset-0">
+              <Link
+                href={`/products/${item.product.id}`}
+                className="absolute inset-0"
+              >
                 <Image
-                  src={item?.product?.images?.[0]?.url || "/placeholder-product.jpg"}
+                  src={item?.product?.thumbnail || "/placeholder-product.jpg"}
                   alt={item.product.name}
                   fill
                   sizes="(max-width: 768px) 50vw, 25vw"
@@ -106,10 +104,10 @@ const WishlistPage = () => {
               </div>
 
               {/* Add to Cart */}
-              <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+              <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full lg:group-hover:translate-y-0 transition-transform duration-300">
                 <button
                   onClick={() => handleAddToCart(String(item.product.id))}
-                  className="btn-primary-fashion w-full text-sm py-2"
+                  className="btn-primary-fashion w-full text-sm py-2 rounded-lg"
                 >
                   <ShoppingBag size={16} className="mr-2" />
                   Add to Bag
