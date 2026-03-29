@@ -102,19 +102,19 @@ const CheckoutPage = () => {
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate all items have proper variantId if product has variants
     for (const item of items) {
       // Check if product has variants (sizes/colors)
-      const hasVariants = (item.selectedSize && item.selectedSize !== "One Size") || 
-                          (item.selectedColor && item.selectedColor !== "Default");
-      
+      const hasVariants = (item.selectedSize && item.selectedSize !== "One Size") ||
+        (item.selectedColor && item.selectedColor !== "Default");
+
       if (hasVariants && !item.variantId) {
         toast.error(`Please select a valid size/color for "${item.productName}"`);
         return;
       }
     }
-    
+
     // Build the items array for the API using stored variantId
     const orderItems = items.map((item) => ({
       variantId: Number(item.variantId),
@@ -164,8 +164,8 @@ const CheckoutPage = () => {
       // Show error toast and stay on payment page
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to create order. Please try again."
+        err?.message ||
+        "Failed to create order. Please try again."
       );
     }
   };
@@ -238,14 +238,14 @@ const CheckoutPage = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/orders" 
+              <Link
+                href="/orders"
                 className="btn-outline-fashion px-8 py-3 rounded-full"
               >
                 View Order History
               </Link>
-              <Link 
-                href="/products" 
+              <Link
+                href="/products"
                 className="btn-primary-fashion px-8 py-3 rounded-full"
               >
                 Continue Shopping
@@ -275,35 +275,31 @@ const CheckoutPage = () => {
       <div className="bg-background border-b border-border sticky top-0 z-30">
         <div className="container-fashion py-4">
           <div className="flex items-center justify-between">
-            <Link 
-              href="/cart" 
+            <Link
+              href="/cart"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={18} />
               <span className="hidden sm:inline">Back to Cart</span>
             </Link>
-            
+
             {/* Progress Steps */}
             <div className="flex items-center gap-2">
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                step === "shipping" ? "bg-primary/10 text-primary" : "text-muted-foreground"
-              }`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                  step === "shipping" ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${step === "shipping" ? "bg-primary/10 text-primary" : "text-muted-foreground"
                 }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step === "shipping" ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"
+                  }`}>
                   {step === "shipping" ? "1" : <CheckCircle size={12} />}
                 </div>
                 <span className="hidden sm:inline">Shipping</span>
               </div>
-              
+
               <div className="w-8 h-px bg-border" />
-              
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                step === "payment" ? "bg-primary/10 text-primary" : "text-muted-foreground"
-              }`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                  step === "payment" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${step === "payment" ? "bg-primary/10 text-primary" : "text-muted-foreground"
                 }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step === "payment" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}>
                   2
                 </div>
                 <span className="hidden sm:inline">Payment</span>
@@ -355,7 +351,7 @@ const CheckoutPage = () => {
                       <Shield size={18} className="text-muted-foreground" />
                       Contact Information
                     </h3>
-                    
+
                     <form onSubmit={handleSubmitShipping} className="space-y-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
@@ -370,7 +366,7 @@ const CheckoutPage = () => {
                             className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-muted-foreground">
                             Phone Number
@@ -398,7 +394,7 @@ const CheckoutPage = () => {
                             className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-muted-foreground">
                             Last Name
@@ -439,7 +435,7 @@ const CheckoutPage = () => {
                             className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-muted-foreground">
                             ZIP Code
@@ -536,22 +532,20 @@ const CheckoutPage = () => {
                   {/* Payment Selection */}
                   <div className="bg-background rounded-2xl border border-border/50 shadow-sm p-6">
                     <h3 className="font-medium font-sans text-left mb-6">Select Payment Method</h3>
-                    
+
                     <form onSubmit={handleSubmitPayment} className="space-y-6">
                       <div className="grid gap-4">
                         {/* Cash on Delivery */}
                         <button
                           type="button"
                           onClick={() => setPaymentMethod("CASH_ON_DELIVERY")}
-                          className={`relative flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 text-left ${
-                            paymentMethod === "CASH_ON_DELIVERY"
-                              ? "border-primary bg-primary/5 shadow-md"
-                              : "border-border hover:border-primary/30 hover:bg-muted/30"
-                          }`}
+                          className={`relative flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 text-left ${paymentMethod === "CASH_ON_DELIVERY"
+                            ? "border-primary bg-primary/5 shadow-md"
+                            : "border-border hover:border-primary/30 hover:bg-muted/30"
+                            }`}
                         >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${
-                            paymentMethod === "CASH_ON_DELIVERY" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                          }`}>
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${paymentMethod === "CASH_ON_DELIVERY" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            }`}>
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="28"
@@ -567,12 +561,11 @@ const CheckoutPage = () => {
                               <line x1="2" x2="22" y1="10" y2="10" />
                             </svg>
                           </div>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className={`font-semibold ${
-                                paymentMethod === "CASH_ON_DELIVERY" ? "text-primary" : "text-foreground"
-                              }`}>
+                              <p className={`font-semibold ${paymentMethod === "CASH_ON_DELIVERY" ? "text-primary" : "text-foreground"
+                                }`}>
                                 Cash on Delivery
                               </p>
                               <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
@@ -584,9 +577,8 @@ const CheckoutPage = () => {
                             </p>
                           </div>
 
-                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            paymentMethod === "CASH_ON_DELIVERY" ? "border-primary bg-primary" : "border-muted-foreground/30"
-                          }`}>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${paymentMethod === "CASH_ON_DELIVERY" ? "border-primary bg-primary" : "border-muted-foreground/30"
+                            }`}>
                             {paymentMethod === "CASH_ON_DELIVERY" && (
                               <CheckCircle size={14} className="text-primary-foreground" />
                             )}
@@ -616,7 +608,7 @@ const CheckoutPage = () => {
                               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                             </svg>
                           </div>
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-semibold text-foreground">
@@ -794,13 +786,12 @@ const CheckoutPage = () => {
                 {/* Delivery Options */}
                 <div className="p-6 border-t border-border/50 bg-muted/10 space-y-3">
                   <h4 className="text-sm font-medium mb-3">Delivery Option</h4>
-                  
+
                   <label
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      deliveryLocation === "inside_dhaka"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/30 bg-background"
-                    }`}
+                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${deliveryLocation === "inside_dhaka"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30 bg-background"
+                      }`}
                   >
                     <div className="flex items-center gap-3 text-left">
                       <input
@@ -819,11 +810,10 @@ const CheckoutPage = () => {
                   </label>
 
                   <label
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      deliveryLocation === "outside_dhaka"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/30 bg-background"
-                    }`}
+                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${deliveryLocation === "outside_dhaka"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30 bg-background"
+                      }`}
                   >
                     <div className="flex items-center gap-3 text-left">
                       <input
@@ -894,7 +884,7 @@ const CheckoutPage = () => {
       />
 
       {/* Toast Notifications */}
-      <Toaster 
+      <Toaster
         position="top-center"
         toastOptions={{
           style: {

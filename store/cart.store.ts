@@ -29,6 +29,7 @@ interface CartState {
   getTotal: () => number;
   getItemCount: () => number;
   isItemInCart: (productId: string | number, size: string, color: string) => boolean;
+  getItemQuantity: (productId: string | number, size: string, color: string) => number;
   setHydrated: (state: boolean) => void;
 }
 
@@ -206,6 +207,17 @@ export const useCartStore = create<CartState>()(
             item.selectedSize === size &&
             item.selectedColor === color
         );
+      },
+
+      getItemQuantity: (productId: string | number, size: string, color: string) => {
+        const { items } = get();
+        const item = items.find(
+          (item) =>
+            String(item.productId) === String(productId) &&
+            item.selectedSize === size &&
+            item.selectedColor === color
+        );
+        return item?.quantity ?? 0;
       },
 
       setHydrated: (state: boolean) => set({ isHydrated: state }),
