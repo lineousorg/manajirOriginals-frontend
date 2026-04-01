@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { SignupModal } from "@/components/auth/SignupModal";
 import { userService } from "@/services/user.service";
+import Link from "next/link";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -43,13 +44,13 @@ const LoginPage = () => {
       login({
         id: String(data.user.id),
         email: data.user.email,
-        name: data.user.email.split('@')[0], // Use email prefix as name since API doesn't return name
+        name: data.user.email.split("@")[0], // Use email prefix as name since API doesn't return name
       });
 
       router.push("/");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Login failed. Please try again.",
+        err instanceof Error ? err.message : "Login failed. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -57,7 +58,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4 relative">
+      <Link href={"/"} className="absolute top-6 left-8">
+        <img src="/logo.png" alt="Logo" className="w-20 py-5" title="Home" />
+      </Link>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

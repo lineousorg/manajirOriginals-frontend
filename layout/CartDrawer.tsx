@@ -8,6 +8,8 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { SignupModal } from "@/components/auth/SignupModal";
 import Link from "next/link";
+import toast, { Toaster } from "react-hot-toast";
+import { stockReservationService } from "@/services/stock-reservation.service";
 
 export const CartDrawer = () => {
   const {
@@ -18,9 +20,31 @@ export const CartDrawer = () => {
     updateQuantity,
     getTotal,
     isHydrated,
+    getItemStock,
   } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
+
+  // Function to check and remove expired reservations
+  const checkExpiredReservations = () => {
+    const now = new Date();
+    let hasExpiredItems = false;
+
+    items.forEach((item) => {
+      if (item.expiresAt) {
+        const expiresAt = new Date(item.expiresAt);
+        if (expiresAt < now) {
+          hasExpiredItems = true;
+          // Remove expired item from cart
+          removeItem(item.productId, item.selectedSize, item.selectedColor);
+        }
+      }
+    });
+
+    if (hasExpiredItems) {
+      toast.error("Some items in your cart have expired and were removed. Please add them again.");
+    }
+  };
 
   // Reset signup modal when cart closes - must be called before early return
   useEffect(() => {
@@ -32,6 +56,12 @@ export const CartDrawer = () => {
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Check for expired reservations when cart opens
+  useEffect(() => {
+    if (!isOpen || !items.length) return;
+    checkExpiredReservations();
+  }, [isOpen, items]);
 
   // Don't render until hydrated to prevent flash of empty content
   // The isHydrated flag is set by the persist middleware after rehydration
@@ -173,13 +203,20 @@ export const CartDrawer = () => {
                               </div>
                             </div>
                             <button
-                              onClick={() =>
+                              onClick={async () => {
+                                // Release reservation if exists before removing
+                                if (item.reservationId) {
+                                  const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
+                                  if (!releaseResult.success) {
+                                    console.error("Failed to release reservation:", releaseResult.error);
+                                  }
+                                }
                                 removeItem(
                                   item.productId,
                                   item.selectedSize,
                                   item.selectedColor
-                                )
-                              }
+                                );
+                              }}
                               className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-2 -mt-2"
                               aria-label="Remove item"
                             >
@@ -187,51 +224,67 @@ export const CartDrawer = () => {
                             </button>
                           </div>
 
-                          <div className="mt-auto flex items-center justify-between">
-                            {/* Quantity */}
-                            <div className="flex items-center bg-muted/50 rounded-full border border-border/50">
-                              <button
-                                onClick={() => {
-                                  updateQuantity(
-                                    item.productId,
-                                    item.selectedSize,
-                                    item.selectedColor,
-                                    item.quantity - 1
-                                  );
-                                }}
-                                disabled={item.quantity <= 1}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 rounded-l-full"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus size={14} strokeWidth={2} />
-                              </button>
-                              <span className="w-8 text-center text-sm font-medium tabular-nums">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  updateQuantity(
-                                    item.productId,
-                                    item.selectedSize,
-                                    item.selectedColor,
-                                    item.quantity + 1
-                                  );
-                                }}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors rounded-r-full"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus size={14} strokeWidth={2} />
-                              </button>
-                            </div>
+                            <div className="mt-auto flex items-center justify-between gap-3">
+                              {/* Quantity */}
+                              <div className="flex items-center bg-muted/50 rounded-full border border-border/50">
+                                <button
+                                  onClick={() => {
+                                    const result = updateQuantity(
+                                      item.productId,
+                                      item.selectedSize,
+                                      item.selectedColor,
+                                      item.quantity - 1
+                                    );
+                                    if (!result.success && result.message) {
+                                      toast.error(result.message);
+                                    }
+                                  }}
+                                  disabled={item.quantity <= 1}
+                                  className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-l-full"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus size={14} strokeWidth={2} />
+                                </button>
+                                <span className="w-8 text-center text-sm font-medium tabular-nums">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    const result = updateQuantity(
+                                      item.productId,
+                                      item.selectedSize,
+                                      item.selectedColor,
+                                      item.quantity + 1
+                                    );
+                                    if (!result.success && result.message) {
+                                      toast.error(result.message);
+                                    }
+                                  }}
+                                  disabled={!item.variantStock || item.quantity >= item.variantStock}
+                                  className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-r-full"
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus size={14} strokeWidth={2} />
+                                </button>
+                              </div>
 
-                            {/* Price */}
-                            <p className="font-semibold text-sm">
-                              ৳
-                              {(
-                                item.productPrice * item.quantity
-                              ).toLocaleString()}
-                            </p>
-                          </div>
+                              {/* Stock indicator */}
+                              {item.variantStock !== undefined && item.variantStock > 0 && (
+                                <span className={`text-xs ${item.quantity >= item.variantStock ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                                  {item.quantity >= item.variantStock 
+                                    ? 'Max stock' 
+                                    : `${item.variantStock - item.quantity} left`}
+                                </span>
+                              )}
+
+                              {/* Price */}
+                              <p className="font-semibold text-sm">
+                                ৳
+                                {(
+                                  item.productPrice * item.quantity
+                                ).toLocaleString()}
+                              </p>
+                            </div>
                         </div>
                       </motion.li>
                     ))}
@@ -284,6 +337,18 @@ export const CartDrawer = () => {
       <SignupModal
         isOpen={showSignupModal}
         onClose={() => setShowSignupModal(false)}
+      />
+
+      {/* Toast notifications */}
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+        }}
       />
     </>
   );

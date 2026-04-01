@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -32,6 +32,7 @@ import { useProductById, getProductCategories } from "@/hooks/useProduct";
 import { useProductStore } from "@/store/product.store";
 import { TypeImage } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
+import { stockReservationService } from "@/services/stock-reservation.service";
 
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,13 +42,14 @@ export default function ProductDetailsPage() {
     "details" | "shipping" | "returns"
   >("details");
 
-  const { product, loading } = useProductById(id);
+  const { product, loading, refetch } = useProductById(id);
   // Use global store for related products instead of making separate API call
   const globalProducts = useProductStore((state) => state.products);
 
   const addToCart = useCartStore((state) => state.addItem);
   const isItemInCart = useCartStore((state) => state.isItemInCart);
   const getItemQuantity = useCartStore((state) => state.getItemQuantity);
+  const lastCartChange = useCartStore((state) => state.lastCartChange);
   const { isInWishlist, toggleItem } = useWishlistStore();
   const { isAuthenticated } = useAuthStore();
 
@@ -55,6 +57,18 @@ export default function ProductDetailsPage() {
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isRefetchingStock, setIsRefetchingStock] = useState(false);
+  const prevLastCartChange = useRef<number>(0);
+
+  // Refetch product when cart changes (add/remove/update items)
+  // Only trigger when lastCartChange actually changes, not when product updates
+  useEffect(() => {
+    if (lastCartChange && lastCartChange !== prevLastCartChange.current && product) {
+      prevLastCartChange.current = lastCartChange;
+      setIsRefetchingStock(true);
+      refetch().finally(() => setIsRefetchingStock(false));
+    }
+  }, [lastCartChange, product, refetch]);
 
   // Extract available colors for a specific size from variants (only with stock > 0)
   const getColorsForSize = useMemo(
@@ -272,11 +286,56 @@ export default function ProductDetailsPage() {
     // Prevent adding if quantity is 0
     if (!quantity || quantity <= 0) {
       toast.error("Please select a quantity");
+      setIsAddingToCart(false);
       return;
     }
 
     // Check if product is out of stock
     const isOutOfStock = !product?.totalStock || product.totalStock === 0;
+
+    // Find the variant for reservation
+    let variantId: number | undefined;
+    if (product.variants && product.variants.length > 0) {
+      const normalizedSize = size?.trim();
+      const normalizedColor = color?.trim();
+      
+      const selectedVariant = product.variants.find((variant: any) => {
+        const variantSizeAttr = variant.attributes?.find(
+          (attr: any) => attr.attributeValue?.attribute?.name === "Size"
+        );
+        const variantColorAttr = variant.attributes?.find(
+          (attr: any) => attr.attributeValue?.attribute?.name === "Color"
+        );
+        
+        const variantSize = variantSizeAttr?.attributeValue?.value?.trim();
+        const variantColor = variantColorAttr?.attributeValue?.value?.trim();
+        
+        const sizeMatch = !normalizedSize || normalizedSize === "One Size" || variantSize === normalizedSize;
+        const colorMatch = !normalizedColor || normalizedColor === "Default" || variantColor === normalizedColor;
+        
+        return sizeMatch && colorMatch;
+      });
+      
+      variantId = selectedVariant?.id;
+    }
+
+    // Try to reserve stock from backend
+    let reservationResult;
+    if (variantId) {
+      reservationResult = await stockReservationService.reserveStock(
+        variantId,
+        quantity,
+        15 // 15 minutes expiration
+      );
+
+
+      if (!reservationResult.success) {
+        // Reservation failed - show error
+        toast.error(reservationResult.error || "Failed to reserve stock");
+        setIsAddingToCart(false);
+        return;
+      }
+    }
 
     // Add item to cart - returns { success, isExisting }
     const result = addToCart(
@@ -287,12 +346,17 @@ export default function ProductDetailsPage() {
       },
       size,
       color,
-      quantity
+      quantity,
+      reservationResult?.data?.reservationId, // Pass reservation ID
+      reservationResult?.data?.expiresAt // Pass expiration time
     );
 
     // Handle different outcomes
     if (!result.success) {
-      // Validation failed - no matching variant
+      // Validation failed - release the reservation
+      if (reservationResult?.data?.reservationId) {
+        await stockReservationService.releaseReservation(reservationResult.data.reservationId);
+      }
       toast.error(
         "Selected size or color is not available. Please choose different options."
       );
@@ -312,6 +376,9 @@ export default function ProductDetailsPage() {
     // Reset quantity after successful add
     setQuantity(0);
     setIsAddingToCart(false);
+
+    // Refetch product to get updated stock after adding to cart
+    refetch();
   };
 
   const handleShare = async () => {
@@ -494,8 +561,8 @@ export default function ProductDetailsPage() {
 
             {/* Variant Selection */}
             <div className="space-y-8 mb-8">
-              {/* Color Selection */}
-              {availableColorsForSelectedSize.length > 0 && (
+              {/* Color Selection - Only show if more than 1 color available */}
+              {availableColorsForSelectedSize.length > 1 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
@@ -535,8 +602,8 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {/* Size Selection */}
-              {availableSizes.length > 0 && (
+              {/* Size Selection - Only show if more than 1 size available */}
+              {availableSizes.length > 1 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
@@ -606,7 +673,12 @@ export default function ProductDetailsPage() {
                 </div>
                 {selectedVariantStock > 0 && (
                   <span className={`text-xs font-medium ${remainingStock <= 0 ? "text-gray-500" : remainingStock <= 3 ? "text-gray-500" : "text-green-600"}`}>
-                    {remainingStock > 0 
+                    {isRefetchingStock ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                        Updating...
+                      </span>
+                    ) : remainingStock > 0 
                       ? quantity > 0 
                         ? `${remainingStock - quantity} available` 
                         : `${remainingStock} available` 

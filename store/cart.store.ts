@@ -10,6 +10,9 @@ interface MinimalCartItem {
   productImage: string;
   productPrice: number;
   variantId?: number | string;
+  variantStock?: number; // Stock at time of adding to cart for validation
+  reservationId?: number; // Stock reservation ID from backend
+  expiresAt?: string; // Reservation expiration timestamp
   quantity: number;
   selectedSize: string;
   selectedColor: string;
@@ -19,9 +22,10 @@ interface CartState {
   items: MinimalCartItem[];
   isOpen: boolean;
   isHydrated: boolean;
-  addItem: (product: Product, size: string, color: string, quantity?: number) => { success: boolean; isExisting: boolean };
+  lastCartChange: number; // Timestamp for tracking cart changes
+  addItem: (product: Product, size: string, color: string, quantity?: number, reservationId?: number, expiresAt?: string) => { success: boolean; isExisting: boolean };
   removeItem: (productId: string | number, size: string, color: string) => void;
-  updateQuantity: (productId: string | number, size: string, color: string, quantity: number) => void;
+  updateQuantity: (productId: string | number, size: string, color: string, quantity: number) => { success: boolean; message?: string };
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -30,6 +34,8 @@ interface CartState {
   getItemCount: () => number;
   isItemInCart: (productId: string | number, size: string, color: string) => boolean;
   getItemQuantity: (productId: string | number, size: string, color: string) => number;
+  getItemStock: (productId: string | number, size: string, color: string) => number | undefined;
+  getItemReservation: (productId: string | number, size: string, color: string) => { reservationId?: number; expiresAt?: string } | undefined;
   setHydrated: (state: boolean) => void;
 }
 
@@ -39,8 +45,9 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
       isHydrated: false,
+      lastCartChange: 0,
 
-      addItem: (product, size, color, quantity = 1): { success: boolean; isExisting: boolean } => {
+      addItem: (product, size, color, quantity = 1, reservationId, expiresAt): { success: boolean; isExisting: boolean } => {
         // Return type: { success: boolean, isExisting: boolean }
         // - { success: true, isExisting: true } = existing item updated
         // - { success: true, isExisting: false } = new item added
@@ -130,7 +137,7 @@ export const useCartStore = create<CartState>()(
             isExisting = true;
             const newItems = [...state.items];
             newItems[existingIndex].quantity += quantity;
-            return { items: newItems, isOpen: true };
+            return { items: newItems, isOpen: true, lastCartChange: Date.now() };
           }
 
           // Store minimal data only - use the CORRECT variantId
@@ -140,14 +147,18 @@ export const useCartStore = create<CartState>()(
             productImage,
             productPrice,
             variantId: selectedVariant?.id, // Use the matched variant ID, not first variant!
+            variantStock: selectedVariant?.stock ?? product.stock ?? 0, // Store stock for validation
             quantity,
             selectedSize: size,
             selectedColor: color,
+            reservationId, // Stock reservation ID from backend
+            expiresAt, // Reservation expiration timestamp
           };
 
           return {
             items: [...state.items, newItem],
             isOpen: true,
+            lastCartChange: Date.now(),
           };
         });
         
@@ -156,6 +167,18 @@ export const useCartStore = create<CartState>()(
       },
 
       removeItem: (productId, size, color) => {
+        // Get the item before removing to check for reservation
+        const { items } = get();
+        const itemToRemove = items.find(
+          (item) =>
+            String(item.productId) === String(productId) &&
+            item.selectedSize === size &&
+            item.selectedColor === color
+        );
+        
+        // If there's a reservation, we should release it
+        // Note: The actual API call to release should be done from the component
+        // This just removes from local state
         set((state) => ({
           items: state.items.filter(
             (item) =>
@@ -165,10 +188,35 @@ export const useCartStore = create<CartState>()(
                 item.selectedColor === color
               )
           ),
+          lastCartChange: Date.now(),
         }));
       },
 
       updateQuantity: (productId, size, color, quantity) => {
+        const { items } = get();
+        const item = items.find(
+          (item) =>
+            String(item.productId) === String(productId) &&
+            item.selectedSize === size &&
+            item.selectedColor === color
+        );
+        
+        // Validate stock if we have stock information
+        if (item?.variantStock !== undefined && item.variantStock > 0) {
+          // Check if new quantity exceeds available stock
+          if (quantity > item.variantStock) {
+            return { 
+              success: false, 
+              message: `Only ${item.variantStock} items available in stock` 
+            };
+          }
+        }
+        
+        // Prevent negative quantity
+        if (quantity < 1) {
+          return { success: false, message: 'Quantity cannot be less than 1' };
+        }
+        
         set((state) => ({
           items: state.items.map((item) =>
             String(item.productId) === String(productId) &&
@@ -177,7 +225,10 @@ export const useCartStore = create<CartState>()(
               ? { ...item, quantity: Math.max(1, quantity) }
               : item
           ),
+          lastCartChange: Date.now(),
         }));
+        
+        return { success: true };
       },
 
       clearCart: () => set({ items: [] }),
@@ -218,6 +269,34 @@ export const useCartStore = create<CartState>()(
             item.selectedColor === color
         );
         return item?.quantity ?? 0;
+      },
+
+      getItemStock: (productId: string | number, size: string, color: string) => {
+        const { items } = get();
+        const item = items.find(
+          (item) =>
+            String(item.productId) === String(productId) &&
+            item.selectedSize === size &&
+            item.selectedColor === color
+        );
+        return item?.variantStock;
+      },
+
+      getItemReservation: (productId: string | number, size: string, color: string) => {
+        const { items } = get();
+        const item = items.find(
+          (item) =>
+            String(item.productId) === String(productId) &&
+            item.selectedSize === size &&
+            item.selectedColor === color
+        );
+        if (item) {
+          return {
+            reservationId: item.reservationId,
+            expiresAt: item.expiresAt,
+          };
+        }
+        return undefined;
       },
 
       setHydrated: (state: boolean) => set({ isHydrated: state }),

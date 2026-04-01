@@ -230,13 +230,6 @@ const CheckoutPage = () => {
               Order Placed Successfully!
             </h1>
 
-            {orderId && (
-              <div className="bg-muted/50 rounded-2xl p-6 mb-8 inline-block">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Order Number</p>
-                <p className="text-xl font-mono font-semibold text-foreground">{orderId}</p>
-              </div>
-            )}
-
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/orders"
