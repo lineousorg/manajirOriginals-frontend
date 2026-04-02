@@ -44,7 +44,7 @@ export const Footer = () => {
                   whileHover={{ scale: 1.02 }}
                   className="flex flex-col items-start relative"
                 >
-                  <div className="w-20 h-20 border rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden">
+                  <div className="w-14 h-14 md:w-20 md:h-20 border rounded-full shadow-2xl flex items-center justify-center relative overflow-hidden">
 
                     <Image
                       src="/logo.png"

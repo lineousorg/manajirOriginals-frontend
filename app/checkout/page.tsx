@@ -346,7 +346,7 @@ const CheckoutPage = () => {
                     </h3>
 
                     <form onSubmit={handleSubmitShipping} className="space-y-5">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-muted-foreground">
                             Email Address
@@ -415,8 +415,8 @@ const CheckoutPage = () => {
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                        <div className="space-y-2 col-span-2 md:col-span-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
+                        <div className="sm:col-span-2 md:col-span-1">
                           <label className="text-sm font-medium text-muted-foreground">
                             City
                           </label>
@@ -537,7 +537,7 @@ const CheckoutPage = () => {
                             : "border-border hover:border-primary/30 hover:bg-muted/30"
                             }`}
                         >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${paymentMethod === "CASH_ON_DELIVERY" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 transition-colors ${paymentMethod === "CASH_ON_DELIVERY" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                             }`}>
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -585,17 +585,16 @@ const CheckoutPage = () => {
                           disabled
                           className="relative flex items-center gap-4 p-5 rounded-2xl border-2 border-border/50 opacity-50 cursor-not-allowed text-left bg-muted/20"
                         >
-                          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-muted flex items-center justify-center shrink-0">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              width="28"
-                              height="28"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
                               strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              className="w-5 h-5 md:w-7 md:h-7"
                             >
                               <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
                               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -747,7 +746,7 @@ const CheckoutPage = () => {
                       key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                       className="flex gap-4 group"
                     >
-                      <div className="relative w-20 h-24 rounded-xl bg-muted shrink-0 ring-1 ring-border group-hover:ring-primary/20 transition-all">
+                      <div className="relative w-16 md:w-20 h-20 md:h-24 rounded-xl bg-muted shrink-0 ring-1 ring-border group-hover:ring-primary/20 transition-all">
                         <Image
                           src={item.productImage}
                           alt={item.productName}
@@ -849,8 +848,8 @@ const CheckoutPage = () => {
               </div>
 
               {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-background rounded-xl p-4 text-center border border-border/50">
+              <div className="grid grid-cols-3 gap-2 md:gap-3">
+                <div className="bg-background rounded-xl p-2 md:p-4 text-center border border-border/50">
                   <Shield size={24} className="mx-auto mb-2 text-muted-foreground" />
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Secure</p>
                 </div>

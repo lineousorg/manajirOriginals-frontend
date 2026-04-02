@@ -114,8 +114,8 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black to-transparent">
-                      <h3 className="font-serif text-4xl text-background">
+                    <div className="absolute bottom-0 left-0 right-0 p-3 md:p-6 bg-linear-to-t from-black to-transparent">
+                      <h3 className="font-serif text-xl md:text-2xl lg:text-4xl text-background">
                         {category.name}
                       </h3>
                       <p className="text-sm text-background/70 mt-1">
@@ -183,7 +183,7 @@ export default function Home() {
             whileInView="visible"
             viewport={{ margin: "-100px" }}
             variants={fadeInScale}
-            className="relative h-125 rounded-2xl overflow-hidden"
+            className="relative h-48 md:h-80 lg:h-100 xl:h-125 rounded-2xl overflow-hidden"
           >
             <Image
               src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80"

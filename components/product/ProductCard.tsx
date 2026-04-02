@@ -62,11 +62,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           duration: 0.5,
           ease: [0.23, 1, 0.32, 1],
         }}
-        // whileHover={{ y: -6 }}
-        className="grid grid-rows-2 group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 pb-2"
+        className="group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500"
       >
         {/* Image Container */}
-        <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl p-2 row-span-2">
+        <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl mx-2 mt-2">
           {/* Image Skeleton Loader */}
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 bg-slate-200 animate-pulse rounded-2xl" />
@@ -165,12 +164,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </div> */}
         </div>
 
-        <div className="flex flex-col justify-between px-2">
+        <div className="p-2 pt-0 pb-3">
           {/* Product Info */}
-          <div className=" space-y-4 mb-3">
-            <div className="mt-3">
+          <div className="space-y-2 mb-2">
+            <div className="mt-2">
               {/* Product Name */}
-              <h3 className="text-base font-sans text-slate-600 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
+              <h3 className="text-sm md:text-base font-sans text-slate-600 leading-tight line-clamp-2 group-hover:text-slate-700 transition-colors text-left">
                 {product.name}
               </h3>
               {/* Color Options - Only show if multiple colors */}
@@ -197,7 +196,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
             </div>
           </div>
           {/* Attributes Preview */}
-          <div className={`grid grid-cols-2 rounded-full px-1 py-1 mt-8`}>
+          <div className={`flex items-center justify-between rounded-full px-1 py-1 mt-auto`}>
             {/* Price Section */}
             <div className="flex gap-3">
               <span className="">

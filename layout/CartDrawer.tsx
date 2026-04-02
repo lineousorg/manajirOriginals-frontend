@@ -173,7 +173,7 @@ export const CartDrawer = () => {
                         className="flex gap-4 group"
                       >
                         {/* Image */}
-                        <div className="w-24 h-32 relative rounded-xl overflow-hidden bg-muted shrink-0 ring-1 ring-border/50 group-hover:ring-border transition-all">
+                        <div className="w-16 md:w-20 md:h-24 lg:w-24 lg:h-32 relative rounded-xl overflow-hidden bg-muted shrink-0 ring-1 ring-border/50 group-hover:ring-border transition-all">
                           <Image
                             src={item.productImage}
                             alt={item.productName}

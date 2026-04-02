@@ -61,6 +61,13 @@ module.exports = {
         sans: ["var(--font-sans)", "sans-serif"],
         serif: ["var(--font-serif)", "serif"],
       },
+      height: {
+        '125': '31.25rem',
+        '100': '25rem',
+        '80': '20rem',
+        '70': '17.5rem',
+        '60': '15rem',
+      },
     },
   },
   plugins: [],

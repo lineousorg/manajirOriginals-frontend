@@ -518,8 +518,8 @@ export default function ProductDetailsPage() {
           >
             <div className="mb-8">
               {/* Header Row: Title + Share */}
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="font-serif text-3xl md:text-4xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left">
+              <div className="flex items-start justify-between gap-2 md:gap-4 mb-4">
+                <h1 className="font-serif text-2xl md:text-3xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left break-words max-w-[85%] md:max-w-none">
                   {product.name}
                 </h1>
                 <button
@@ -832,26 +832,26 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-4 py-6 border-t border-border">
-              <div className="text-center group">
-                <div className="bg-muted rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <Truck size={18} className="text-muted-foreground" />
+            <div className="grid grid-cols-3 gap-2 md:gap-4 py-6 border-t border-border">
+              <div className="text-center group px-1">
+                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
+                  <Truck size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
                   Cash on Delivery
                 </p>
               </div>
-              <div className="text-center group">
-                <div className="bg-muted rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <RotateCcw size={18} className="text-muted-foreground" />
+              <div className="text-center group px-1">
+                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
+                  <RotateCcw size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
+                <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
                   Easy Returns
                 </p>
               </div>
-              <div className="text-center group">
-                <div className="bg-muted rounded-full w-10 h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <ShieldCheck size={18} className="text-muted-foreground" />
+              <div className="text-center group px-1">
+                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
+                  <ShieldCheck size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
                   Secure Checkout
