@@ -25,24 +25,97 @@ export const CartDrawer = () => {
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
 
-  // Function to check and remove expired reservations
-  const checkExpiredReservations = () => {
+  // Function to check and release expired reservations
+  // When a reservation expires, the backend restores the stock
+  // We just need to remove expired items from cart
+  const checkExpiredReservations = async () => {
     const now = new Date();
     let hasExpiredItems = false;
 
-    items.forEach((item) => {
-      if (item.expiresAt) {
+    for (const item of items) {
+      if (item.expiresAt && item.reservationId) {
         const expiresAt = new Date(item.expiresAt);
         if (expiresAt < now) {
           hasExpiredItems = true;
+          // Try to release the reservation on backend (restores stock)
+          try {
+            await stockReservationService.releaseReservation(item.reservationId);
+          } catch (error) {
+            console.error("Failed to release expired reservation:", error);
+          }
           // Remove expired item from cart
           removeItem(item.productId, item.selectedSize, item.selectedColor);
         }
       }
-    });
+    }
 
     if (hasExpiredItems) {
       toast.error("Some items in your cart have expired and were removed. Please add them again.");
+    }
+  };
+
+  // Function to check stock availability for cart items
+  // Only removes items that don't have an active reservation and are out of stock
+  const checkStockAvailability = async () => {
+    const itemsToRemove: Array<{productId: string | number; size: string; color: string; name: string}> = [];
+    const itemsToUpdate: Array<{productId: string | number; size: string; color: string; newQuantity: number; name: string}> = [];
+
+    for (const item of items) {
+      // Skip items without variantId
+      if (!item.variantId) continue;
+
+      // Skip items with active reservation - they're still valid
+      // The reservation will either be used (order placed) or released (expired/cancelled)
+      if (item.reservationId) continue;
+
+      try {
+        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
+        if (result.success && result.data) {
+          // If available stock is less than cart quantity, item needs adjustment
+          if (result.data.availableStock < item.quantity) {
+            if (result.data.availableStock === 0) {
+              // No stock and no reservation - remove item
+              itemsToRemove.push({
+                productId: item.productId,
+                size: item.selectedSize,
+                color: item.selectedColor,
+                name: item.productName
+              });
+            } else {
+              // Reduce quantity to available stock
+              itemsToUpdate.push({
+                productId: item.productId,
+                size: item.selectedSize,
+                color: item.selectedColor,
+                newQuantity: result.data.availableStock,
+                name: item.productName
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check stock for item:", item.productName, error);
+      }
+    }
+
+    // Remove items that are no longer available
+    if (itemsToRemove.length > 0) {
+      itemsToRemove.forEach((item) => {
+        removeItem(item.productId, item.size, item.color);
+      });
+      toast.error(
+        `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`
+      );
+    }
+
+    // Update items with reduced quantity
+    if (itemsToUpdate.length > 0) {
+      itemsToUpdate.forEach((item) => {
+        updateQuantity(item.productId, item.size, item.color, item.newQuantity);
+      });
+      toast.error(
+        `Some items in your cart have reduced availability. Quantities have been updated.`
+      );
     }
   };
 
@@ -57,10 +130,11 @@ export const CartDrawer = () => {
     }
   }, [isOpen]);
 
-  // Check for expired reservations when cart opens
+  // Check for expired reservations and stock availability when cart opens
   useEffect(() => {
     if (!isOpen || !items.length) return;
     checkExpiredReservations();
+    checkStockAvailability();
   }, [isOpen, items]);
 
   // Don't render until hydrated to prevent flash of empty content
@@ -249,7 +323,30 @@ export const CartDrawer = () => {
                                   {item.quantity}
                                 </span>
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    // Issue #4: Validate against server stock before increment
+                                    if (item.variantId) {
+                                      try {
+                                        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
+                                        if (result.success && result.data) {
+                                          const serverAvailable = result.data.availableStock;
+                                          const currentTotal = item.quantity; // Current in cart
+                                          
+                                          if (serverAvailable <= currentTotal) {
+                                            if (serverAvailable === 0) {
+                                              toast.error("This item is no longer available");
+                                            } else {
+                                              toast.error(`Only ${serverAvailable} available. You already have ${currentTotal} in your cart.`);
+                                            }
+                                            return;
+                                          }
+                                        }
+                                      } catch (error) {
+                                        console.error("Failed to check stock:", error);
+                                        // Fall back to local validation
+                                      }
+                                    }
+                                    
                                     const result = updateQuantity(
                                       item.productId,
                                       item.selectedSize,

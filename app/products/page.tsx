@@ -35,7 +35,7 @@ export default function ProductsPage() {
   const isLoading = loading || isPaginating;
 
   return (
-    <div className="container-fashion py-8 min-h-screen pt-40">
+    <div className="container-fashion py-8 min-h-screen pt-24 lg:pt-40">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground">All Products</h1>
         <p className="text-muted-foreground mt-2">

@@ -199,7 +199,7 @@ export default function CategoryProductsPage() {
   const categoryNameDisplay = displayCategory.name;
 
   return (
-    <div className="container-fashion py-8 min-h-screen pt-40">
+    <div className="container-fashion py-8 min-h-screen pt-24 lg:pt-40">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
         {breadcrumb.map((crumb, index) => (

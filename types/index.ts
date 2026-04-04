@@ -5,6 +5,8 @@ export interface ProductVariant {
   sku: string;
   price: number;
   stock: number;
+  availableStock?: number;
+  reservedStock?: number;
   productId: number;
   createdAt: string;
   updatedAt: string;

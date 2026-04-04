@@ -85,7 +85,7 @@ export default function Home() {
             </motion.div>
 
             <motion.div
-              className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6"
+              className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6"
               initial="hidden"
               whileInView="visible"
               viewport={{ margin: "-50px" }}
@@ -159,7 +159,7 @@ export default function Home() {
             <ProductGridSkeleton count={4} />
           ) : (
             <motion.div
-              className="grid grid-cols-2 md:grid-cols-4 gap-6"
+              className="grid grid-cols-1 md:grid-cols-4 gap-6"
               initial="hidden"
               whileInView="visible"
               viewport={{ margin: "-50px" }}
@@ -241,7 +241,7 @@ export default function Home() {
               <ProductGridSkeleton count={4} />
             ) : (
               <motion.div
-                className="grid grid-cols-2 md:grid-cols-4 gap-6"
+                className="grid grid-cols-1 md:grid-cols-4 gap-6"
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ margin: "-50px" }}

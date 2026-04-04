@@ -58,17 +58,72 @@ export default function ProductDetailsPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isRefetchingStock, setIsRefetchingStock] = useState(false);
+  const [serverAvailableStock, setServerAvailableStock] = useState<
+    number | null
+  >(null);
   const prevLastCartChange = useRef<number>(0);
 
   // Refetch product when cart changes (add/remove/update items)
   // Only trigger when lastCartChange actually changes, not when product updates
   useEffect(() => {
-    if (lastCartChange && lastCartChange !== prevLastCartChange.current && product) {
+    if (
+      lastCartChange &&
+      lastCartChange !== prevLastCartChange.current &&
+      product
+    ) {
       prevLastCartChange.current = lastCartChange;
       setIsRefetchingStock(true);
       refetch().finally(() => setIsRefetchingStock(false));
     }
   }, [lastCartChange, product, refetch]);
+
+  // Fetch server available stock when selected variant changes (Issue #2)
+  useEffect(() => {
+    const fetchAvailableStock = async () => {
+      if (!product?.variants || !selectedSize) {
+        setServerAvailableStock(null);
+        return;
+      }
+
+      // Find the current selected variant ID
+      const currentVariant = product.variants.find((variant: any) => {
+        const sizeMatch = variant.attributes?.some(
+          (attr: any) =>
+            attr.attributeValue?.attribute?.name === "Size" &&
+            attr.attributeValue?.value === selectedSize
+        );
+        const colorMatch =
+          !selectedColor ||
+          variant.attributes?.some(
+            (attr: any) =>
+              attr.attributeValue?.attribute?.name === "Color" &&
+              attr.attributeValue?.value === selectedColor
+          );
+        return sizeMatch && colorMatch;
+      });
+
+      if (!currentVariant?.id) {
+        setServerAvailableStock(null);
+        return;
+      }
+
+      try {
+        const result = await stockReservationService.getAvailableStock(
+          currentVariant.id
+        );
+        if (result.success && result.data) {
+          setServerAvailableStock(result.data.availableStock);
+        } else {
+          setServerAvailableStock(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch available stock:", error);
+        setServerAvailableStock(null);
+      }
+    };
+
+    fetchAvailableStock();
+  }, [product?.variants, selectedSize, selectedColor]);
 
   // Extract available colors for a specific size from variants (only with stock > 0)
   const getColorsForSize = useMemo(
@@ -78,8 +133,9 @@ export default function ProductDetailsPage() {
         const colors: string[] = [];
 
         product.variants.forEach((variant: any) => {
-          // Only consider variants with stock > 0
-          if (!variant.stock || variant.stock <= 0) return;
+          // Only consider variants with availableStock > 0
+          const available = variant.availableStock ?? variant.stock ?? 0;
+          if (!available || available <= 0) return;
 
           if (variant.attributes && Array.isArray(variant.attributes)) {
             const variantSize = variant.attributes.find(
@@ -105,8 +161,6 @@ export default function ProductDetailsPage() {
     [product?.variants]
   );
 
-
-
   // Filter sizes to only show those with stock > 0
   const availableSizes = useMemo(() => {
     if (!product?.variants || !product?.sizes) return product?.sizes ?? [];
@@ -115,7 +169,8 @@ export default function ProductDetailsPage() {
     product.sizes.forEach((size: string) => {
       // Check if there's any variant with this size that has stock > 0
       const hasStock = product.variants?.some((variant: any) => {
-        if (!variant.stock || variant.stock <= 0) return false;
+        const available = variant.availableStock ?? variant.stock ?? 0;
+        if (!available || available <= 0) return false;
         const variantSize = variant.attributes?.find(
           (attr: any) =>
             attr.attributeValue?.attribute?.name === "Size" &&
@@ -211,8 +266,10 @@ export default function ProductDetailsPage() {
               attr.attributeValue?.attribute?.name === "Size" &&
               attr.attributeValue?.value === size
           );
-          if (variantSize && variant.stock > 0) {
-            totalStock += variant.stock;
+          // Use availableStock instead of stock
+          const available = variant.availableStock ?? variant.stock ?? 0;
+          if (variantSize && available > 0) {
+            totalStock += available;
           }
         });
         return totalStock;
@@ -228,29 +285,35 @@ export default function ProductDetailsPage() {
     return getItemQuantity(productId, size, color);
   }, [product, productId, selectedSize, selectedColor, getItemQuantity]);
 
-  // Calculate available stock for the selected variant (considering cart)
-  const selectedVariantStock = selectedVariant?.stock ?? 0;
+  // Calculate available stock for the selected variant
+  // Use availableStock from API (stock minus active reservations), fallback to stock
+  const selectedVariantAvailableStock = selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
 
-  // Calculate remaining stock after cart
-  const remainingStock = Math.max(0, selectedVariantStock - currentCartQuantity);
+  // Calculate remaining stock: available stock minus what's already in cart
+  // This shows how many more user can add
+  const remainingStock = Math.max(0, selectedVariantAvailableStock - currentCartQuantity);
 
-  // Check if we can add more (stock exceeded)
-  const isStockExceeded = selectedVariantStock > 0 && remainingStock <= 0;
+  // canAddMore: whether user can add more of this variant to cart
+  const canAddMore = remainingStock > 0;
+
+  // isStockExceeded: whether max stock is reached (can't add more)
+  const isStockExceeded = !canAddMore;
 
   const images = useMemo(
     () =>
       product?.images && product.images.length > 0
         ? product.images
         : [
-          {
-            url: "https://placehold.co/600x800?text=No+Image",
-            altText: "No Image",
-          },
-        ],
+            {
+              url: "https://placehold.co/600x800?text=No+Image",
+              altText: "No Image",
+            },
+          ],
     [product?.images]
   );
 
   const details = product?.details ?? [];
+
   const categories = product ? getProductCategories(product) : null;
 
   const handleAddToCart = async () => {
@@ -274,8 +337,8 @@ export default function ProductDetailsPage() {
 
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-        typeof img === "string" ? { url: img, altText: product.name } : img
-      )
+          typeof img === "string" ? { url: img, altText: product.name } : img
+        )
       : [];
 
     // Check if item already exists in cart
@@ -298,7 +361,7 @@ export default function ProductDetailsPage() {
     if (product.variants && product.variants.length > 0) {
       const normalizedSize = size?.trim();
       const normalizedColor = color?.trim();
-      
+
       const selectedVariant = product.variants.find((variant: any) => {
         const variantSizeAttr = variant.attributes?.find(
           (attr: any) => attr.attributeValue?.attribute?.name === "Size"
@@ -306,20 +369,28 @@ export default function ProductDetailsPage() {
         const variantColorAttr = variant.attributes?.find(
           (attr: any) => attr.attributeValue?.attribute?.name === "Color"
         );
-        
+
         const variantSize = variantSizeAttr?.attributeValue?.value?.trim();
         const variantColor = variantColorAttr?.attributeValue?.value?.trim();
-        
-        const sizeMatch = !normalizedSize || normalizedSize === "One Size" || variantSize === normalizedSize;
-        const colorMatch = !normalizedColor || normalizedColor === "Default" || variantColor === normalizedColor;
-        
+
+        const sizeMatch =
+          !normalizedSize ||
+          normalizedSize === "One Size" ||
+          variantSize === normalizedSize;
+        const colorMatch =
+          !normalizedColor ||
+          normalizedColor === "Default" ||
+          variantColor === normalizedColor;
+
         return sizeMatch && colorMatch;
       });
-      
+
       variantId = selectedVariant?.id;
     }
 
     // Try to reserve stock from backend
+    // Backend validates stock availability before decrementing
+    // If reserveStock succeeds, stock has been decremented and reserved
     let reservationResult;
     if (variantId) {
       reservationResult = await stockReservationService.reserveStock(
@@ -328,13 +399,15 @@ export default function ProductDetailsPage() {
         15 // 15 minutes expiration
       );
 
-
       if (!reservationResult.success) {
-        // Reservation failed - show error
+        // Reservation failed - backend already validated, show error
         toast.error(reservationResult.error || "Failed to reserve stock");
         setIsAddingToCart(false);
         return;
       }
+
+      // If we reach here, reservation succeeded - no need for extra validation
+      // Backend ensures availableStock >= quantity before decrementing
     }
 
     // Add item to cart - returns { success, isExisting }
@@ -355,7 +428,14 @@ export default function ProductDetailsPage() {
     if (!result.success) {
       // Validation failed - release the reservation
       if (reservationResult?.data?.reservationId) {
-        await stockReservationService.releaseReservation(reservationResult.data.reservationId);
+        try {
+          await stockReservationService.releaseReservation(
+            reservationResult.data.reservationId
+          );
+        } catch (releaseError) {
+          console.error("Failed to release reservation:", releaseError);
+          // Log for manual cleanup but don't block the user flow
+        }
       }
       toast.error(
         "Selected size or color is not available. Please choose different options."
@@ -376,9 +456,8 @@ export default function ProductDetailsPage() {
     // Reset quantity after successful add
     setQuantity(0);
     setIsAddingToCart(false);
-
-    // Refetch product to get updated stock after adding to cart
-    refetch();
+    // Note: We don't need to refetch here since stock is decremented on reservation
+    // The availableStock will be updated when user changes variants or on next visit
   };
 
   const handleShare = async () => {
@@ -411,9 +490,12 @@ export default function ProductDetailsPage() {
       // If no variants, check for a direct stock property
       return !product?.stock || product.stock === 0;
     }
-    // Check if ALL variants have 0 stock
+    // Check if ALL variants have 0 available stock (stock minus reservations)
     const allVariantsOutOfStock = product.variants.every(
-      (variant: any) => !variant.stock || variant.stock === 0
+      (variant: any) => {
+        const available = variant.availableStock ?? variant.stock ?? 0;
+        return available <= 0;
+      }
     );
     return allVariantsOutOfStock;
   }, [product?.variants, product?.stock]);
@@ -575,10 +657,11 @@ export default function ProductDetailsPage() {
                           onClick={() => setSelectedColor(color)}
                           className={`
                 relative px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer
-                ${selectedColor === color
-                              ? "bg-foreground text-background shadow-lg scale-105"
-                              : "bg-muted/50 text-foreground hover:bg-muted border border-border"
-                            }
+                ${
+                  selectedColor === color
+                    ? "bg-foreground text-background shadow-lg scale-105"
+                    : "bg-muted/50 text-foreground hover:bg-muted border border-border"
+                }
               `}
                         >
                           {color}
@@ -624,10 +707,16 @@ export default function ProductDetailsPage() {
                               disabled={isOutOfStock}
                               className={`
                                 w-10 h-10 rounded-lg text-sm font-semibold transition-all duration-200 
-                                ${isOutOfStock ? "opacity-40 cursor-not-allowed line-through" : "cursor-pointer"}
-                                ${selectedSize === size
-                                  ? "bg-foreground text-background shadow-md scale-105"
-                                  : "bg-background text-foreground border-2 border-border hover:border-primary/50 hover:bg-muted/30"}
+                                ${
+                                  isOutOfStock
+                                    ? "opacity-40 cursor-not-allowed line-through"
+                                    : "cursor-pointer"
+                                }
+                                ${
+                                  selectedSize === size
+                                    ? "bg-foreground text-background shadow-md scale-105"
+                                    : "bg-background text-foreground border-2 border-border hover:border-primary/50 hover:bg-muted/30"
+                                }
                               `}
                             >
                               {size}
@@ -665,24 +754,39 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    disabled={remainingStock <= 0 || quantity >= remainingStock + currentCartQuantity}
+                    disabled={
+                      remainingStock <= 0 ||
+                      quantity >= remainingStock + currentCartQuantity
+                    }
                     aria-label="Increase quantity"
                   >
                     <Plus size={16} strokeWidth={2.5} />
                   </button>
                 </div>
-                {selectedVariantStock > 0 && (
-                  <span className={`text-xs font-medium ${remainingStock <= 0 ? "text-gray-500" : remainingStock <= 3 ? "text-gray-500" : "text-green-600"}`}>
+                {selectedVariantAvailableStock > 0 && (
+                  <span
+                    className={`text-xs font-medium ${
+                      remainingStock <= 0
+                        ? "text-gray-500"
+                        : remainingStock <= 3
+                        ? "text-gray-500"
+                        : "text-green-600"
+                    }`}
+                  >
                     {isRefetchingStock ? (
                       <span className="inline-flex items-center gap-1">
                         <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                         Updating...
                       </span>
-                    ) : remainingStock > 0 
-                      ? quantity > 0 
-                        ? `${remainingStock - quantity} available` 
-                        : `${remainingStock} available` 
-                      : "Out of stock"}
+                    ) : remainingStock > 0 ? (
+                      quantity > 0 ? (
+                        `${remainingStock - quantity} available`
+                      ) : (
+                        `${remainingStock} available`
+                      )
+                    ) : (
+                      "Out of stock"
+                    )}
                   </span>
                 )}
               </div>
@@ -743,9 +847,16 @@ export default function ProductDetailsPage() {
             <div className="flex gap-3 mb-8">
               <motion.button
                 onClick={handleAddToCart}
-                disabled={isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0}
+                disabled={
+                  isAddingToCart ||
+                  isOutOfStock ||
+                  isStockExceeded ||
+                  quantity <= 0
+                }
                 whileTap={{ scale: 0.98 }}
-                className={`flex-1 btn-primary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg ${isStockExceeded ? "cursor-not-allowed" : "cursor-pointer"}`}
+                className={`flex-1 btn-primary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg ${
+                  isStockExceeded ? "cursor-not-allowed" : "cursor-pointer"
+                }`}
               >
                 <AnimatePresence mode="wait">
                   {isOutOfStock ? (
@@ -815,10 +926,11 @@ export default function ProductDetailsPage() {
                   } as any);
                 }}
                 whileTap={{ scale: 0.95 }}
-                className={`p-4 border-2 rounded-lg transition-all duration-200 ${inWishlist
+                className={`p-4 border-2 rounded-lg transition-all duration-200 ${
+                  inWishlist
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border hover:border-foreground bg-background"
-                  }`}
+                }`}
                 aria-label={
                   inWishlist ? "Remove from wishlist" : "Add to wishlist"
                 }
@@ -835,7 +947,10 @@ export default function ProductDetailsPage() {
             <div className="grid grid-cols-3 gap-2 md:gap-4 py-6 border-t border-border">
               <div className="text-center group px-1">
                 <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <Truck size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                  <Truck
+                    size={14}
+                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
                   Cash on Delivery
@@ -843,7 +958,10 @@ export default function ProductDetailsPage() {
               </div>
               <div className="text-center group px-1">
                 <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <RotateCcw size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                  <RotateCcw
+                    size={14}
+                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
+                  />
                 </div>
                 <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
                   Easy Returns
@@ -851,7 +969,10 @@ export default function ProductDetailsPage() {
               </div>
               <div className="text-center group px-1">
                 <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <ShieldCheck size={14} className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                  <ShieldCheck
+                    size={14}
+                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
                   Secure Checkout
@@ -875,10 +996,11 @@ export default function ProductDetailsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-4 text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
+                className={`pb-4 text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === tab.id
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
-                  }`}
+                }`}
               >
                 <tab.icon size={16} />
                 {tab.label}
@@ -1042,18 +1164,20 @@ export default function ProductDetailsPage() {
           </div>
           <button
             onClick={handleAddToCart}
-            disabled={isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0}
+            disabled={
+              isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0
+            }
             className="flex-1 btn-primary-fashion h-12 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isOutOfStock
               ? "Out of Stock"
               : isStockExceeded
-                ? "Max Stock Reached"
-                : isInCart
-                  ? "Added to Bag"
-                  : isAddingToCart
-                    ? "Adding..."
-                    : "Add to Bag"}
+              ? "Max Stock Reached"
+              : isInCart
+              ? "Added to Bag"
+              : isAddingToCart
+              ? "Adding..."
+              : "Add to Bag"}
           </button>
         </div>
       </div>

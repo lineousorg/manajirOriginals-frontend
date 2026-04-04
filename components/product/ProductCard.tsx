@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
-import { ApiProduct } from "@/types";
+import { ApiProduct, ProductVariant } from "@/types";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useCartStore } from "@/store/cart.store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MdArrowOutward } from "react-icons/md";
@@ -46,24 +47,53 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       ? Math.round(((originalPrice - maxPrice) / originalPrice) * 100)
       : null;
 
-  const lowStock = (product.totalStock ?? 0) < 10;
-  const isOutOfStock = !product.totalStock || product.totalStock === 0;
+  // Get cart items to calculate available stock
+  const cartItems = useCartStore((state) => state.items);
+  
+  // Calculate quantity of this product already in cart
+  const cartQuantity = useMemo(() => {
+    return cartItems
+      .filter((item) => String(item.productId) === String(product.id))
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }, [cartItems, product.id]);
+
+  // Issue #8: Calculate stock based on variants with available stock
+  // This ensures we don't show "In Stock" when all specific variants are out
+  // Using [product, cartQuantity] as dependency to match what React Compiler infers
+  const availableStockCount = useMemo(() => {
+    let totalStock: number;
+    if (!product?.variants || product.variants.length === 0) {
+      // Use totalStock if available, otherwise fall back to stock
+      totalStock = product?.totalStock ?? product?.stock ?? 0;
+    } else {
+      // Sum up stock from variants that have stock > 0
+      totalStock = product.variants.reduce((total: number, variant: ProductVariant) => {
+        return total + (variant.stock > 0 ? variant.stock : 0);
+      }, 0);
+    }
+    // Subtract what's already in the cart to show available stock
+    return Math.max(0, totalStock - cartQuantity);
+  }, [product, cartQuantity]);
+
+  const hasAvailableVariants = availableStockCount > 0;
+  const isLowStock = hasAvailableVariants && availableStockCount < 10;
+  const isOutOfStock = !hasAvailableVariants;
 
   // Check if product has multiple colors (and has valid color values, not empty/placeholder)
   const hasMultipleColors = product.colors && product.colors.length > 1 && product.colors.some(c => c.name && c.name.trim() !== "");
 
   return (
-    <Link href={`/products/${product.id}`}>
-      <motion.article
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          delay: index * 0.08,
-          duration: 0.5,
-          ease: [0.23, 1, 0.32, 1],
-        }}
-        className="group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500"
-      >
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.08,
+        duration: 0.5,
+        ease: [0.23, 1, 0.32, 1],
+      }}
+      className="group relative bg-white rounded-3xl overflow-hidden border border-slate-100 hover:border-slate-200 drop-shadow-lg hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 cursor-pointer"
+      onClick={() => router.push(`/products/${product.id}`)}
+    >
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-slate-50 rounded-2xl mx-2 mt-2">
           {/* Image Skeleton Loader */}
@@ -110,17 +140,17 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </div>
 
           {/* Stock Indicator */}
-          {lowStock && product.totalStock > 0 && (
+          {isLowStock && (
             <div className="absolute bottom-4 left-4">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded-full border border-amber-200">
                 <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                Only {product.totalStock} left
+                Only {availableStockCount} left
               </span>
             </div>
           )}
 
           {/* Out of Stock Overlay */}
-          {product.totalStock === 0 && (
+          {isOutOfStock && (
             <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px] flex items-center justify-center">
               <span className="px-4 py-2 bg-slate-900 text-white text-xs font-medium tracking-wider uppercase rounded-full">
                 Out of Stock
@@ -222,23 +252,20 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
                   Out of Stock
                 </span>
               ) : (
-                <Link
-                  href={`/products/${product.id}`}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/products/${product.id}`);
+                  }}
                   className="group relative flex items-center bg-white group-hover:bg-[#741111] hover:bg-primary hover:font-bold text-[#741111] group-hover:text-white rounded-full h-8 px-2 overflow-hidden transition-all duration-300"
                 >
                   {/* Icon */}
                   <MdArrowOutward className="text-lg transition-all duration-300 rotate-45" />
-
-                  {/* Animated Text */}
-                  {/* <span className="whitespace-nowrap translate-x-2 max-w-0 overflow-hidden transition-all duration-300 text-sm">
-                    View Details
-                  </span> */}
-                </Link>
+                </button>
               )}
             </div>
           </div>
         </div>
       </motion.article>
-    </Link>
   );
 };

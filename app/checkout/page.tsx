@@ -25,6 +25,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast, { Toaster } from "react-hot-toast";
+import { stockReservationService } from "@/services/stock-reservation.service";
 
 const CheckoutPage = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -102,6 +103,33 @@ const CheckoutPage = () => {
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Issue #7: Validate all items against server stock before creating order
+    const unavailableItems: string[] = [];
+    
+    for (const item of items) {
+      if (!item.variantId) continue;
+      
+      try {
+        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
+        if (result.success && result.data) {
+          if (result.data.availableStock < item.quantity) {
+            if (result.data.availableStock === 0) {
+              unavailableItems.push(`${item.productName} (${item.selectedSize}/${item.selectedColor}) - no longer available`);
+            } else {
+              unavailableItems.push(`${item.productName} (${item.selectedSize}/${item.selectedColor}) - only ${result.data.availableStock} available`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check stock for item:", item.productName, error);
+      }
+    }
+    
+    if (unavailableItems.length > 0) {
+      toast.error("Some items are no longer available in your cart. Please review your cart.");
+      return;
+    }
 
     // Validate all items have proper variantId if product has variants
     for (const item of items) {

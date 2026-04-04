@@ -38,7 +38,7 @@ const Banner = () => {
   }, [isHovering]);
 
   return (
-    <section className="sticky top-0 z-40 min-h-[90dvh] w-full bg-linear-to-b from-[#631515] via-[#521414] to-[#240a0a] overflow-hidden flex items-center pt-0 lg:pt-10">
+    <section className="lg:sticky lg:top-0 lg:z-40 min-h-[90dvh] w-full bg-linear-to-b from-[#631515] via-[#521414] to-[#240a0a] overflow-hidden flex items-center pt-0 lg:pt-10">
       {/* Animated Background Grid */}
       {/* <div className="absolute inset-0 opacity-[0.03]">
         <div
