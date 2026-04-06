@@ -66,7 +66,7 @@ export const Header = () => {
             : pathname === "/" ? "rgba(10, 10, 10, 0)" : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-colors duration-500 ${isScrolled ? "border-white/10" : "border-transparent"}`}
+        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${isScrolled ? "border-white/10" : "border-transparent"}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
 

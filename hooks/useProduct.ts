@@ -516,22 +516,25 @@ export function useCategories() {
   ]);
 
   // Build tree: parent categories with children nested
-  const categoryTree = categories
+  // Filter out inactive categories
+  const activeCategories = categories.filter((cat) => cat.isActive !== false);
+
+  const categoryTree = activeCategories
     .filter((cat) => cat.parentId === null)
     .map((cat) => ({
       ...cat,
-      children: categories.filter((child) => child.parentId === cat.id),
+      children: activeCategories.filter((child) => child.parentId === cat.id),
     }));
 
   const getParentCategories = () =>
-    categories.filter((c) => c.parentId === null);
+    activeCategories.filter((c) => c.parentId === null);
   const getChildCategories = (parentId?: number) =>
     parentId
-      ? categories.filter((c) => c.parentId === parentId)
-      : categories.filter((c) => c.parentId !== null);
+      ? activeCategories.filter((c) => c.parentId === parentId)
+      : activeCategories.filter((c) => c.parentId !== null);
 
   return {
-    categories,
+    categories: activeCategories,
     categoryTree,
     getParentCategories,
     getChildCategories,

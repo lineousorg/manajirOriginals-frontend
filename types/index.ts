@@ -167,6 +167,7 @@ export interface Category {
   name: string;
   slug: string;
   parentId: string | number | null;
+  isActive?: boolean;
   children?: Category[];
   createdAt?: string;
   updatedAt?: string;
