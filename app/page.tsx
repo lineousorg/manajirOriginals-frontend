@@ -176,7 +176,7 @@ export default function Home() {
       </section>
 
       {/* Banner */}
-      <section className="py-20 z-999 relative bg-white">
+      {/* <section className="py-20 z-999 relative bg-white">
         <div className="container-fashion">
           <motion.div
             initial="hidden"
@@ -212,7 +212,7 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
-      </section>
+      </section> */}
 
       {/* Best Sellers */}
       {bestSellers.length > 0 && (
