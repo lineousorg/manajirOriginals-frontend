@@ -24,8 +24,7 @@ import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
-import toast, { Toaster } from "react-hot-toast";
-import { stockReservationService } from "@/services/stock-reservation.service";
+import toast from "react-hot-toast";
 
 const CheckoutPage = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -67,6 +66,8 @@ const CheckoutPage = () => {
   const [refreshAddresses, setRefreshAddresses] = useState(0);
 
   // Order state for receipt
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  // orderId is used for the receipt download API (needs numeric ID)
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const subtotal = getTotal();
@@ -104,49 +105,12 @@ const CheckoutPage = () => {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Issue #7: Validate all items against server stock before creating order
-    const unavailableItems: string[] = [];
-    
-    for (const item of items) {
-      if (!item.variantId) continue;
-      
-      try {
-        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
-        if (result.success && result.data) {
-          if (result.data.availableStock < item.quantity) {
-            if (result.data.availableStock === 0) {
-              unavailableItems.push(`${item.productName} (${item.selectedSize}/${item.selectedColor}) - no longer available`);
-            } else {
-              unavailableItems.push(`${item.productName} (${item.selectedSize}/${item.selectedColor}) - only ${result.data.availableStock} available`);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to check stock for item:", item.productName, error);
-      }
-    }
-    
-    if (unavailableItems.length > 0) {
-      toast.error("Some items are no longer available in your cart. Please review your cart.");
-      return;
-    }
-
-    // Validate all items have proper variantId if product has variants
-    for (const item of items) {
-      // Check if product has variants (sizes/colors)
-      const hasVariants = (item.selectedSize && item.selectedSize !== "One Size") ||
-        (item.selectedColor && item.selectedColor !== "Default");
-
-      if (hasVariants && !item.variantId) {
-        toast.error(`Please select a valid size/color for "${item.productName}"`);
-        return;
-      }
-    }
-
     // Build the items array for the API using stored variantId
     const orderItems = items.map((item) => ({
       variantId: Number(item.variantId),
       quantity: item.quantity,
+      // Include reservationId if available (stock was reserved when adding to cart)
+      ...(item.reservationId && { reservationId: Number(item.reservationId) }),
     }));
     console.log(orderItems);
 
@@ -173,16 +137,22 @@ const CheckoutPage = () => {
       // Log the full response for debugging
       console.log("Order API Response:", response);
 
-      // Store order ID for receipt download
+      // Store order number for receipt download
       // Try different response formats and fallback to generated ID
-      const receivedOrderId =
-        response?.data?.orderId ||
-        response?.orderId ||
+      const receivedOrderNumber =
+        response?.data?.orderNumber ||
+        response?.orderNumber ||
         response?.data?.id ||
         response?.id;
-      const finalOrderId = receivedOrderId || `ORD-${Date.now()}`;
-      console.log("Order ID:", finalOrderId);
-      setOrderId(finalOrderId);
+      const finalOrderNumber = receivedOrderNumber || `ORD-${Date.now()}`;
+      console.log("Order Number:", finalOrderNumber);
+      setOrderNumber(finalOrderNumber);
+
+      // Also store the order ID for receipt download API
+      const receivedOrderId =
+        response?.data?.id ||
+        response?.id;
+      setOrderId(receivedOrderId || finalOrderNumber);
 
       // Clear cart and show success
       clearCart();
@@ -275,14 +245,14 @@ const CheckoutPage = () => {
           </motion.div>
 
           {/* Order Receipt */}
-          {orderId && (
+          {orderNumber && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="mt-8"
             >
-              <OrderReceipt orderId={orderId} />
+              <OrderReceipt orderId={orderId || orderNumber} orderNumber={orderNumber} />
             </motion.div>
           )}
         </div>
@@ -901,17 +871,6 @@ const CheckoutPage = () => {
         onClose={() => setIsModalOpen(false)}
         address={null}
         onSuccess={handleAddAddressSuccess}
-      />
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            borderRadius: '12px',
-            padding: '16px',
-          },
-        }}
       />
     </div>
   );

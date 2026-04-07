@@ -29,6 +29,8 @@ import { TypeImage } from "@/types";
 // API Response type
 interface ApiOrderResponse {
   id: number;
+  orderNumber: string;
+  invoiceNumber: string;
   userId: number;
   status: string;
   paymentMethod: string;
@@ -77,6 +79,8 @@ interface OrderItem {
 // Detailed Order type
 interface ApiOrderDetailResponse {
   id: number;
+  orderNumber: string;
+  invoiceNumber: string;
   userId: number;
   status: string;
   paymentMethod: string;
@@ -88,6 +92,9 @@ interface ApiOrderDetailResponse {
   };
   createdAt: string;
   updatedAt: string;
+  addressId: number;
+  deliveryType: string;
+  deliveryCharge: string;
 }
 
 // Map API uppercase status to lowercase for display
@@ -316,7 +323,7 @@ const OrdersPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-mono text-sm">#{order.id}</span>
+                    <span className="font-mono text-sm">#{order.orderNumber}</span>
                     <span
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status?.bg || "bg-gray-100"} ${status?.color || "text-gray-600"}`}
                     >
@@ -398,7 +405,7 @@ const OrdersPage = () => {
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <div>
                   <p className="text-label mb-1">Order ID</p>
-                  <p className="text-sm text-muted-foreground">#{order.id}</p>
+                  <p className="text-sm text-muted-foreground">#{order.orderNumber}</p>
                 </div>
                 <button
                   onClick={() => handleViewDetails(order.id)}
@@ -433,7 +440,7 @@ const OrdersPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg">
                 <div>
                   <p className="text-sm text-muted-foreground">Order ID</p>
-                  <p className="font-mono font-medium">#{orderDetails.id}</p>
+                  <p className="font-mono font-medium">#{orderDetails.orderNumber}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>

@@ -6,11 +6,15 @@ import { TiDownloadOutline } from "react-icons/ti";
 
 interface OrderReceiptProps {
   orderId: string;
+  orderNumber?: string;
 }
 
-export function OrderReceipt({ orderId }: OrderReceiptProps) {
+export function OrderReceipt({ orderId, orderNumber }: OrderReceiptProps) {
+  // Use orderNumber if available, otherwise fall back to orderId
+  const displayOrderNumber = orderNumber || orderId;
+  
   // Debug log
-  console.log("OrderReceipt received orderId:", orderId);
+  console.log("OrderReceipt received orderId:", orderId, "orderNumber:", orderNumber);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +141,7 @@ export function OrderReceipt({ orderId }: OrderReceiptProps) {
             <h1 className="text-3xl md:text-5xl font-serif tracking-wide mb-2">
               RECEIPT
             </h1>
-            <p className="text-gray-500 mb-16">Receipt #{orderId}</p>
+            <p className="text-gray-500 mb-16">Receipt # {displayOrderNumber}</p>
 
             <div className="flex justify-end gap-2 text-gray-700">
               <span className="text-gray-500">Issue Date :</span>

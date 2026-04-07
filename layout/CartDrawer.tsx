@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
+import { X, ShoppingBag, Trash2 } from "lucide-react";
 
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -24,6 +24,7 @@ export const CartDrawer = () => {
   } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [variantStockMap, setVariantStockMap] = useState<Record<string | number, number>>({});
 
   // Function to check and release expired reservations
   // When a reservation expires, the backend restores the stock
@@ -56,9 +57,11 @@ export const CartDrawer = () => {
 
   // Function to check stock availability for cart items
   // Only removes items that don't have an active reservation and are out of stock
+  // Also updates variantStockMap with current available stock for UI display
   const checkStockAvailability = async () => {
     const itemsToRemove: Array<{productId: string | number; size: string; color: string; name: string}> = [];
     const itemsToUpdate: Array<{productId: string | number; size: string; color: string; newQuantity: number; name: string}> = [];
+    const newStockMap: Record<string | number, number> = {};
 
     for (const item of items) {
       // Skip items without variantId
@@ -66,11 +69,18 @@ export const CartDrawer = () => {
 
       // Skip items with active reservation - they're still valid
       // The reservation will either be used (order placed) or released (expired/cancelled)
-      if (item.reservationId) continue;
+      if (item.reservationId) {
+        // Items with reservation: available = quantity in cart (reserved)
+        newStockMap[item.variantId] = item.quantity;
+        continue;
+      }
 
       try {
         const result = await stockReservationService.getAvailableStock(Number(item.variantId));
         if (result.success && result.data) {
+          // Store available stock for UI display
+          newStockMap[item.variantId] = result.data.availableStock;
+          
           // If available stock is less than cart quantity, item needs adjustment
           if (result.data.availableStock < item.quantity) {
             if (result.data.availableStock === 0) {
@@ -97,6 +107,9 @@ export const CartDrawer = () => {
         console.error("Failed to check stock for item:", item.productName, error);
       }
     }
+
+    // Update stock map state for UI display
+    setVariantStockMap(newStockMap);
 
     // Remove items that are no longer available
     if (itemsToRemove.length > 0) {
@@ -133,9 +146,15 @@ export const CartDrawer = () => {
   // Check for expired reservations and stock availability when cart opens
   useEffect(() => {
     if (!isOpen || !items.length) return;
-    checkExpiredReservations();
-    checkStockAvailability();
-  }, [isOpen, items]);
+    // Clear stock map when cart opens to ensure fresh data fetch
+    // eslint-disable-next-line no-unused-vars
+    const clearAndCheck = async () => {
+      setVariantStockMap({});
+      await checkExpiredReservations();
+      await checkStockAvailability();
+    };
+    clearAndCheck();
+  }, [isOpen]);
 
   // Don't render until hydrated to prevent flash of empty content
   // The isHydrated flag is set by the persist middleware after rehydration
@@ -299,80 +318,13 @@ export const CartDrawer = () => {
                           </div>
 
                             <div className="mt-auto flex items-center justify-between gap-3">
-                              {/* Quantity */}
-                              <div className="flex items-center bg-muted/50 rounded-full border border-border/50">
-                                <button
-                                  onClick={() => {
-                                    const result = updateQuantity(
-                                      item.productId,
-                                      item.selectedSize,
-                                      item.selectedColor,
-                                      item.quantity - 1
-                                    );
-                                    if (!result.success && result.message) {
-                                      toast.error(result.message);
-                                    }
-                                  }}
-                                  disabled={item.quantity <= 1}
-                                  className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-l-full"
-                                  aria-label="Decrease quantity"
-                                >
-                                  <Minus size={14} strokeWidth={2} />
-                                </button>
-                                <span className="w-8 text-center text-sm font-medium tabular-nums">
+                              {/* Quantity - display only, no +/- buttons */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">Qty:</span>
+                                <span className="text-sm font-medium tabular-nums">
                                   {item.quantity}
                                 </span>
-                                <button
-                                  onClick={async () => {
-                                    // Issue #4: Validate against server stock before increment
-                                    if (item.variantId) {
-                                      try {
-                                        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
-                                        if (result.success && result.data) {
-                                          const serverAvailable = result.data.availableStock;
-                                          const currentTotal = item.quantity; // Current in cart
-                                          
-                                          if (serverAvailable <= currentTotal) {
-                                            if (serverAvailable === 0) {
-                                              toast.error("This item is no longer available");
-                                            } else {
-                                              toast.error(`Only ${serverAvailable} available. You already have ${currentTotal} in your cart.`);
-                                            }
-                                            return;
-                                          }
-                                        }
-                                      } catch (error) {
-                                        console.error("Failed to check stock:", error);
-                                        // Fall back to local validation
-                                      }
-                                    }
-                                    
-                                    const result = updateQuantity(
-                                      item.productId,
-                                      item.selectedSize,
-                                      item.selectedColor,
-                                      item.quantity + 1
-                                    );
-                                    if (!result.success && result.message) {
-                                      toast.error(result.message);
-                                    }
-                                  }}
-                                  disabled={!item.variantStock || item.quantity >= item.variantStock}
-                                  className="w-8 h-8 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed rounded-r-full"
-                                  aria-label="Increase quantity"
-                                >
-                                  <Plus size={14} strokeWidth={2} />
-                                </button>
                               </div>
-
-                              {/* Stock indicator */}
-                              {item.variantStock !== undefined && item.variantStock > 0 && (
-                                <span className={`text-xs ${item.quantity >= item.variantStock ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-                                  {item.quantity >= item.variantStock 
-                                    ? 'Max stock' 
-                                    : `${item.variantStock - item.quantity} left`}
-                                </span>
-                              )}
 
                               {/* Price */}
                               <p className="font-semibold text-sm">
