@@ -112,7 +112,6 @@ const CheckoutPage = () => {
       // Include reservationId if available (stock was reserved when adding to cart)
       ...(item.reservationId && { reservationId: Number(item.reservationId) }),
     }));
-    console.log(orderItems);
 
     // Create the payload
     const payload = {
@@ -121,9 +120,6 @@ const CheckoutPage = () => {
       addressId: selectedAddress?.id,
       deliveryType: deliveryLocation === "inside_dhaka" ? "INSIDE_DHAKA" : "OUTSIDE_DHAKA",
     };
-
-    // Console log the payload
-    console.log("Order Payload:", payload);
 
     try {
       // Make the API call
@@ -134,9 +130,6 @@ const CheckoutPage = () => {
         throw new Error(response?.message || "Failed to create order");
       }
 
-      // Log the full response for debugging
-      console.log("Order API Response:", response);
-
       // Store order number for receipt download
       // Try different response formats and fallback to generated ID
       const receivedOrderNumber =
@@ -145,7 +138,6 @@ const CheckoutPage = () => {
         response?.data?.id ||
         response?.id;
       const finalOrderNumber = receivedOrderNumber || `ORD-${Date.now()}`;
-      console.log("Order Number:", finalOrderNumber);
       setOrderNumber(finalOrderNumber);
 
       // Also store the order ID for receipt download API

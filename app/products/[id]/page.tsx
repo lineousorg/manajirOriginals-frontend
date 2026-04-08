@@ -18,7 +18,6 @@ import {
   Share2,
   Info,
   Package,
-  Ruler,
 } from "lucide-react";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
@@ -64,7 +63,7 @@ const findVariant = (
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [activeTab, setActiveTab] = useState<
     "details" | "shipping" | "returns"
   >("details");
@@ -85,127 +84,41 @@ export default function ProductDetailsPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isRefetchingStock, setIsRefetchingStock] = useState(false);
-  const [serverAvailableStock, setServerAvailableStock] = useState<
-    number | null
-  >(null);
   const prevLastCartChange = useRef<number>(0);
 
-  // Refetch product when cart changes (add/remove/update items)
-  // Only trigger when lastCartChange actually changes, not when product updates
-  useEffect(() => {
-    if (
-      lastCartChange &&
-      lastCartChange !== prevLastCartChange.current &&
-      product
-    ) {
-      prevLastCartChange.current = lastCartChange;
-      setIsRefetchingStock(true);
-      refetch().finally(() => setIsRefetchingStock(false));
-    }
-  }, [lastCartChange]);
+  // Get all sizes
+  const availableSizes = useMemo(() => {
+    if (!product?.sizes) return [];
+    return product.sizes;
+  }, [product?.sizes]);
+  const availableColorsForSelectedSize = useMemo(
+    () => {
+      if (!product?.variants || !selectedSize) return [];
+      const colors: string[] = [];
 
-  // Fetch server available stock when selected variant changes (Issue #2)
-  useEffect(() => {
-    const fetchAvailableStock = async () => {
-      if (!product?.variants || !selectedSize) {
-        setServerAvailableStock(null);
-        return;
-      }
-
-      // Find the current selected variant ID using helper
-      const currentVariant = findVariant(
-        product.variants,
-        selectedSize,
-        selectedColor
-      );
-
-      if (!currentVariant?.id) {
-        setServerAvailableStock(null);
-        return;
-      }
-
-      try {
-        const result = await stockReservationService.getAvailableStock(
-          currentVariant.id
-        );
-        if (result.success && result.data) {
-          setServerAvailableStock(result.data.availableStock);
-        } else {
-          setServerAvailableStock(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch available stock:", error);
-        setServerAvailableStock(null);
-      }
-    };
-
-    fetchAvailableStock();
-  }, [product?.variants, selectedSize, selectedColor]);
-
-  // Extract available colors for a specific size from variants (only with stock > 0)
-  const getColorsForSize = useMemo(
-    () =>
-      (size: string): string[] => {
-        if (!product?.variants || !size) return [];
-        const colors: string[] = [];
-
-        product.variants.forEach((variant: any) => {
-          // Only consider variants with availableStock > 0
-          const available = variant.availableStock ?? variant.stock ?? 0;
-          if (!available || available <= 0) return;
-
-          if (variant.attributes && Array.isArray(variant.attributes)) {
-            const variantSize = variant.attributes.find(
-              (attr: any) =>
-                attr.attributeValue?.attribute?.name === "Size" &&
-                attr.attributeValue?.value === size
+      product.variants.forEach((variant: any) => {
+        if (variant.attributes && Array.isArray(variant.attributes)) {
+          const variantSize = variant.attributes.find(
+            (attr: any) =>
+              attr.attributeValue?.attribute?.name === "Size" &&
+              attr.attributeValue?.value === selectedSize
+          );
+          if (variantSize) {
+            const colorAttr = variant.attributes.find(
+              (attr: any) => attr.attributeValue?.attribute?.name === "Color"
             );
-            if (variantSize) {
-              const colorAttr = variant.attributes.find(
-                (attr: any) => attr.attributeValue?.attribute?.name === "Color"
-              );
-              if (
-                colorAttr?.attributeValue?.value &&
-                !colors.includes(colorAttr.attributeValue.value)
-              ) {
-                colors.push(colorAttr.attributeValue.value);
-              }
+            if (
+              colorAttr?.attributeValue?.value &&
+              !colors.includes(colorAttr.attributeValue.value)
+            ) {
+              colors.push(colorAttr.attributeValue.value);
             }
           }
-        });
-        return colors;
-      },
-    [product?.variants]
-  );
-
-  // Filter sizes to only show those with stock > 0
-  const availableSizes = useMemo(() => {
-    if (!product?.variants || !product?.sizes) return product?.sizes ?? [];
-    const sizesWithStock: string[] = [];
-
-    product.sizes.forEach((size: string) => {
-      // Check if there's any variant with this size that has stock > 0
-      const hasStock = product.variants?.some((variant: any) => {
-        const available = variant.availableStock ?? variant.stock ?? 0;
-        if (!available || available <= 0) return false;
-        const variantSize = variant.attributes?.find(
-          (attr: any) =>
-            attr.attributeValue?.attribute?.name === "Size" &&
-            attr.attributeValue?.value === size
-        );
-        return !!variantSize;
+        }
       });
-
-      if (hasStock) {
-        sizesWithStock.push(size);
-      }
-    });
-
-    return sizesWithStock;
-  }, [product?.variants, product?.sizes]);
-  const availableColorsForSelectedSize = useMemo(
-    () => getColorsForSize(selectedSize),
-    [getColorsForSize, selectedSize]
+      return colors;
+    },
+    [product?.variants, selectedSize]
   );
 
   // Calculate price based on selected variant using helper
@@ -229,12 +142,28 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     if (product && availableSizes.length > 0 && !selectedSize) {
       setSelectedSize(availableSizes[0]);
-      const initialColors = getColorsForSize(availableSizes[0]);
+      // Get all colors for the initial size (including out of stock)
+      const initialColors: string[] = [];
+      product.variants?.forEach((variant: any) => {
+        const variantSize = variant.attributes?.find(
+          (attr: any) =>
+            attr.attributeValue?.attribute?.name === "Size" &&
+            attr.attributeValue?.value === availableSizes[0]
+        );
+        if (variantSize) {
+          const colorAttr = variant.attributes.find(
+            (attr: any) => attr.attributeValue?.attribute?.name === "Color"
+          );
+          if (colorAttr?.attributeValue?.value && !initialColors.includes(colorAttr.attributeValue.value)) {
+            initialColors.push(colorAttr.attributeValue.value);
+          }
+        }
+      });
       if (initialColors.length > 0) {
         setSelectedColor(initialColors[0]);
       }
     }
-  }, [product, availableSizes, getColorsForSize, selectedSize]);
+  }, [product, availableSizes, selectedSize]);
 
   // Update color when size changes
   useEffect(() => {
@@ -281,24 +210,11 @@ export default function ProductDetailsPage() {
     [product?.variants]
   );
 
-  // Get current cart quantity for this variant
-  const currentCartQuantity = useMemo(() => {
-    if (!product) return 0;
-    const size = selectedSize || "One Size";
-    const color = selectedColor || "Default";
-    return getItemQuantity(productId, size, color);
-  }, [product, productId, selectedSize, selectedColor, getItemQuantity]);
-
-  // Calculate available stock for the selected variant
-  // Use serverAvailableStock as primary source (from stock-reservation API), fallback to availableStock from product API, then to stock
-  // Note: Backend already accounts for reservations, so we don't subtract cartQuantity here
+  // Calculate available stock for the selected variant directly from product API
   const selectedVariantAvailableStock =
-    serverAvailableStock !== null
-      ? serverAvailableStock
-      : selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
+    selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
 
   // remainingStock = how many more user can add (available stock after reservations)
-  // Backend already accounts for existing reservations, so we just use availableStock
   const remainingStock = Math.max(0, selectedVariantAvailableStock);
 
   // displayStock = what to show in UI (available minus what user is about to add in current session)
@@ -364,8 +280,12 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    // Check if product is out of stock
-    const isOutOfStock = !product?.totalStock || product.totalStock === 0;
+    // Prevent adding if quantity is 0
+    if (!quantity || quantity <= 0) {
+      toast.error("Please select a quantity");
+      setIsAddingToCart(false);
+      return;
+    }
 
     // Find the variant for reservation using helper
     const selectedVariantInAddToCart = findVariant(
@@ -375,14 +295,18 @@ export default function ProductDetailsPage() {
     );
     const variantId = selectedVariantInAddToCart?.id;
 
+    // Validate variant exists
+    if (!variantId) {
+      toast.error("Selected variant is not available");
+      setIsAddingToCart(false);
+      return;
+    }
+
     // Re-check available stock immediately before reservation to prevent race condition
     // This ensures we have the most up-to-date stock info
-    if (variantId) {
+    try {
       const stockCheck = await stockReservationService.getAvailableStock(variantId);
       if (stockCheck.success && stockCheck.data) {
-        // Update UI with current stock
-        setServerAvailableStock(stockCheck.data.availableStock);
-        
         // If no stock available, don't even try to reserve
         if (stockCheck.data.availableStock < quantity) {
           if (stockCheck.data.availableStock === 0) {
@@ -394,42 +318,27 @@ export default function ProductDetailsPage() {
           return;
         }
       }
+    } catch (error) {
+      console.error("Failed to check stock:", error);
+      toast.error("Unable to verify stock. Please try again.");
+      setIsAddingToCart(false);
+      return;
     }
 
     // Try to reserve stock from backend
     // Backend validates stock availability before decrementing
-    // If reserveStock succeeds, stock has been decremented and reserved
     let reservationResult;
-    if (variantId) {
+    try {
       reservationResult = await stockReservationService.reserveStock(
         variantId,
         quantity,
         15 // 15 minutes expiration
       );
-
-      if (!reservationResult.success) {
-        // Reservation failed - could be race condition, try refreshing stock
-        if (reservationResult.error?.includes("0 items available") || reservationResult.error?.includes("Only 0")) {
-          // Re-fetch available stock to update UI
-          const refreshStock = await stockReservationService.getAvailableStock(variantId);
-          if (refreshStock.success && refreshStock.data) {
-            setServerAvailableStock(refreshStock.data.availableStock);
-          }
-          toast.error("Sorry, this item just became unavailable. We've updated the stock display.");
-        } else {
-          toast.error(reservationResult.error || "Failed to reserve stock");
-        }
-        setIsAddingToCart(false);
-        return;
-      }
-
-      // If we reach here, reservation succeeded - no need for extra validation
-      // Backend ensures availableStock >= quantity before decrementing
-      
-      // Update serverAvailableStock immediately with the new available stock from reservation response
-      if (reservationResult?.data?.availableStock !== undefined) {
-        setServerAvailableStock(reservationResult.data.availableStock);
-      }
+    } catch (error) {
+      console.error("Failed to reserve stock:", error);
+      toast.error("Unable to reserve stock. Please try again.");
+      setIsAddingToCart(false);
+      return;
     }
 
     // Add item to cart - returns { success, isExisting }
@@ -475,11 +384,13 @@ export default function ProductDetailsPage() {
       toast.success("Added to bag!");
     }
 
-    // Reset quantity after successful add
+    // Reset quantity after successful add (set to 0 for next item)
     setQuantity(0);
     setIsAddingToCart(false);
-    // Note: We don't need to refetch here since stock is decremented on reservation
-    // The availableStock will be updated when user changes variants or on next visit
+
+    // Refetch product to get updated stock (reservation decrements backend stock)
+    setIsRefetchingStock(true);
+    refetch().finally(() => setIsRefetchingStock(false));
   };
 
   const handleShare = async () => {
@@ -552,8 +463,6 @@ export default function ProductDetailsPage() {
       </div>
     );
   }
-
-  console.log(isRefetchingStock);
 
   return (
     <div className="pt-24 md:pt-32 pb-20">
@@ -797,12 +706,7 @@ export default function ProductDetailsPage() {
                         : "text-green-600"
                     }`}
                   >
-                    {isRefetchingStock ? (
-                      <span className="inline-flex items-center gap-1">
-                        <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                        Updating...
-                      </span>
-                    ) : remainingStock > 0 ? (
+                    {remainingStock > 0 ? (
                       quantity > 0 ? (
                         `${displayStock} available`
                       ) : (
@@ -883,7 +787,17 @@ export default function ProductDetailsPage() {
                 }`}
               >
                 <AnimatePresence mode="wait">
-                  {isOutOfStock ? (
+                  {quantity <= 0 ? (
+                    <motion.span
+                      key="selectqty"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      Select Quantity
+                    </motion.span>
+                  ) : isOutOfStock ? (
                     <motion.span
                       key="outofstock"
                       initial={{ opacity: 0, y: 10 }}
@@ -1193,7 +1107,9 @@ export default function ProductDetailsPage() {
             }
             className="flex-1 btn-primary-fashion h-12 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {isOutOfStock
+            {quantity <= 0
+              ? "Select Quantity"
+              : isOutOfStock
               ? "Out of Stock"
               : isStockExceeded
               ? "Max Stock Reached"

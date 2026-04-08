@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag, Trash2 } from "lucide-react";
+import { X, ShoppingBag, Trash2, Clock } from "lucide-react";
 
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -17,14 +17,22 @@ export const CartDrawer = () => {
     isOpen,
     closeCart,
     removeItem,
-    updateQuantity,
     getTotal,
     isHydrated,
-    getItemStock,
   } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [variantStockMap, setVariantStockMap] = useState<Record<string | number, number>>({});
+  // Force re-render every second to update countdown timers
+  const [, setTick] = useState(0);
+
+  // Update countdown every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Function to check and release expired reservations
   // When a reservation expires, the backend restores the stock
@@ -39,10 +47,21 @@ export const CartDrawer = () => {
         if (expiresAt < now) {
           hasExpiredItems = true;
           // Try to release the reservation on backend (restores stock)
+          // Note: This might fail with 404 if the reservation was already expired/released
+          // by the backend's own cleanup process - that's OK, we just need to
+          // remove the item from cart in that case
           try {
             await stockReservationService.releaseReservation(item.reservationId);
           } catch (error) {
-            console.error("Failed to release expired reservation:", error);
+            // If 404 (reservation not found or already released), that's expected
+            // for reservations that expired via backend cleanup - just log it
+            const errorObj = error as { response?: { data?: { message?: string } } };
+            const errorMessage = errorObj?.response?.data?.message || "";
+            if (errorMessage.includes("not found") || errorMessage.includes("already released") || errorMessage.includes("expired")) {
+              console.log("Reservation already expired on backend, removing from cart:", item.reservationId);
+            } else {
+              console.error("Failed to release expired reservation:", error);
+            }
           }
           // Remove expired item from cart
           removeItem(item.productId, item.selectedSize, item.selectedColor);
@@ -120,16 +139,23 @@ export const CartDrawer = () => {
         `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`
       );
     }
+  };
 
-    // Update items with reduced quantity
-    if (itemsToUpdate.length > 0) {
-      itemsToUpdate.forEach((item) => {
-        updateQuantity(item.productId, item.size, item.color, item.newQuantity);
-      });
-      toast.error(
-        `Some items in your cart have reduced availability. Quantities have been updated.`
-      );
+  // Helper to format time remaining
+  const getTimeRemaining = (expiresAt: string): string => {
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
+
+    if (diff <= 0) return "Expired";
+
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
     }
+    return `${seconds}s`;
   };
 
   // Reset signup modal when cart closes - must be called before early return
@@ -318,6 +344,14 @@ export const CartDrawer = () => {
                           </div>
 
                             <div className="mt-auto flex items-center justify-between gap-3">
+                              {/* Reservation countdown if applicable */}
+                              {item.reservationId && item.expiresAt && (
+                                <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                  <Clock size={12} />
+                                  <span className="tabular-nums">{getTimeRemaining(item.expiresAt)}</span>
+                                </div>
+                              )}
+
                               {/* Quantity - display only, no +/- buttons */}
                               <div className="flex items-center gap-2">
                                 <span className="text-sm text-muted-foreground">Qty:</span>

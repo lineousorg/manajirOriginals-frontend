@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product } from '@/types';
+import { stockReservationService } from '@/services/stock-reservation.service';
 
 // Minimal cart item interface to reduce localStorage size
 interface MinimalCartItem {
@@ -166,7 +167,7 @@ export const useCartStore = create<CartState>()(
         return { success: true, isExisting };
       },
 
-      removeItem: (productId, size, color) => {
+      removeItem: async (productId, size, color) => {
         // Get the item before removing to check for reservation
         const { items } = get();
         const itemToRemove = items.find(
@@ -176,9 +177,15 @@ export const useCartStore = create<CartState>()(
             item.selectedColor === color
         );
         
-        // If there's a reservation, we should release it
-        // Note: The actual API call to release should be done from the component
-        // This just removes from local state
+        // If there's a reservation, release it before removing
+        if (itemToRemove?.reservationId) {
+          try {
+            await stockReservationService.releaseReservation(itemToRemove.reservationId);
+          } catch (error) {
+            console.error('Failed to release reservation:', error);
+          }
+        }
+
         set((state) => ({
           items: state.items.filter(
             (item) =>
@@ -231,7 +238,22 @@ export const useCartStore = create<CartState>()(
         return { success: true };
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: async () => {
+        // Get all items with reservations and release them
+        const { items } = get();
+        
+        // Release all reservations in parallel
+        const releasePromises = items
+          .filter((item) => item.reservationId)
+          .map((item) =>
+            stockReservationService.releaseReservation(item.reservationId!).catch((error) => {
+              console.error('Failed to release reservation:', error);
+            })
+          );
+        
+        await Promise.all(releasePromises);
+        set({ items: [], lastCartChange: Date.now() });
+      },
 
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),

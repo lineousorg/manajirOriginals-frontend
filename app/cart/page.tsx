@@ -131,39 +131,10 @@ const CartPage = () => {
                 </div>
 
                 <div className="mt-auto flex items-end justify-between">
-                  <div className="flex items-center border border-border rounded-md">
-                    <button
-                      onClick={() =>
-                        updateQuantity(
-                          item.productId,
-                          item.selectedSize,
-                          item.selectedColor,
-                          item.quantity - 1
-                        )
-                      }
-                      disabled={item.quantity <= 1}
-                      className="p-2 hover:bg-muted transition-colors disabled:opacity-50"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <span className="px-4 text-sm font-medium">
+                  <div className="flex items-center border border-border rounded-md py-2 px-4">
+                    <span className="text-sm font-medium">
                       {item.quantity}
                     </span>
-                    <button
-                      onClick={() =>
-                        updateQuantity(
-                          item.productId,
-                          item.selectedSize,
-                          item.selectedColor,
-                          item.quantity + 1
-                        )
-                      }
-                      className="p-2 hover:bg-muted transition-colors"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus size={16} />
-                    </button>
                   </div>
                   <p className="text-lg font-medium">
                     ৳{item.productPrice * item.quantity}
