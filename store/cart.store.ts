@@ -25,7 +25,7 @@ interface CartState {
   isHydrated: boolean;
   lastCartChange: number; // Timestamp for tracking cart changes
   addItem: (product: Product, size: string, color: string, quantity?: number, reservationId?: number, expiresAt?: string) => { success: boolean; isExisting: boolean };
-  removeItem: (productId: string | number, size: string, color: string) => void;
+  removeItem: (productId: string | number, size: string, color: string, skipRelease?: boolean) => void;
   updateQuantity: (productId: string | number, size: string, color: string, quantity: number) => { success: boolean; message?: string };
   clearCart: () => void;
   openCart: () => void;
@@ -167,7 +167,7 @@ export const useCartStore = create<CartState>()(
         return { success: true, isExisting };
       },
 
-      removeItem: async (productId, size, color) => {
+      removeItem: async (productId, size, color, skipRelease = false) => {
         // Get the item before removing to check for reservation
         const { items } = get();
         const itemToRemove = items.find(
@@ -177,12 +177,35 @@ export const useCartStore = create<CartState>()(
             item.selectedColor === color
         );
         
-        // If there's a reservation, release it before removing
-        if (itemToRemove?.reservationId) {
-          try {
-            await stockReservationService.releaseReservation(itemToRemove.reservationId);
-          } catch (error) {
-            console.error('Failed to release reservation:', error);
+        // If there's a reservation and skipRelease is false, release it before removing
+        // Note: skipRelease is used when the caller (like CartDrawer) has already handled the release
+        if (!skipRelease && itemToRemove?.reservationId) {
+          // Check if reservation has already expired
+          if (itemToRemove.expiresAt) {
+            const expiresAtTime = new Date(itemToRemove.expiresAt).getTime();
+            const now = Date.now();
+            if (expiresAtTime < now) {
+              console.log('[DEBUG] Reservation already expired, skipping release:', itemToRemove.reservationId);
+            } else {
+              console.log('[DEBUG] Releasing reservation:', itemToRemove.reservationId, 'expires:', itemToRemove.expiresAt);
+              try {
+                const result = await stockReservationService.releaseReservation(itemToRemove.reservationId);
+                if (!result.success) {
+                  console.error('[DEBUG] Failed to release reservation:', result.error);
+                } else {
+                  console.log('[DEBUG] Successfully released reservation:', itemToRemove.reservationId);
+                }
+              } catch (error) {
+                console.error('[DEBUG] Error releasing reservation:', error);
+              }
+            }
+          } else {
+            console.log('[DEBUG] No expiresAt, releasing reservation:', itemToRemove.reservationId);
+            try {
+              await stockReservationService.releaseReservation(itemToRemove.reservationId);
+            } catch (error) {
+              console.error('Failed to release reservation:', error);
+            }
           }
         }
 

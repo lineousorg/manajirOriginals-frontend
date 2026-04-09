@@ -325,15 +325,35 @@ export const CartDrawer = () => {
                               onClick={async () => {
                                 // Release reservation if exists before removing
                                 if (item.reservationId) {
-                                  const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
-                                  if (!releaseResult.success) {
-                                    console.error("Failed to release reservation:", releaseResult.error);
+                                  // Check if reservation has already expired
+                                  if (item.expiresAt) {
+                                    const expiresAtTime = new Date(item.expiresAt).getTime();
+                                    const now = Date.now();
+                                    if (expiresAtTime < now) {
+                                      console.log('[DEBUG] Reservation already expired in CartDrawer, skipping release:', item.reservationId);
+                                    } else {
+                                      console.log('[DEBUG] Releasing reservation from CartDrawer:', item.reservationId, 'expires:', item.expiresAt);
+                                      const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
+                                      if (!releaseResult.success) {
+                                        console.error('[DEBUG] Failed to release reservation from CartDrawer:', releaseResult.error);
+                                      } else {
+                                        console.log('[DEBUG] Successfully released reservation from CartDrawer:', item.reservationId);
+                                      }
+                                    }
+                                  } else {
+                                    // No expiresAt, try to release anyway
+                                    console.log('[DEBUG] No expiresAt in CartDrawer, releasing reservation:', item.reservationId);
+                                    const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
+                                    if (!releaseResult.success) {
+                                      console.error("Failed to release reservation:", releaseResult.error);
+                                    }
                                   }
                                 }
                                 removeItem(
                                   item.productId,
                                   item.selectedSize,
-                                  item.selectedColor
+                                  item.selectedColor,
+                                  true // skipRelease: CartDrawer already handled the release
                                 );
                               }}
                               className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-2 -mt-2"

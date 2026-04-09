@@ -177,6 +177,17 @@ export default function ProductDetailsPage() {
     }
   }, [selectedSize, availableColorsForSelectedSize, selectedColor]);
 
+  // Refetch product stock when cart changes (add, remove, or update items)
+  useEffect(() => {
+    // Skip on initial mount (when prevLastCartChange is 0)
+    if (lastCartChange > 0 && lastCartChange !== prevLastCartChange.current) {
+      console.log('[DEBUG] Cart changed, refetching stock:', lastCartChange);
+      prevLastCartChange.current = lastCartChange;
+      setIsRefetchingStock(true);
+      refetch().finally(() => setIsRefetchingStock(false));
+    }
+  }, [lastCartChange, refetch]);
+
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return globalProducts
@@ -188,31 +199,49 @@ export default function ProductDetailsPage() {
   const inWishlist = product ? isInWishlist(productId) : false;
 
   // Get stock for a specific size (sum across all colors for that size)
+  // NOTE: Using stock directly instead of availableStock because availableStock
+  // has a bug where it's being over-reduced (showing 0 when stock is 1)
   const getStockForSize = useMemo(
     () =>
       (size: string): number => {
-        if (!product?.variants) return 0;
+        if (!product?.variants) {
+          console.log('[DEBUG] getStockForSize: no variants', { productId: product?.id, size });
+          return 0;
+        }
         let totalStock = 0;
+        const debugVariants: any[] = [];
         product.variants.forEach((variant: any) => {
           const variantSize = variant.attributes?.find(
             (attr: any) =>
               attr.attributeValue?.attribute?.name === "Size" &&
               attr.attributeValue?.value === size
           );
-          // Use availableStock instead of stock
-          const available = variant.availableStock ?? variant.stock ?? 0;
+          // Use stock instead of availableStock to avoid incorrect stock display
+          // availableStock has a bug where it's being over-reduced by reservations
+          const available = variant.stock ?? 0;
+          debugVariants.push({
+            id: variant.id,
+            sku: variant.sku,
+            stock: variant.stock,
+            availableStock: variant.availableStock,
+            available,
+            variantSize: !!variantSize,
+            sizeAttr: variant.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Size")?.attributeValue?.value
+          });
           if (variantSize && available > 0) {
             totalStock += available;
           }
         });
+        console.log('[DEBUG] getStockForSize:', { size, totalStock, variants: debugVariants });
         return totalStock;
       },
     [product?.variants]
   );
 
   // Calculate available stock for the selected variant directly from product API
+  // Using stock instead of availableStock to avoid incorrect stock display
   const selectedVariantAvailableStock =
-    selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
+    selectedVariant?.stock ?? selectedVariant?.availableStock ?? 0;
 
   // remainingStock = how many more user can add (available stock after reservations)
   const remainingStock = Math.max(0, selectedVariantAvailableStock);
@@ -706,7 +735,15 @@ export default function ProductDetailsPage() {
                         : "text-green-600"
                     }`}
                   >
-                    {remainingStock > 0 ? (
+                    {isRefetchingStock ? (
+                      <span className="flex items-center gap-1">
+                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Updating...
+                      </span>
+                    ) : remainingStock > 0 ? (
                       quantity > 0 ? (
                         `${displayStock} available`
                       ) : (
