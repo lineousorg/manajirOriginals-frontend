@@ -328,10 +328,6 @@ export default function ProductDetailsPage() {
   const categories = product ? getProductCategories(product) : null;
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      router.push("/login");
-      return;
-    }
     if (!product) return;
 
     if ((product.sizes ?? []).length > 0 && !selectedSize) {
@@ -939,10 +935,6 @@ export default function ProductDetailsPage() {
               </motion.button>
               <motion.button
                 onClick={() => {
-                  if (!isAuthenticated) {
-                    router.push("/login");
-                    return;
-                  }
                   toggleItem({
                     ...product,
                     id: productId,
