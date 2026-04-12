@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -24,24 +24,35 @@ declare global {
           "expired-callback": () => void;
           "error-callback": () => void;
         }
-      ) => string;
-      reset: (widgetId?: string) => void;
-      getResponse: (widgetId?: string) => string;
+      ) => number;
+      reset: (widgetId?: number | string) => void;
+      getResponse: (widgetId?: number | string) => string;
+      execute: (widgetId?: number | string) => void;
     };
     recaptchaOnLoad: () => void;
   }
 }
 
-export const GuestCheckoutModal = ({ isOpen, onClose }: GuestCheckoutModalProps) => {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [recaptchaReady, setRecaptchaReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [captchaWidgetId, setCaptchaWidgetId] = useState<number | null>(null);
+// Generate unique ID for reCAPTCHA container
+const getUniqueContainerId = () => `guest-recaptcha-container-${Date.now()}`;
 
-  // Recaptcha callbacks - must be defined before use in render
+export const GuestCheckoutModal = ({
+  isOpen,
+  onClose,
+}: GuestCheckoutModalProps) => {
+  const router = useRouter();
+  const [selectedOption, setSelectedOption] = useState<"login" | "guest" | null>(null);
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [containerId] = useState(getUniqueContainerId);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const captchaWidgetIdRef = useRef<number | null>(null);
+  const [captchaWidgetId, setCaptchaWidgetId] = useState<number | null>(null);
+  const scriptLoadedRef = useRef(false);
+
+  // Recaptcha callbacks
   const handleRecaptchaSuccess = useCallback((token: string) => {
     setVerifying(true);
     setError(null);
@@ -77,38 +88,71 @@ export const GuestCheckoutModal = ({ isOpen, onClose }: GuestCheckoutModalProps)
     }
   }, []);
 
-  // Load reCAPTCHA script
+  // Load reCAPTCHA script - runs once when guest option is selected
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || selectedOption !== "guest") return;
 
-    // Check if already loaded
-    if (window.grecaptcha && recaptchaReady) {
+    // Reset state for fresh render
+    setRecaptchaReady(false);
+    setVerified(false);
+    setError(null);
+    captchaWidgetIdRef.current = null;
+    scriptLoadedRef.current = false;
+
+    // Check if already loaded globally
+    if (window.grecaptcha && typeof window.grecaptcha.render === "function") {
+      setRecaptchaReady(true);
+      scriptLoadedRef.current = true;
       return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`;
+    script.src = "https://www.google.com/recaptcha/api.js?hl=en";
     script.async = true;
     script.defer = true;
 
     script.onload = () => {
-      setRecaptchaReady(true);
+      // Verify grecaptcha is fully available
+      if (window.grecaptcha && typeof window.grecaptcha.render === "function") {
+        setRecaptchaReady(true);
+        scriptLoadedRef.current = true;
+      } else {
+        setError("Failed to initialize verification. Please try again.");
+      }
+    };
+
+    script.onerror = () => {
+      setError("Failed to load verification. Please check your connection.");
     };
 
     document.body.appendChild(script);
 
     return () => {
-      // Cleanup if needed
+      // Cleanup on unmount or when modal closes
+      // We don't remove the script as it may be used elsewhere
     };
-  }, [isOpen, recaptchaReady]);
+  }, [isOpen, selectedOption]);
 
-  // Render reCAPTCHA when ready
+  // Render reCAPTCHA widget - runs when recaptcha is ready
   useEffect(() => {
-    if (!isOpen || !recaptchaReady || verified) return;
+    if (!isOpen || selectedOption !== "guest" || !recaptchaReady || verified) return;
 
-    const container = document.getElementById("guest-recaptcha-container");
-    if (container && !captchaWidgetId) {
-      try {
+    // Find the container
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Check if reCAPTCHA is available
+    if (!window.grecaptcha || typeof window.grecaptcha.render !== "function") {
+      setError("Verification service unavailable. Please refresh and try again.");
+      return;
+    }
+
+    // Check if widget already exists on this container
+    try {
+      // Use a data attribute to track if we've already rendered
+      const hasWidget = container.getAttribute("data-recaptcha-rendered") === "true";
+      
+      if (!hasWidget) {
         const widgetId = window.grecaptcha.render(container, {
           sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "",
           theme: "light",
@@ -117,16 +161,47 @@ export const GuestCheckoutModal = ({ isOpen, onClose }: GuestCheckoutModalProps)
           "expired-callback": handleRecaptchaExpired,
           "error-callback": handleRecaptchaError,
         });
-        setCaptchaWidgetId(widgetId);
-      } catch (err) {
-        console.error("reCAPTCHA render error:", err);
+        
+        captchaWidgetIdRef.current = widgetId;
+        container.setAttribute("data-recaptcha-rendered", "true");
       }
+    } catch (err) {
+      console.error("reCAPTCHA render error:", err);
+      setError("Failed to load captcha. Please try again.");
     }
-  }, [isOpen, recaptchaReady, verified, captchaWidgetId]);
+  }, [isOpen, selectedOption, recaptchaReady, verified, containerId, handleRecaptchaSuccess, handleRecaptchaExpired, handleRecaptchaError]);
+
+  // Reset on close
+  useEffect(() => {
+    if (!isOpen) {
+      // Clear widget when modal closes
+      const widgetId = captchaWidgetIdRef.current;
+      if (typeof widgetId === "number" && window.grecaptcha) {
+        try {
+          window.grecaptcha.reset(widgetId);
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+      }
+      
+      captchaWidgetIdRef.current = null;
+      setSelectedOption(null);
+      setCaptchaWidgetId(null);
+      setRecaptchaReady(false);
+      setVerified(false);
+      setError(null);
+      scriptLoadedRef.current = false;
+    }
+  }, [isOpen]);
 
   const handleClose = () => {
     setError(null);
     setVerified(false);
+    setSelectedOption(null);
+    setCaptchaWidgetId(null);
+    setRecaptchaReady(false);
+    scriptLoadedRef.current = false;
+    
     if (typeof window !== "undefined") {
       localStorage.removeItem("recaptchaToken");
     }
@@ -134,14 +209,38 @@ export const GuestCheckoutModal = ({ isOpen, onClose }: GuestCheckoutModalProps)
   };
 
   const handleContinueAsGuest = () => {
-    // Trigger reCAPTCHA if not verified
-    if (!verified && captchaWidgetId !== null) {
+    // Trigger reCAPTCHA verification
+    const widgetId = captchaWidgetIdRef.current;
+    if (!verified && typeof widgetId === "number" && window.grecaptcha) {
       try {
-        window.grecaptcha.reset(captchaWidgetId as unknown as string);
+        window.grecaptcha.execute(widgetId);
       } catch (err) {
-        console.error("reCAPTCHA reset error:", err);
+        // If execute fails, try reset to show the checkbox
+        try {
+          window.grecaptcha.reset(widgetId as number);
+        } catch (resetErr) {
+          console.error("reCAPTCHA reset error:", resetErr);
+        }
       }
     }
+  };
+
+  const handleGoBack = () => {
+    // Clear the widget before going back
+    const widgetId = captchaWidgetIdRef.current;
+    if (typeof widgetId === "number" && window.grecaptcha) {
+      try {
+        window.grecaptcha.reset(widgetId);
+      } catch (e) {
+        // Ignore
+      }
+    }
+    
+    captchaWidgetIdRef.current = null;
+    setSelectedOption(null);
+    setCaptchaWidgetId(null);
+    setRecaptchaReady(false);
+    scriptLoadedRef.current = false;
   };
 
   return (
@@ -191,63 +290,126 @@ export const GuestCheckoutModal = ({ isOpen, onClose }: GuestCheckoutModalProps)
 
               {/* Content */}
               <div className="px-6 pb-6 space-y-4">
-                {/* reCAPTCHA Container */}
-                <div className="flex justify-center">
-                  <div id="guest-recaptcha-container" />
-                </div>
-
-                {/* Error Message */}
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex items-center gap-2 p-3 rounded-lg text-sm bg-red-50 text-red-700"
+                {!selectedOption ? (
+                  <>
+                    {/* Login Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleClose();
+                        router.push("/login");
+                      }}
+                      className="btn-primary-fashion w-full rounded-lg flex items-center justify-center gap-2"
                     >
-                      <AlertCircle size={18} />
-                      {error}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <User size={18} />
+                      Login to Account
+                    </button>
 
-                {/* Success Message */}
-                <AnimatePresence>
-                  {verified && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex items-center gap-2 p-3 rounded-lg text-sm bg-green-50 text-green-700"
+                    {/* Divider */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-gray-500">
+                          or
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Guest Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOption("guest")}
+                      className="w-full rounded-lg flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-primary/5 transition-colors text-gray-700"
                     >
-                      <CheckCircle size={18} />
-                      Verification successful! Redirecting...
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      Continue as Guest
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Back button */}
+                    <button
+                      type="button"
+                      onClick={handleGoBack}
+                      className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                    >
+                      ← Back to options
+                    </button>
 
-                {/* Continue Button */}
-                {!verified && (
-                  <button
-                    type="button"
-                    onClick={handleContinueAsGuest}
-                    disabled={verifying || !recaptchaReady}
-                    className="btn-primary-fashion w-full rounded-lg flex items-center justify-center gap-2"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Verifying...
-                      </>
+                    {/* reCAPTCHA Container */}
+                    {recaptchaReady ? (
+                      <div className="flex justify-center">
+                        <div 
+                          id={containerId} 
+                          ref={containerRef}
+                          className="g-recaptcha-container"
+                        />
+                      </div>
                     ) : (
-                      "Continue as Guest"
+                      <div className="flex justify-center py-4">
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Loader2 size={18} className="animate-spin" />
+                          <span className="text-sm">Loading verification...</span>
+                        </div>
+                      </div>
                     )}
-                  </button>
-                )}
 
-                <p className="text-center text-xs text-gray-500">
-                  Verified users can proceed to checkout without creating an account
-                </p>
+                    {/* Error Message */}
+                    <AnimatePresence>
+                      {error && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex items-center gap-2 p-3 rounded-lg text-sm bg-red-50 text-red-700"
+                        >
+                          <AlertCircle size={18} />
+                          {error}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Success Message */}
+                    <AnimatePresence>
+                      {verified && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex items-center gap-2 p-3 rounded-lg text-sm bg-green-50 text-green-700"
+                        >
+                          <CheckCircle size={18} />
+                          Verification successful! Redirecting...
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Continue Button */}
+                    {!verified && (
+                      <button
+                        type="button"
+                        onClick={handleContinueAsGuest}
+                        disabled={verifying || !recaptchaReady}
+                        className="btn-primary-fashion w-full rounded-lg flex items-center justify-center gap-2"
+                      >
+                        {verifying ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          "Continue to Checkout"
+                        )}
+                      </button>
+                    )}
+
+                    <p className="text-center text-xs text-gray-500">
+                      Verified users can proceed to checkout without creating an
+                      account
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
