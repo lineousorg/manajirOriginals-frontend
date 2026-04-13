@@ -6,7 +6,7 @@ import { X, ShoppingBag, Trash2, Clock } from "lucide-react";
 
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
-import { SignupModal } from "@/components/auth/SignupModal";
+import { GuestCheckoutModal } from "@/components/auth/GuestCheckoutModal";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
@@ -189,17 +189,11 @@ export const CartDrawer = () => {
   }
 
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      // Close cart and show signup modal
-      closeCart();
-      // Use setTimeout to ensure cart closes first, then show modal
-      setTimeout(() => {
-        setShowSignupModal(true);
-      }, 350);
-    } else {
-      // User is logged in, proceed to checkout
-      window.location.href = "/checkout";
-    }
+    // For guest checkout - always show modal when clicking checkout
+    closeCart();
+    setTimeout(() => {
+      setShowSignupModal(true);
+    }, 350);
   };
 
   return (
@@ -436,8 +430,8 @@ export const CartDrawer = () => {
         )}
       </AnimatePresence>
 
-      {/* Signup Modal - rendered independently */}
-      <SignupModal
+      {/* Guest Checkout Modal - rendered independently */}
+      <GuestCheckoutModal
         isOpen={showSignupModal}
         onClose={() => setShowSignupModal(false)}
       />

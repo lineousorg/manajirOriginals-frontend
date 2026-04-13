@@ -9,9 +9,7 @@ import { usePathname } from "next/navigation";
 const footerLinks = {
   shop: [
     { label: "All Products", href: "/products" },
-    { label: "Coats & Jackets", href: "/products?category=coats" },
-    { label: "Dresses", href: "/products?category=dresses" },
-    { label: "Tops", href: "/products?category=tops" },
+
   ],
   help: [
     { label: "Contact Us", href: "#" },

@@ -1,16 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Minus, Plus, X, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
+import { useAuthStore } from "@/store/auth.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart, isHydrated } =
     useCartStore();
+  const { isAuthenticated } = useAuthStore();
 
   const [deliveryLocation, setDeliveryLocation] = useState<
     "inside_dhaka" | "outside_dhaka"
@@ -203,10 +205,18 @@ const CartPage = () => {
               </div>
             </div>
 
-            <Link href="/checkout" className="btn-primary-fashion w-full mt-6">
-              Proceed to Checkout
-              <ArrowRight size={18} className="ml-2" />
-            </Link>
+            {/* For unauthenticated users, redirect to guest checkout with verification */}
+            {!isAuthenticated ? (
+              <Link href="/checkout?guest=true" className="btn-primary-fashion w-full mt-6">
+                Proceed to Checkout
+                <ArrowRight size={18} className="ml-2" />
+              </Link>
+            ) : (
+              <Link href="/checkout" className="btn-primary-fashion w-full mt-6">
+                Proceed to Checkout
+                <ArrowRight size={18} className="ml-2" />
+              </Link>
+            )}
 
             <Link
               href="/products"
