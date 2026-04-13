@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,13 +27,12 @@ import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast from "react-hot-toast";
 
-const CheckoutPage = () => {
+const CheckoutPageContent = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   const { post, loading } = useApi();
   const searchParams = useSearchParams();
 
-  // Check if user is a guest (from guest checkout)
   const isGuest = searchParams.get("guest") === "true";
 
   // Ensure cart drawer is closed when checkout page loads
@@ -1117,6 +1116,14 @@ const CheckoutPage = () => {
         onSuccess={handleAddAddressSuccess}
       />
     </div>
+  );
+};
+
+const CheckoutPage = () => {
+  return (
+    <Suspense fallback={<CheckoutSkeleton />}>
+      <CheckoutPageContent />
+    </Suspense>
   );
 };
 
