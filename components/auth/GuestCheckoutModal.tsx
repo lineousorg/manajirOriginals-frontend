@@ -3,6 +3,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { GoogleRecaptcha } from "@/types";
+
+// Make this file a module so the global declaration works
+export {};
 import { X, User, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -13,25 +17,15 @@ interface GuestCheckoutModalProps {
 
 declare global {
   interface Window {
-    grecaptcha: {
-      render: (
-        element: string | HTMLElement,
-        options: {
-          sitekey: string;
-          theme?: "light" | "dark";
-          size?: "normal" | "compact" | "invisible";
-          callback: (token: string) => void;
-          "expired-callback": () => void;
-          "error-callback": () => void;
-        }
-      ) => number;
-      reset: (widgetId?: number | string) => void;
-      getResponse: (widgetId?: number | string) => string;
-      execute: (widgetId?: number | string) => void;
-    };
-    recaptchaOnLoad: () => void;
+    grecaptcha?: GoogleRecaptcha;
+    recaptchaOnLoad?: () => void;
   }
 }
+
+// Helper function to get properly typed grecaptcha instance
+const getGrecaptcha = (): GoogleRecaptcha | undefined => {
+  return window.grecaptcha as GoogleRecaptcha | undefined;
+};
 
 // Generate unique ID for reCAPTCHA container
 const getUniqueContainerId = () => `guest-recaptcha-container-${Date.now()}`;
@@ -99,10 +93,25 @@ export const GuestCheckoutModal = ({
     captchaWidgetIdRef.current = null;
     scriptLoadedRef.current = false;
 
-    // Check if already loaded globally
-    if (window.grecaptcha && typeof window.grecaptcha.render === "function") {
-      setRecaptchaReady(true);
-      scriptLoadedRef.current = true;
+    // Check if already loaded globally - use ready() for timing safety
+    const grecap = getGrecaptcha();
+    if (grecap) {
+      grecap.ready(() => {
+        setRecaptchaReady(true);
+        scriptLoadedRef.current = true;
+      });
+      return;
+    }
+
+    // Prevent duplicate script loading
+    if (document.querySelector('script[src*="recaptcha/api.js"]')) {
+      const grecap = getGrecaptcha();
+      if (grecap) {
+        grecap.ready(() => {
+          setRecaptchaReady(true);
+          scriptLoadedRef.current = true;
+        });
+      }
       return;
     }
 
@@ -112,13 +121,17 @@ export const GuestCheckoutModal = ({
     script.defer = true;
 
     script.onload = () => {
-      // Verify grecaptcha is fully available
-      if (window.grecaptcha && typeof window.grecaptcha.render === "function") {
+      // Use grecaptcha.ready() to ensure full initialization
+      const grecap = getGrecaptcha();
+      if (!grecap) {
+        setError("Failed to load verification.");
+        return;
+      }
+
+      grecap.ready(() => {
         setRecaptchaReady(true);
         scriptLoadedRef.current = true;
-      } else {
-        setError("Failed to initialize verification. Please try again.");
-      }
+      });
     };
 
     script.onerror = () => {
@@ -141,44 +154,47 @@ export const GuestCheckoutModal = ({
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Check if reCAPTCHA is available
-    if (!window.grecaptcha || typeof window.grecaptcha.render !== "function") {
-      setError("Verification service unavailable. Please refresh and try again.");
+    // Check if reCAPTCHA is available - use ready() for timing safety
+    const grecap = getGrecaptcha();
+    if (!grecap) {
       return;
     }
 
-    // Check if widget already exists on this container
-    try {
-      // Use a data attribute to track if we've already rendered
-      const hasWidget = container.getAttribute("data-recaptcha-rendered") === "true";
-      
-      if (!hasWidget) {
-        const widgetId = window.grecaptcha.render(container, {
-          sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "",
-          theme: "light",
-          size: "normal",
-          callback: handleRecaptchaSuccess,
-          "expired-callback": handleRecaptchaExpired,
-          "error-callback": handleRecaptchaError,
-        });
+    // Use ready() to ensure grecaptcha is fully initialized
+    grecap.ready(() => {
+      // Check if widget already exists on this container
+      try {
+        // Use a data attribute to track if we've already rendered
+        const hasWidget = container.getAttribute("data-recaptcha-rendered") === "true";
         
-        captchaWidgetIdRef.current = widgetId;
-        container.setAttribute("data-recaptcha-rendered", "true");
+        if (!hasWidget && grecap) {
+          const widgetId = grecap.render(container, {
+            sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "",
+            theme: "light",
+            size: "normal",
+            callback: handleRecaptchaSuccess,
+            "expired-callback": handleRecaptchaExpired,
+            "error-callback": handleRecaptchaError,
+          });
+          
+          captchaWidgetIdRef.current = widgetId;
+          container.setAttribute("data-recaptcha-rendered", "true");
+        }
+      } catch (err) {
+        console.error("reCAPTCHA render error:", err);
+        setError("Failed to load captcha. Please try again.");
       }
-    } catch (err) {
-      console.error("reCAPTCHA render error:", err);
-      setError("Failed to load captcha. Please try again.");
-    }
-  }, [isOpen, selectedOption, recaptchaReady, verified, containerId, handleRecaptchaSuccess, handleRecaptchaExpired, handleRecaptchaError]);
+    });
+  });
 
-  // Reset on close
   useEffect(() => {
     if (!isOpen) {
       // Clear widget when modal closes
       const widgetId = captchaWidgetIdRef.current;
-      if (typeof widgetId === "number" && window.grecaptcha) {
+      const grecap = getGrecaptcha();
+      if (typeof widgetId === "number" && grecap) {
         try {
-          window.grecaptcha.reset(widgetId);
+          grecap.reset(widgetId);
         } catch (e) {
           // Ignore errors during cleanup
         }
@@ -211,13 +227,14 @@ export const GuestCheckoutModal = ({
   const handleContinueAsGuest = () => {
     // Trigger reCAPTCHA verification
     const widgetId = captchaWidgetIdRef.current;
-    if (!verified && typeof widgetId === "number" && window.grecaptcha) {
+    const grecap = getGrecaptcha();
+    if (!verified && typeof widgetId === "number" && grecap) {
       try {
-        window.grecaptcha.execute(widgetId);
+        grecap.execute(widgetId);
       } catch (err) {
         // If execute fails, try reset to show the checkbox
         try {
-          window.grecaptcha.reset(widgetId as number);
+          grecap.reset(widgetId as number);
         } catch (resetErr) {
           console.error("reCAPTCHA reset error:", resetErr);
         }
@@ -228,9 +245,10 @@ export const GuestCheckoutModal = ({
   const handleGoBack = () => {
     // Clear the widget before going back
     const widgetId = captchaWidgetIdRef.current;
-    if (typeof widgetId === "number" && window.grecaptcha) {
+    const grecap = getGrecaptcha();
+    if (typeof widgetId === "number" && grecap) {
       try {
-        window.grecaptcha.reset(widgetId);
+        grecap.reset(widgetId);
       } catch (e) {
         // Ignore
       }

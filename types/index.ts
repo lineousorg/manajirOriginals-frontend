@@ -183,3 +183,21 @@ export interface FilterState {
   colors: string[];
   sortBy: "newest" | "price-asc" | "price-desc" | "popular";
 }
+
+export interface GoogleRecaptcha {
+  render: (
+    element: string | HTMLElement,
+    options: {
+      sitekey: string;
+      theme?: "light" | "dark";
+      size?: "normal" | "compact" | "invisible";
+      callback: (token: string) => void;
+      "expired-callback": () => void;
+      "error-callback": () => void;
+    }
+  ) => number;
+  reset: (widgetId?: number | string) => void;
+  getResponse: (widgetId?: number | string) => string;
+  execute: (widgetId?: number | string) => void;
+  ready: (callback: () => void) => void;
+}

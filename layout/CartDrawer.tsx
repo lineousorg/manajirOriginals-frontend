@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { GuestCheckoutModal } from "@/components/auth/GuestCheckoutModal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
 
@@ -20,6 +21,7 @@ export const CartDrawer = () => {
     getTotal,
     isHydrated,
   } = useCartStore();
+  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [variantStockMap, setVariantStockMap] = useState<Record<string | number, number>>({});
@@ -189,11 +191,20 @@ export const CartDrawer = () => {
   }
 
   const handleCheckout = () => {
-    // For guest checkout - always show modal when clicking checkout
-    closeCart();
-    setTimeout(() => {
-      setShowSignupModal(true);
-    }, 350);
+    // Check if user is authenticated before showing modal
+    if (isAuthenticated) {
+      // User is logged in - go directly to checkout
+      closeCart();
+      setTimeout(() => {
+        router.push("/checkout");
+      }, 350);
+    } else {
+      // User is not logged in - show guest checkout modal
+      closeCart();
+      setTimeout(() => {
+        setShowSignupModal(true);
+      }, 350);
+    }
   };
 
   return (
