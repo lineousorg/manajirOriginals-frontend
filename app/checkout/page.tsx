@@ -152,7 +152,7 @@ const CheckoutPageContent = () => {
       payload.address = formData.address;
       payload.city = formData.city;
       payload.postalCode = formData.zip;
-      
+
       // Include reCAPTCHA token for verification
       if (recaptchaToken) {
         payload.recaptchaToken = recaptchaToken;
@@ -192,6 +192,13 @@ const CheckoutPageContent = () => {
 
       // Clear cart and show success
       clearCart();
+
+      // Store phone for guest receipt download (only for guest checkout)
+      if (isGuest && formData.phone) {
+        localStorage.setItem("guestPhone", formData.phone);
+        localStorage.setItem("guestPhoneStoredAt", Date.now().toString());
+      }
+
       setStep("success");
     } catch (err: any) {
       console.error("Failed to create order:", err);
@@ -240,69 +247,13 @@ const CheckoutPageContent = () => {
   if (step === "success") {
     return (
       <div className="min-h-screen bg-muted/20 py-12 md:py-28">
-        <div className="container-fashion max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-background rounded-3xl shadow-xl border border-border/50 p-8 md:p-8 text-center"
-          >
-            {/* Success Animation */}
-            <div className="relative mb-8">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 15, stiffness: 200 }}
-                className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto"
-              >
-                <CheckCircle
-                  size={48}
-                  className="text-green-600"
-                  strokeWidth={2}
-                />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full"
-              >
-                Confirmed
-              </motion.div>
-            </div>
-
-            <h1 className="text-3xl md:text-4xl font-serif font-medium mb-4">
-              Order Placed Successfully!
-            </h1>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/orders"
-                className="btn-outline-fashion px-8 py-3 rounded-full"
-              >
-                View Order History
-              </Link>
-              <Link
-                href="/products"
-                className="btn-primary-fashion px-8 py-3 rounded-full"
-              >
-                Continue Shopping
-              </Link>
-            </div>
-          </motion.div>
-
+        <div className="">
           {/* Order Receipt */}
           {orderNumber && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8"
-            >
-              <OrderReceipt
-                orderId={orderId || orderNumber}
-                orderNumber={orderNumber}
-              />
-            </motion.div>
+            <OrderReceipt
+              orderId={orderId || orderNumber}
+              orderNumber={orderNumber}
+            />
           )}
         </div>
       </div>

@@ -16,6 +16,7 @@ import { useAddresses } from "@/hooks/useProduct";
 import useApi from "@/hooks/useApi";
 import { Toaster } from "react-hot-toast";
 import { confirmToast } from "@/lib/toast-confirm";
+import { userService } from "@/services/user.service";
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -34,6 +35,7 @@ const ProfilePage = () => {
   }, [isAuthenticated, router]);
 
   const handleLogout = async () => {
+    await userService.logout();
     await signOut({ callbackUrl: "/login" });
     logout();
   };

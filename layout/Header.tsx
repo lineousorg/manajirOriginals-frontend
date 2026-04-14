@@ -11,9 +11,8 @@ import {
   ShoppingBag,
   User,
   ArrowRight,
-  LogIn,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -36,11 +35,42 @@ export const Header = () => {
   const cartItemCount = getItemCount();
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
-  const { isAuthenticated, user } = useAuthStore();
+  const { user } = useAuthStore();
   const { categories, categoryTree } = useCategories();
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Timer to clear guest data from localStorage after 10 minutes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const guestPhone = localStorage.getItem("guestPhone");
+      const guestPhoneStoredAt = localStorage.getItem("guestPhoneStoredAt");
+      
+      if (guestPhone && guestPhoneStoredAt) {
+        const storedTime = parseInt(guestPhoneStoredAt, 10);
+        const currentTime = Date.now();
+        const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
+        
+        // If more than 10 minutes have passed, clear the guest data
+        if (currentTime - storedTime > tenMinutes) {
+          localStorage.removeItem("guestPhone");
+          localStorage.removeItem("guestPhoneStoredAt");
+        } else {
+          // Set timer to clear remaining time
+          const remainingTime = tenMinutes - (currentTime - storedTime);
+          const timer = setTimeout(() => {
+            localStorage.removeItem("guestPhone");
+            localStorage.removeItem("guestPhoneStoredAt");
+          }, remainingTime);
+          return () => clearTimeout(timer);
+        }
+      } else if (guestPhone) {
+        // If only guestPhone exists without timestamp, clear it
+        localStorage.removeItem("guestPhone");
+      }
+    }
+  }, []);
 
   const showCartCount = isHydrated && cartItemCount > 0;
 
@@ -95,116 +125,94 @@ export const Header = () => {
 
             {/* Right: Actions + Hamburger */}
             <div className="flex items-center gap-1">
-              {/* Wishlist - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link
-                    href="/wishlist"
-                    className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                    aria-label="Wishlist"
-                  >
-                    <Heart
-                      size={16}
-                      className="transition-transform group-hover:scale-110"
-                    />
-                    <AnimatePresence>
-                      {wishlistItems.length > 0 && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
-                        >
-                          {wishlistItems.length}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </Link>
-                </motion.div>
-              )}
-
-              {/* Cart - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={openCart}
+              {/* Wishlist */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/wishlist"
                   className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                  aria-label="Cart"
+                  aria-label="Wishlist"
                 >
-                  <ShoppingBag
+                  <Heart
                     size={16}
                     className="transition-transform group-hover:scale-110"
                   />
                   <AnimatePresence>
-                    {showCartCount && (
+                    {wishlistItems.length > 0 && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         exit={{ scale: 0 }}
                         className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
                       >
-                        {cartItemCount}
+                        {wishlistItems.length}
                       </motion.span>
                     )}
                   </AnimatePresence>
-                </motion.button>
-              )}
+                </Link>
+              </motion.div>
 
-              {/* Profile - Show Login button when not authenticated */}
-              {!isAuthenticated ? (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              {/* Cart */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={openCart}
+                className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                aria-label="Cart"
+              >
+                <ShoppingBag
+                  size={16}
+                  className="transition-transform group-hover:scale-110"
+                />
+                <AnimatePresence>
+                  {showCartCount && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
+                    >
+                      {cartItemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              {/* Profile */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/profile"
+                  className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors overflow-hidden group"
+                  aria-label="Profile"
                 >
-                  <Link
-                    href="/login"
-                    className="relative w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors group"
-                    aria-label="Login"
-                  >
-                    <LogIn
+                  {user?.avatar ? (
+                    <div className="w-full h-full relative">
+                      <Image
+                        src={user.avatar}
+                        alt={user.name || "User avatar"}
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display =
+                            "none";
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <User
                       size={16}
                       className="text-white/70 group-hover:text-white transition-colors"
                     />
-                  </Link>
-                </motion.div>
-              ) : (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link
-                    href="/profile"
-                    className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors overflow-hidden group"
-                    aria-label="Profile"
-                  >
-                    {user?.avatar ? (
-                      <div className="w-full h-full relative">
-                        <Image
-                          src={user.avatar}
-                          alt={user.name || "User avatar"}
-                          fill
-                          sizes="36px"
-                          className="object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <User
-                        size={16}
-                        className="text-white/70 group-hover:text-white transition-colors"
-                      />
-                    )}
-                    <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border-2 border-[#0a0a0a]" />
-                  </Link>
-                </motion.div>
-              )}
+                  )}
+                  <div className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border-2 border-[#0a0a0a]" />
+                </Link>
+              </motion.div>
 
               {/* Hamburger */}
               <motion.button
@@ -387,129 +395,105 @@ export const Header = () => {
 
             {/* Right: Actions */}
             <div className="flex items-center justify-end gap-2">
-              {/* Search - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white"
-                  aria-label="Search"
-                >
-                  <Search size={18} />
-                </motion.button>
-              )}
+              {/* Search */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="hidden md:flex w-10 h-10 items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white"
+                aria-label="Search"
+              >
+                <Search size={18} />
+              </motion.button>
 
-              {/* Wishlist - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link
-                    href="/wishlist"
-                    className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                    aria-label="Wishlist"
-                  >
-                    <Heart
-                      size={18}
-                      className="transition-transform group-hover:scale-110"
-                    />
-                    <AnimatePresence>
-                      {wishlistItems.length > 0 && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
-                        >
-                          {wishlistItems.length}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </Link>
-                </motion.div>
-              )}
-
-              {/* Cart - Only show when authenticated */}
-              {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={openCart}
+              {/* Wishlist */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href="/wishlist"
                   className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                  aria-label="Cart"
+                  aria-label="Wishlist"
                 >
-                  <ShoppingBag
+                  <Heart
                     size={18}
                     className="transition-transform group-hover:scale-110"
                   />
                   <AnimatePresence>
-                    {showCartCount && (
+                    {wishlistItems.length > 0 && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         exit={{ scale: 0 }}
                         className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
                       >
-                        {cartItemCount}
+                        {wishlistItems.length}
                       </motion.span>
                     )}
                   </AnimatePresence>
-                </motion.button>
-              )}
+                </Link>
+              </motion.div>
 
-              {/* Profile - Show Login button when not authenticated */}
-              {!isAuthenticated ? (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              {/* Cart */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={openCart}
+                className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                aria-label="Cart"
+              >
+                <ShoppingBag
+                  size={18}
+                  className="transition-transform group-hover:scale-110"
+                />
+                <AnimatePresence>
+                  {showCartCount && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
+                    >
+                      {cartItemCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+
+              {/* Profile */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                   href={user ? "/profile" : "/login"}
+                  className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors overflow-hidden group"
+                  aria-label="Profile"
                 >
-                  <Link
-                    href="/login"
-                    className="relative flex items-center justify-center rounded-md bg-white hover:bg-white/20 transition-colors group text-primary hover:text-white text-sm font-bold px-5 py-2"
-                    aria-label="Login"
-                  >
-                    {/* <LogIn
+                  {user?.avatar ? (
+                    <div className="w-full h-full relative">
+                      <Image
+                        src={user.avatar}
+                        alt={user.name || "User avatar"}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display =
+                            "none";
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <User
                       size={18}
                       className="text-white/70 group-hover:text-white transition-colors"
-                    /> */}LOGIN
-                  </Link>
-                </motion.div>
-              ) : (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Link
-                    href="/profile"
-                    className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors overflow-hidden group"
-                    aria-label="Profile"
-                  >
-                    {user?.avatar ? (
-                      <div className="w-full h-full relative">
-                        <Image
-                          src={user.avatar}
-                          alt={user.name || "User avatar"}
-                          fill
-                          sizes="40px"
-                          className="object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <User
-                        size={18}
-                        className="text-white/70 group-hover:text-white transition-colors"
-                      />
-                    )}
-                    <div className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-[#0a0a0a]" />
-                  </Link>
-                </motion.div>
-              )}
+                    />
+                  )}
+                  <div className={`  ${user ? "block" : "hidden"} absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-[#0a0a0a]`} />
+                </Link>
+              </motion.div>
             </div>
           </div>
         </div>
