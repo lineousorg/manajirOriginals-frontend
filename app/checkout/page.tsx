@@ -75,7 +75,7 @@ const CheckoutPageContent = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const subtotal = getTotal();
-  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
+  const shipping = deliveryLocation === "inside_dhaka" ? 120 : 200;
   const total = subtotal + shipping;
 
   // Update email when user changes
@@ -968,7 +968,7 @@ const CheckoutPageContent = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">৳70</span>
+                    <span className="font-semibold text-sm">৳120</span>
                   </label>
 
                   <label
@@ -993,7 +993,7 @@ const CheckoutPageContent = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">৳150</span>
+                    <span className="font-semibold text-sm">৳200</span>
                   </label>
                 </div>
 

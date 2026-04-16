@@ -10,6 +10,8 @@ interface MinimalCartItem {
   productName: string;
   productImage: string;
   productPrice: number;
+  hasDiscount?: boolean;
+  finalPrice?: number;
   variantId?: number | string;
   variantStock?: number; // Stock at time of adding to cart for validation
   reservationId?: number; // Stock reservation ID from backend
@@ -84,6 +86,8 @@ export const useCartStore = create<CartState>()(
         // This is critical for correct variantId and price
         let selectedVariant = null;
         let productPrice = product.price || product.maxPrice || product.minPrice || 0;
+        let hasDiscount = false;
+        let finalPrice: number | undefined;
         
         if (product.variants && product.variants.length > 0) {
           // If product has variants, we MUST find a matching one
@@ -124,6 +128,9 @@ export const useCartStore = create<CartState>()(
           
           // Use the matched variant's price
           productPrice = selectedVariant.price || productPrice;
+          // Store discount info if available
+          hasDiscount = selectedVariant.hasDiscount || false;
+          finalPrice = selectedVariant.finalPrice;
         }
         
         set((state) => {
@@ -147,6 +154,8 @@ export const useCartStore = create<CartState>()(
             productName: product.name || 'Product',
             productImage,
             productPrice,
+            hasDiscount,
+            finalPrice,
             variantId: selectedVariant?.id, // Use the matched variant ID, not first variant!
             variantStock: selectedVariant?.stock ?? product.stock ?? 0, // Store stock for validation
             quantity,
@@ -284,9 +293,10 @@ export const useCartStore = create<CartState>()(
 
       getTotal: () => {
         const { items } = get();
-        // Simple calculation using stored price - no variant lookup needed
+        // Use finalPrice for discounted items, otherwise use productPrice
         return items.reduce((total, item) => {
-          return total + (Number(item.productPrice) * item.quantity);
+          const price = item.hasDiscount && item.finalPrice ? item.finalPrice : item.productPrice;
+          return total + (Number(price) * item.quantity);
         }, 0);
       },
 

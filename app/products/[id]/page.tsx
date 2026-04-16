@@ -32,22 +32,19 @@ import { useProductStore } from "@/store/product.store";
 import { TypeImage } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
+import policyData from "@/lib/policy-data.json";
 
 // Helper function to find a variant by size and color
-const findVariant = (
-  variants: any[],
-  size: string,
-  color?: string
-): any => {
+const findVariant = (variants: any[], size: string, color?: string): any => {
   if (!variants || variants.length === 0) return null;
-  
+
   return variants.find((variant) => {
     const sizeMatch = variant.attributes?.some(
       (attr: any) =>
         attr.attributeValue?.attribute?.name === "Size" &&
         attr.attributeValue?.value === size
     );
-    
+
     const colorMatch =
       !color ||
       variant.attributes?.some(
@@ -55,7 +52,7 @@ const findVariant = (
           attr.attributeValue?.attribute?.name === "Color" &&
           attr.attributeValue?.value === color
       );
-    
+
     return sizeMatch && colorMatch;
   });
 };
@@ -91,35 +88,32 @@ export default function ProductDetailsPage() {
     if (!product?.sizes) return [];
     return product.sizes;
   }, [product?.sizes]);
-  const availableColorsForSelectedSize = useMemo(
-    () => {
-      if (!product?.variants || !selectedSize) return [];
-      const colors: string[] = [];
+  const availableColorsForSelectedSize = useMemo(() => {
+    if (!product?.variants || !selectedSize) return [];
+    const colors: string[] = [];
 
-      product.variants.forEach((variant: any) => {
-        if (variant.attributes && Array.isArray(variant.attributes)) {
-          const variantSize = variant.attributes.find(
-            (attr: any) =>
-              attr.attributeValue?.attribute?.name === "Size" &&
-              attr.attributeValue?.value === selectedSize
+    product.variants.forEach((variant: any) => {
+      if (variant.attributes && Array.isArray(variant.attributes)) {
+        const variantSize = variant.attributes.find(
+          (attr: any) =>
+            attr.attributeValue?.attribute?.name === "Size" &&
+            attr.attributeValue?.value === selectedSize
+        );
+        if (variantSize) {
+          const colorAttr = variant.attributes.find(
+            (attr: any) => attr.attributeValue?.attribute?.name === "Color"
           );
-          if (variantSize) {
-            const colorAttr = variant.attributes.find(
-              (attr: any) => attr.attributeValue?.attribute?.name === "Color"
-            );
-            if (
-              colorAttr?.attributeValue?.value &&
-              !colors.includes(colorAttr.attributeValue.value)
-            ) {
-              colors.push(colorAttr.attributeValue.value);
-            }
+          if (
+            colorAttr?.attributeValue?.value &&
+            !colors.includes(colorAttr.attributeValue.value)
+          ) {
+            colors.push(colorAttr.attributeValue.value);
           }
         }
-      });
-      return colors;
-    },
-    [product?.variants, selectedSize]
-  );
+      }
+    });
+    return colors;
+  }, [product?.variants, selectedSize]);
 
   // Calculate price based on selected variant using helper
   const selectedVariant = useMemo(
@@ -127,16 +121,29 @@ export default function ProductDetailsPage() {
     [product?.variants, selectedSize, selectedColor]
   );
 
-  const currentPrice =
-    selectedVariant?.price ??
-    product?.variants?.[0]?.price ??
-    product?.price ??
-    0;
-  const originalPrice = selectedVariant?.price ?? product?.originalPrice;
-  const discountPercentage =
-    originalPrice && currentPrice < originalPrice
+  // Determine price using API discount data when available
+  const currentPrice = selectedVariant?.hasDiscount
+    ? selectedVariant?.finalPrice ??
+      selectedVariant?.price ??
+      product?.variants?.[0]?.price ??
+      product?.price ??
+      0
+    : selectedVariant?.price ??
+      product?.variants?.[0]?.price ??
+      product?.price ??
+      0;
+
+  const originalPrice = selectedVariant?.hasDiscount
+    ? selectedVariant?.price
+    : selectedVariant?.price ?? product?.originalPrice;
+
+  const discountPercentage = selectedVariant?.hasDiscount
+    ? selectedVariant?.discountValue
+      ? parseInt(selectedVariant.discountValue)
+      : originalPrice && currentPrice < originalPrice
       ? Math.round((1 - currentPrice / originalPrice) * 100)
-      : 0;
+      : 0
+    : 0;
 
   // Initialize defaults when product loads
   useEffect(() => {
@@ -154,7 +161,10 @@ export default function ProductDetailsPage() {
           const colorAttr = variant.attributes.find(
             (attr: any) => attr.attributeValue?.attribute?.name === "Color"
           );
-          if (colorAttr?.attributeValue?.value && !initialColors.includes(colorAttr.attributeValue.value)) {
+          if (
+            colorAttr?.attributeValue?.value &&
+            !initialColors.includes(colorAttr.attributeValue.value)
+          ) {
             initialColors.push(colorAttr.attributeValue.value);
           }
         }
@@ -181,7 +191,7 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     // Skip on initial mount (when prevLastCartChange is 0)
     if (lastCartChange > 0 && lastCartChange !== prevLastCartChange.current) {
-      console.log('[DEBUG] Cart changed, refetching stock:', lastCartChange);
+      console.log("[DEBUG] Cart changed, refetching stock:", lastCartChange);
       prevLastCartChange.current = lastCartChange;
       setIsRefetchingStock(true);
       refetch().finally(() => setIsRefetchingStock(false));
@@ -205,7 +215,10 @@ export default function ProductDetailsPage() {
     () =>
       (size: string): number => {
         if (!product?.variants) {
-          console.log('[DEBUG] getStockForSize: no variants', { productId: product?.id, size });
+          console.log("[DEBUG] getStockForSize: no variants", {
+            productId: product?.id,
+            size,
+          });
           return 0;
         }
         let totalStock = 0;
@@ -226,13 +239,19 @@ export default function ProductDetailsPage() {
             availableStock: variant.availableStock,
             available,
             variantSize: !!variantSize,
-            sizeAttr: variant.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Size")?.attributeValue?.value
+            sizeAttr: variant.attributes?.find(
+              (a: any) => a.attributeValue?.attribute?.name === "Size"
+            )?.attributeValue?.value,
           });
           if (variantSize && available > 0) {
             totalStock += available;
           }
         });
-        console.log('[DEBUG] getStockForSize:', { size, totalStock, variants: debugVariants });
+        console.log("[DEBUG] getStockForSize:", {
+          size,
+          totalStock,
+          variants: debugVariants,
+        });
         return totalStock;
       },
     [product?.variants]
@@ -330,14 +349,20 @@ export default function ProductDetailsPage() {
     // Re-check available stock immediately before reservation to prevent race condition
     // This ensures we have the most up-to-date stock info
     try {
-      const stockCheck = await stockReservationService.getAvailableStock(variantId);
+      const stockCheck = await stockReservationService.getAvailableStock(
+        variantId
+      );
       if (stockCheck.success && stockCheck.data) {
         // If no stock available, don't even try to reserve
         if (stockCheck.data.availableStock < quantity) {
           if (stockCheck.data.availableStock === 0) {
-            toast.error("This item is out of stock. Please choose a different option.");
+            toast.error(
+              "This item is out of stock. Please choose a different option."
+            );
           } else {
-            toast.error(`Only ${stockCheck.data.availableStock} available. Please adjust quantity.`);
+            toast.error(
+              `Only ${stockCheck.data.availableStock} available. Please adjust quantity.`
+            );
           }
           setIsAddingToCart(false);
           return;
@@ -449,12 +474,10 @@ export default function ProductDetailsPage() {
       return !product?.stock || product.stock === 0;
     }
     // Check if ALL variants have 0 available stock (stock minus reservations)
-    const allVariantsOutOfStock = product.variants.every(
-      (variant: any) => {
-        const available = variant.availableStock ?? variant.stock ?? 0;
-        return available <= 0;
-      }
-    );
+    const allVariantsOutOfStock = product.variants.every((variant: any) => {
+      const available = variant.availableStock ?? variant.stock ?? 0;
+      return available <= 0;
+    });
     return allVariantsOutOfStock;
   }, [product?.variants, product?.stock]);
 
@@ -490,7 +513,7 @@ export default function ProductDetailsPage() {
   }
 
   return (
-    <div className="pt-24 md:pt-32 pb-20">
+    <div className="pt-24 md:pt-32 pb-20 bg-white">
       {/* Breadcrumb */}
       <div className="container-fashion py-4">
         <nav className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
@@ -579,22 +602,49 @@ export default function ProductDetailsPage() {
               )}
 
               {/* Price Row */}
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl font-semibold tracking-tight">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-center gap-3 mb-6"
+              >
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                  className="text-3xl font-semibold tracking-tight"
+                >
                   ৳ {currentPrice.toLocaleString()}
-                </span>
-                {originalPrice && originalPrice > currentPrice && (
-                  <span className="text-lg text-muted-foreground line-through decoration-2">
-                    ৳{originalPrice.toLocaleString()}
-                  </span>
-                )}
-                {discountPercentage > 0 && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                    Save {discountPercentage}%
-                  </span>
-                )}
-              </div>
+                </motion.span>
 
+                {originalPrice && originalPrice > currentPrice && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                    className="text-lg text-muted-foreground line-through decoration-2"
+                  >
+                    ৳{originalPrice.toLocaleString()}
+                  </motion.span>
+                )}
+
+                {discountPercentage > 0 && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      delay: 0.3,
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 15,
+                    }}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 border border-emerald-500/30 shadow-sm backdrop-blur-sm"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-800 mr-2 animate-pulse" />
+                    Save {discountPercentage}%
+                  </motion.span>
+                )}
+              </motion.div>
               {/* Divider */}
               <div className="h-px bg-border w-full" />
             </div>
@@ -712,10 +762,7 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={() => setQuantity(quantity + 1)}
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    disabled={
-                      remainingStock <= 0 ||
-                      quantity >= remainingStock
-                    }
+                    disabled={remainingStock <= 0 || quantity >= remainingStock}
                     aria-label="Increase quantity"
                   >
                     <Plus size={16} strokeWidth={2.5} />
@@ -733,9 +780,24 @@ export default function ProductDetailsPage() {
                   >
                     {isRefetchingStock ? (
                       <span className="flex items-center gap-1">
-                        <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <svg
+                          className="animate-spin h-3 w-3"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                         Updating...
                       </span>
@@ -1013,83 +1075,37 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {activeTab === "shipping" && (
-                <div className="max-w-3xl space-y-6 text-muted-foreground">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-muted/50 p-6 rounded-lg">
-                      <h4 className="font-medium text-foreground mb-3">
-                        Standard Delivery
-                      </h4>
-                      <p className="text-sm mb-3">
-                        Delivery within 3-5 business days
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Carefully packed with premium packaging to ensure your
-                        product arrives in perfect condition.
-                      </p>
-                    </div>
-                    <div className="bg-muted/50 p-6 rounded-lg">
-                      <h4 className="font-medium text-foreground mb-3">
-                        Express Delivery
-                      </h4>
-                      <p className="text-sm mb-3">
-                        Delivery within 1-2 business days
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Priority handling with extra care packaging. Track your
-                        order in real-time for peace of mind.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <h4 className="font-medium text-foreground mb-2">
-                      Cash on Delivery
-                    </h4>
-                    <p className="text-sm">
-                      Pay when you receive. Available for all orders within
-                      Bangladesh.
-                    </p>
-                  </div>
-                  <p className="text-sm">
-                    For any delivery-related queries, please contact our
-                    customer support team.
-                  </p>
-                </div>
-              )}
+              {(activeTab === "shipping" || activeTab === "returns") && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <h3 className="text-2xl text-left font-medium text-foreground">
+                    {policyData[activeTab].title}
+                  </h3>
 
-              {activeTab === "returns" && (
-                <div className="max-w-3xl space-y-4 text-muted-foreground">
-                  <div className="bg-muted/50 p-6 rounded-lg">
-                    <h4 className="font-medium text-foreground mb-3">
-                      30-Day Return Policy
-                    </h4>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-start gap-2">
-                        <Check
-                          size={16}
-                          className="mt-0.5 shrink-0 text-green-600"
-                        />
-                        <span>
-                          Items must be unworn with original tags attached
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check
-                          size={16}
-                          className="mt-0.5 shrink-0 text-green-600"
-                        />
-                        <span>Free returns on all orders</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check
-                          size={16}
-                          className="mt-0.5 shrink-0 text-green-600"
-                        />
-                        <span>Refunds processed within 5-7 business days</span>
-                      </li>
-                    </ul>
+                  {/* Intro text (only for shipping tab) */}
+                  {policyData[activeTab]?.intro && (
+                    <p className="text-sm underline text-muted-foreground leading-relaxed text-left">
+                      {policyData[activeTab]?.intro}
+                    </p>
+                  )}
+
+                  <div className="space-y-6">
+                    {policyData[activeTab].content.map((section, index) => (
+                      <div key={index} className="space-y-2">
+                        <h4 className="font-medium text-foreground text-xl text-left">
+                          {section.heading}
+                        </h4>
+                        <div className="text- text-muted-foreground whitespace-pre-line leading-relaxed text-left">
+                          {section.body}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </motion.div>
               )}
             </motion.div>
           </AnimatePresence>

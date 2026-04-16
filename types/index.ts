@@ -10,6 +10,13 @@ export interface ProductVariant {
   productId: number;
   createdAt: string;
   updatedAt: string;
+  hasDiscount?: boolean;
+  discountType?: string;
+  discountValue?: string;
+  discountAmount?: number;
+  discountStart?: string;
+  discountEnd?: string;
+  finalPrice?: number;
   attributes?: {
     attributeValueId: number;
     attributeValue?: {
@@ -46,6 +53,8 @@ export interface ApiProduct {
   maxPrice?: number;
   minPrice?: number;
   originalPrice?: number;
+  hasDiscount?: boolean;
+  discountAmount?: number;
   stock?: number;
   sku?: string;
   images?: TypeImage[];

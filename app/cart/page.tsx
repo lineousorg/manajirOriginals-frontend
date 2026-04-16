@@ -138,9 +138,22 @@ const CartPage = () => {
                       {item.quantity}
                     </span>
                   </div>
-                  <p className="text-lg font-medium">
-                    ৳{item.productPrice * item.quantity}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    {item.hasDiscount && item.finalPrice ? (
+                      <>
+                        <span className="text-sm text-muted-foreground line-through decoration-2">
+                          ৳{(item.productPrice * item.quantity).toLocaleString()}
+                        </span>
+                        <span className="text-lg font-medium">
+                          ৳{(item.finalPrice * item.quantity).toLocaleString()}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-lg font-medium">
+                        ৳{(item.productPrice * item.quantity).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>

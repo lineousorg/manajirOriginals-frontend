@@ -46,12 +46,12 @@ export const Header = () => {
     if (typeof window !== "undefined") {
       const guestPhone = localStorage.getItem("guestPhone");
       const guestPhoneStoredAt = localStorage.getItem("guestPhoneStoredAt");
-      
+
       if (guestPhone && guestPhoneStoredAt) {
         const storedTime = parseInt(guestPhoneStoredAt, 10);
         const currentTime = Date.now();
         const tenMinutes = 10 * 60 * 1000; // 10 minutes in milliseconds
-        
+
         // If more than 10 minutes have passed, clear the guest data
         if (currentTime - storedTime > tenMinutes) {
           localStorage.removeItem("guestPhone");
@@ -95,11 +95,13 @@ export const Header = () => {
           backgroundColor: isScrolled
             ? "#631515"
             : pathname === "/"
-              ? "rgba(10, 10, 10, 0)"
-              : "#631515",
+            ? "rgba(10, 10, 10, 0)"
+            : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${isScrolled ? "border-white/10" : "border-transparent"}`}
+        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${
+          isScrolled ? "border-white/10" : "border-transparent"
+        }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
           {/* MOBILE LAYOUT - Completely separate from desktop */}
@@ -199,8 +201,7 @@ export const Header = () => {
                         sizes="36px"
                         className="object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display =
-                            "none";
+                          (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     </div>
@@ -313,7 +314,7 @@ export const Header = () => {
                         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute top-full left-1/2 -translate-x-1/2 pt-6"
                       >
-                        <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-[600px]">
+                        <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl shadow-black/50 overflow-hidden min-w-[400px]">
                           <div className="p-8">
                             <div className="flex items-center justify-between mb-6">
                               <span className="text-[10px] tracking-[0.3em] text-white/40 uppercase">
@@ -321,7 +322,7 @@ export const Header = () => {
                               </span>
                               <div className="h-px flex-1 ml-4 bg-linear-to-r from-white/10 to-transparent" />
                             </div>
-                            <div className="grid grid-cols-3 gap-8">
+                            <div className="flex flex-col gap-5 ">
                               {categoryTree.map((category, idx) => (
                                 <motion.div
                                   key={category.id}
@@ -467,7 +468,7 @@ export const Header = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <Link
-                   href={user ? "/profile" : "/login"}
+                  href={user ? "/profile" : "/login"}
                   className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors overflow-hidden group"
                   aria-label="Profile"
                 >
@@ -480,8 +481,7 @@ export const Header = () => {
                         sizes="40px"
                         className="object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display =
-                            "none";
+                          (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     </div>
@@ -491,7 +491,11 @@ export const Header = () => {
                       className="text-white/70 group-hover:text-white transition-colors"
                     />
                   )}
-                  <div className={`  ${user ? "block" : "hidden"} absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-[#0a0a0a]`} />
+                  <div
+                    className={`  ${
+                      user ? "block" : "hidden"
+                    } absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-[#0a0a0a]`}
+                  />
                 </Link>
               </motion.div>
             </div>

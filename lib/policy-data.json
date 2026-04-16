@@ -1,0 +1,34 @@
+{
+    "shipping": {
+      "title": "Shipping & Delivery",
+      "intro": "At Manajir Originals, we are committed to providing you with uncompromising quality and a seamless shopping experience. Please read our simple shipping and return guidelines below.",
+      "content": [
+        {
+          "heading": "Shipping Policy",
+          "body": "We have partnered with Steadfast Courier to ensure safe and reliable nationwide delivery. Standard Steadfast shipping timelines and operational policies apply to all our dispatches.\nImportant: We highly encourage all customers to check their products for any faults or issues in front of the delivery rider while receiving the parcel."
+        }
+      ]
+    },
+    "returns": {
+      "title": "Returns & Exchanges",
+      "intro": "",
+      "content": [
+        {
+          "heading": "Can I return the product if I don't like it?",
+          "body": "Yes! Our return policy is applicable at the time of delivery. If you receive the parcel and feel the product does not meet your expectations, you can return it instantly to the delivery rider. You will only be required to pay the delivery charge."
+        },
+        {
+          "heading": "How many days do I get to exchange a product?",
+          "body": "If you need a different size or color, you can request an exchange within 3 days of receiving the product (subject to stock availability).\nPlease note that an exchange delivery fee will apply:\nInside Dhaka City: 120 BDT\nOutside Dhaka: 200 BDT"
+        },
+        {
+          "heading": "What happens if I receive a faulty item?",
+          "body": "While we maintain strict quality control, if you happen to find a manufacturing fault after the rider has left, please get in touch with us within 24 hours of receiving the delivery. We will gladly exchange the faulty product for you."
+        },
+        {
+          "heading": "What if I am dissatisfied with the quality or none of the sizes fit?",
+          "body": "Your satisfaction is our priority. If the fit isn't right or you are unsatisfied, you have two options:\nReturn the product immediately at the time of delivery (paying only the delivery charge).\nIf you have already accepted the parcel, you can send the product back to our office address. Once we receive and inspect the returned item, we will issue a full refund for the product's price (if you have paid in advance). Please note that delivery charges are non-refundable."
+        }
+      ]
+    }
+  }

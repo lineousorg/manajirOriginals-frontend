@@ -386,12 +386,22 @@ export const CartDrawer = () => {
                               </div>
 
                               {/* Price */}
-                              <p className="font-semibold text-sm">
-                                ৳
-                                {(
-                                  item.productPrice * item.quantity
-                                ).toLocaleString()}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                {item.hasDiscount && item.finalPrice ? (
+                                  <>
+                                    <span className="text-sm text-muted-foreground line-through decoration-2">
+                                      ৳{(item.productPrice * item.quantity).toLocaleString()}
+                                    </span>
+                                    <span className="font-semibold text-sm">
+                                      ৳{(item.finalPrice * item.quantity).toLocaleString()}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="font-semibold text-sm">
+                                    ৳{(item.productPrice * item.quantity).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                         </div>
                       </motion.li>

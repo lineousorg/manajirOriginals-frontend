@@ -37,15 +37,18 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           },
         ];
 
-  const maxPrice = Number(product.minPrice || product.maxPrice || 0);
-  const originalPrice = product.originalPrice
-    ? Number(product.originalPrice)
-    : null;
-
-  const discountPercent =
-    originalPrice && originalPrice > maxPrice
-      ? Math.round(((originalPrice - maxPrice) / originalPrice) * 100)
-      : null;
+  // Use new API discount fields
+  const hasDiscount = product.hasDiscount ?? false;
+  const discountAmount = product.discountAmount ?? 0;
+  const minPrice = Number(product.minPrice || 0);
+  const maxPrice = Number(product.maxPrice || 0);
+  
+  // Calculate discount percentage if not provided
+  const discountPercent = hasDiscount && maxPrice > minPrice 
+    ? Math.round(((maxPrice - minPrice) / maxPrice) * 100)
+    : (discountAmount > 0 ? discountAmount : null);
+  
+  const originalPrice = hasDiscount ? maxPrice : null;
 
   // Get cart items to calculate available stock
   const cartItems = useCartStore((state) => state.items);
@@ -127,7 +130,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
           {/* Premium Badges */}
           <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {discountPercent && discountPercent > 0 && (
+            {hasDiscount && discountPercent && (
               <span className="inline-flex items-center px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold tracking-wider uppercase rounded-full shadow-lg">
                 {discountPercent}% Off
               </span>
@@ -232,15 +235,15 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               <span className="">
                 ৳{" "}
                 <span className="text-lg font-bold text-slate-700">
-                  {maxPrice.toLocaleString("en-US", {
+                  {minPrice.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                   })}
                 </span>
               </span>
-              {originalPrice && originalPrice > maxPrice && (
+              {hasDiscount && maxPrice > minPrice && (
                 <span className="text-sm text-slate-400 line-through">
                   ৳
-                  {originalPrice.toLocaleString("en-US", {
+                  {maxPrice.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                   })}
                 </span>
