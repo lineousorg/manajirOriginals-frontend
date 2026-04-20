@@ -118,12 +118,12 @@ export default function Home() {
                       <h3 className="font-serif text-xl md:text-2xl lg:text-4xl text-background">
                         {category.name}
                       </h3>
-                      <p className="text-sm text-background/70 mt-1">
+                      {/* <p className="text-sm text-background/70 mt-1">
                         {category._count?.products ??
                           category.productCount ??
                           0}{" "}
                         items
-                      </p>
+                      </p> */}
                     </div>
                   </Link>
                 </motion.div>

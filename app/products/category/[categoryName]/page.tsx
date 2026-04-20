@@ -4,7 +4,11 @@ import { useState, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
-import { useCategories, useCategoryProducts, CategoryProductsFilters } from "@/hooks/useProduct";
+import {
+  useCategories,
+  useCategoryProducts,
+  CategoryProductsFilters,
+} from "@/hooks/useProduct";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/pagination-new";
@@ -67,9 +71,18 @@ export default function CategoryProductsPage() {
       sizes: filters.sizes.length > 0 ? filters.sizes : undefined,
       colors: filters.colors.length > 0 ? filters.colors : undefined,
       // Only send sortBy if it's explicitly set in URL (not the default "newest")
-      sortBy: urlSort ? filters.sortBy as CategoryProductsFilters['sortBy'] : undefined,
+      sortBy: urlSort
+        ? (filters.sortBy as CategoryProductsFilters["sortBy"])
+        : undefined,
     };
-  }, [urlMinPrice, urlMaxPrice, filters.sizes, filters.colors, filters.sortBy, urlSort]);
+  }, [
+    urlMinPrice,
+    urlMaxPrice,
+    filters.sizes,
+    filters.colors,
+    filters.sortBy,
+    urlSort,
+  ]);
 
   // Fetch products by category using server-side filtering
   const {
@@ -230,14 +243,18 @@ export default function CategoryProductsPage() {
           {categoryNameDisplay}
         </h1>
         <p className="text-sm text-muted-foreground mt-2">
-          {pagination
-            ? `Showing ${
-                (pagination.page - 1) * pagination.limit + 1
-              }-${Math.min(
-                pagination.page * pagination.limit,
-                pagination.total
-              )} of ${pagination.total} products`
-            : `${filteredProducts.length} products found`}
+          {productsLoading ? (
+            <span className="animate-pulse">Loading products...</span>
+          ) : pagination ? (
+            `Showing ${
+              (pagination.page - 1) * pagination.limit + 1
+            }-${Math.min(
+              pagination.page * pagination.limit,
+              pagination.total
+            )} of ${pagination.total} products`
+          ) : (
+            `${filteredProducts.length} products found`
+          )}
         </p>
       </div>
 
@@ -281,7 +298,7 @@ export default function CategoryProductsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredProducts.map((product, idx) => (
                   <ProductCard
                     key={`${product.id}-${currentPageValue}`}

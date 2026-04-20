@@ -22,7 +22,7 @@ import {
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
 import { SizeGuide } from "@/components/product/SizeGuide";
-import { Loader } from "@/components/ui/Loader";
+import { Loader, ProductDetailsSkeleton } from "@/components/ui/Loader";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -83,6 +83,17 @@ export default function ProductDetailsPage() {
 
   const [isRefetchingStock, setIsRefetchingStock] = useState(false);
   const prevLastCartChange = useRef<number>(0);
+
+  // Page load animation state
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (product && !loading) {
+      // Small delay to ensure smooth transition from skeleton
+      const timer = setTimeout(() => setIsVisible(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [product, loading]);
 
   // Get all sizes
   const availableSizes = useMemo(() => {
@@ -484,11 +495,7 @@ export default function ProductDetailsPage() {
   }, [product?.variants, product?.stock]);
 
   if (loading && !product) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader size="lg" />
-      </div>
-    );
+    return <ProductDetailsSkeleton />;
   }
 
   if (!product || product.isActive === false) {
@@ -516,8 +523,13 @@ export default function ProductDetailsPage() {
 
   return (
     <div className="pt-24 md:pt-32 pb-20 bg-white">
-      {/* Breadcrumb */}
-      <div className="container-fashion py-4">
+      {/* Breadcrumb with animation */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="container-fashion py-4"
+      >
         <nav className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <Link
             href="/"
@@ -559,7 +571,7 @@ export default function ProductDetailsPage() {
             {product.name}
           </span>
         </nav>
-      </div>
+      </motion.div>
 
       {/* Product Details */}
       <div className="container-fashion py-6 md:py-10">
@@ -567,7 +579,7 @@ export default function ProductDetailsPage() {
           {/* Gallery */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="order-1 z-0"
           >
@@ -577,7 +589,7 @@ export default function ProductDetailsPage() {
           {/* Product Info */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="order-2 lg:sticky lg:top-28 lg:self-start"
           >
@@ -598,21 +610,32 @@ export default function ProductDetailsPage() {
 
               {/* Description */}
               {product.description && (
-                <p className="text-muted-foreground text-base leading-relaxed mb-8 max-w-2xl text-left">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="text-muted-foreground text-base leading-relaxed mb-8 max-w-2xl text-left"
+                >
                   {product.description}
-                </p>
+                </motion.p>
               )}
 
               {/* Price Row */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={
+                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                }
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center gap-3 mb-6"
               >
                 <motion.span
                   initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  animate={
+                    isVisible
+                      ? { opacity: 1, scale: 1 }
+                      : { opacity: 0, scale: 0.9 }
+                  }
                   transition={{ delay: 0.1, duration: 0.3 }}
                   className="text-3xl font-semibold tracking-tight"
                 >
@@ -622,7 +645,9 @@ export default function ProductDetailsPage() {
                 {originalPrice && originalPrice > currentPrice && (
                   <motion.span
                     initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    animate={
+                      isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }
+                    }
                     transition={{ delay: 0.2, duration: 0.3 }}
                     className="text-lg text-muted-foreground line-through decoration-2"
                   >
@@ -633,7 +658,11 @@ export default function ProductDetailsPage() {
                 {discountPercentage > 0 && (
                   <motion.span
                     initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    animate={
+                      isVisible
+                        ? { opacity: 1, scale: 1 }
+                        : { opacity: 0, scale: 0.8 }
+                    }
                     transition={{
                       delay: 0.3,
                       type: "spring",
@@ -648,14 +677,26 @@ export default function ProductDetailsPage() {
                 )}
               </motion.div>
               {/* Divider */}
-              <div className="h-px bg-border w-full" />
+              <motion.div
+                initial={{ scaleX: 0 }}
+                animate={isVisible ? { scaleX: 1 } : { scaleX: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="h-px bg-border w-full origin-left"
+              />
             </div>
 
             {/* Variant Selection */}
             <div className="space-y-8 mb-8">
               {/* Color Selection - Only show if more than 1 color available */}
               {availableColorsForSelectedSize.length > 1 && (
-                <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={
+                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                  }
+                  transition={{ duration: 0.4, delay: 0.35 }}
+                  className="space-y-3"
+                >
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
                       Color
@@ -692,14 +733,21 @@ export default function ProductDetailsPage() {
                       ))}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Size Selection - Only show if more than 1 size available */}
               {availableSizes.length > 1 && (
-                <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={
+                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                  }
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="space-y-3"
+                >
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0 text-left pl-3">
                       Size
                     </span>
                     <div className="flex flex-wrap gap-4">
@@ -741,11 +789,18 @@ export default function ProductDetailsPage() {
                       })}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Quantity */}
-              <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={
+                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                }
+                transition={{ duration: 0.4, delay: 0.45 }}
+                className="flex items-center gap-4"
+              >
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
                   Quantity
                 </span>
@@ -814,7 +869,7 @@ export default function ProductDetailsPage() {
                     )}
                   </span>
                 )}
-              </div>
+              </motion.div>
 
               {/* Size Guide */}
               <SizeGuide categorySlug={categories?.raw?.slug} />
@@ -1036,13 +1091,13 @@ export default function ProductDetailsPage() {
                   transition={{ duration: 0.3 }}
                   className="space-y-6"
                 >
-                  <h3 className="text-2xl text-left font-medium text-foreground">
+                  <h3 className="text-2xl font-sans text-left font-medium text-foreground">
                     {policyData[activeTab].title}
                   </h3>
 
                   {/* Intro text (only for shipping tab) */}
                   {policyData[activeTab]?.intro && (
-                    <p className="text-sm underline text-muted-foreground leading-relaxed text-left">
+                    <p className=" text- leading-relaxed text-left">
                       {policyData[activeTab]?.intro}
                     </p>
                   )}
@@ -1050,10 +1105,15 @@ export default function ProductDetailsPage() {
                   <div className="space-y-6">
                     {policyData[activeTab].content.map((section, index) => (
                       <div key={index} className="space-y-2">
-                        <h4 className="font-medium text-foreground text-xl text-left">
-                          {section.heading}
-                        </h4>
-                        <div className="text- text-muted-foreground whitespace-pre-line leading-relaxed text-left">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 w-8 text-sm font-semibold border-2 border-gray-400 bg- rounded-full">
+                            {index + 1}
+                          </div>
+                          <h4 className="font-medium text-foreground text-lg font-sans text-left">
+                            {section.heading}
+                          </h4>
+                        </div>
+                        <div className="text- text-muted-foreground whitespace-pre-line leading-relaxed text-left pl-10">
                           {section.body}
                         </div>
                       </div>
