@@ -728,7 +728,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
   const fetchProducts = useCallback(async () => {
     if (!categorySlug) return;
 
-    console.log(categorySlug);
+    // console.log(categorySlug);
 
     try {
       const queryString = buildQueryString();

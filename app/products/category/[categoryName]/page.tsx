@@ -118,7 +118,7 @@ export default function CategoryProductsPage() {
 
   // Products are already filtered server-side, no need for client-side filtering
   const filteredProducts = products;
-  console.log(products);
+  // console.log(products);
 
   // Handle filter changes - update URL params to trigger API refetch
   const handleFilterChange = useCallback((newFilters: ProductFiltersState) => {

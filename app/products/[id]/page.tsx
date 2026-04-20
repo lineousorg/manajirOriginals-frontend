@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
+import { SizeGuide } from "@/components/product/SizeGuide";
 import { Loader } from "@/components/ui/Loader";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
@@ -79,7 +80,7 @@ export default function ProductDetailsPage() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
   const [isRefetchingStock, setIsRefetchingStock] = useState(false);
   const prevLastCartChange = useRef<number>(0);
 
@@ -191,7 +192,7 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     // Skip on initial mount (when prevLastCartChange is 0)
     if (lastCartChange > 0 && lastCartChange !== prevLastCartChange.current) {
-      console.log("[DEBUG] Cart changed, refetching stock:", lastCartChange);
+      // console.log("[DEBUG] Cart changed, refetching stock:", lastCartChange);
       prevLastCartChange.current = lastCartChange;
       setIsRefetchingStock(true);
       refetch().finally(() => setIsRefetchingStock(false));
@@ -215,10 +216,10 @@ export default function ProductDetailsPage() {
     () =>
       (size: string): number => {
         if (!product?.variants) {
-          console.log("[DEBUG] getStockForSize: no variants", {
-            productId: product?.id,
-            size,
-          });
+          // console.log("[DEBUG] getStockForSize: no variants", {
+          //   productId: product?.id,
+          //   size,
+          // });
           return 0;
         }
         let totalStock = 0;
@@ -247,11 +248,11 @@ export default function ProductDetailsPage() {
             totalStock += available;
           }
         });
-        console.log("[DEBUG] getStockForSize:", {
-          size,
-          totalStock,
-          variants: debugVariants,
-        });
+        // console.log("[DEBUG] getStockForSize:", {
+        //   size,
+        //   totalStock,
+        //   variants: debugVariants,
+        // });
         return totalStock;
       },
     [product?.variants]
@@ -290,6 +291,7 @@ export default function ProductDetailsPage() {
   const details = product?.details ?? [];
 
   const categories = product ? getProductCategories(product) : null;
+  // console.log(categories);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -814,56 +816,8 @@ export default function ProductDetailsPage() {
                 )}
               </div>
 
-              {/* Size Guide Thumbnail */}
-              <div
-                className="mt-6 cursor-pointer group w-fit"
-                onClick={() => setIsSizeGuideOpen(true)}
-              >
-                <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20 p-2 transition-all duration-200 group-hover:border-primary/50 group-hover:shadow-md">
-                  <Image
-                    src="/Size guides/punjabi-size-guide.jpeg"
-                    alt="Size Guide"
-                    width={280}
-                    height={180}
-                    className="w-64 h-auto rounded-lg object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/50 rounded-xl">
-                    <span className="text-xs font-medium bg-background/90 px-3 py-1.5 rounded-full shadow-sm">
-                      Click to enlarge
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Size Guide
-                </p>
-              </div>
-
-              {/* Size Guide Modal */}
-              {isSizeGuideOpen && (
-                <div
-                  className="fixed inset-0 z-999 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-                  onClick={() => setIsSizeGuideOpen(false)}
-                >
-                  <div
-                    className="relative"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      className="absolute -top-8 -right-8 bg-background rounded-full p-2.5 shadow-lg transition-colors z-10 cursor-pointer hover:bg-primary hover:text-background"
-                      onClick={() => setIsSizeGuideOpen(false)}
-                    >
-                      <Plus size={20} className="rotate-45" />
-                    </button>
-                    <Image
-                      src="/Size guides/punjabi-size-guide.jpeg"
-                      alt="Size Guide"
-                      width={500}
-                      height={500}
-                      className="w-full h-auto rounded-2xl"
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Size Guide */}
+              <SizeGuide categorySlug={categories?.raw?.slug} />
             </div>
 
             {/* Actions */}

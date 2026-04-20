@@ -164,7 +164,7 @@ const CheckoutPageContent = () => {
     }
 
     // Console log the payload
-    console.log("Order Payload:", payload);
+    // console.log("Order Payload:", payload);
 
     try {
       // Make the API call - use different endpoint for guest users

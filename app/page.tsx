@@ -56,7 +56,7 @@ export default function Home() {
     a.name.localeCompare(b.name),
   );
   const displayCategories = sortedCategories.slice(0, 6);
-  console.log(displayCategories);
+  // console.log(displayCategories);
 
   return (
     <div>

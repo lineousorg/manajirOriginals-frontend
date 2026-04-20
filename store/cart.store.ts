@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Product } from '@/types';
-import { stockReservationService } from '@/services/stock-reservation.service';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Product } from "@/types";
+import { stockReservationService } from "@/services/stock-reservation.service";
 
 // Minimal cart item interface to reduce localStorage size
 interface MinimalCartItem {
@@ -26,19 +26,52 @@ interface CartState {
   isOpen: boolean;
   isHydrated: boolean;
   lastCartChange: number; // Timestamp for tracking cart changes
-  addItem: (product: Product, size: string, color: string, quantity?: number, reservationId?: number, expiresAt?: string) => { success: boolean; isExisting: boolean };
-  removeItem: (productId: string | number, size: string, color: string, skipRelease?: boolean) => void;
-  updateQuantity: (productId: string | number, size: string, color: string, quantity: number) => { success: boolean; message?: string };
+  addItem: (
+    product: Product,
+    size: string,
+    color: string,
+    quantity?: number,
+    reservationId?: number,
+    expiresAt?: string
+  ) => { success: boolean; isExisting: boolean };
+  removeItem: (
+    productId: string | number,
+    size: string,
+    color: string,
+    skipRelease?: boolean
+  ) => void;
+  updateQuantity: (
+    productId: string | number,
+    size: string,
+    color: string,
+    quantity: number
+  ) => { success: boolean; message?: string };
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
   getTotal: () => number;
   getItemCount: () => number;
-  isItemInCart: (productId: string | number, size: string, color: string) => boolean;
-  getItemQuantity: (productId: string | number, size: string, color: string) => number;
-  getItemStock: (productId: string | number, size: string, color: string) => number | undefined;
-  getItemReservation: (productId: string | number, size: string, color: string) => { reservationId?: number; expiresAt?: string } | undefined;
+  isItemInCart: (
+    productId: string | number,
+    size: string,
+    color: string
+  ) => boolean;
+  getItemQuantity: (
+    productId: string | number,
+    size: string,
+    color: string
+  ) => number;
+  getItemStock: (
+    productId: string | number,
+    size: string,
+    color: string
+  ) => number | undefined;
+  getItemReservation: (
+    productId: string | number,
+    size: string,
+    color: string
+  ) => { reservationId?: number; expiresAt?: string } | undefined;
   setHydrated: (state: boolean) => void;
 }
 
@@ -50,51 +83,64 @@ export const useCartStore = create<CartState>()(
       isHydrated: false,
       lastCartChange: 0,
 
-      addItem: (product, size, color, quantity = 1, reservationId, expiresAt): { success: boolean; isExisting: boolean } => {
+      addItem: (
+        product,
+        size,
+        color,
+        quantity = 1,
+        reservationId,
+        expiresAt
+      ): { success: boolean; isExisting: boolean } => {
         // Return type: { success: boolean, isExisting: boolean }
         // - { success: true, isExisting: true } = existing item updated
         // - { success: true, isExisting: false } = new item added
         // - { success: false, isExisting: false } = validation failed
-        
+
         // Determine if product has variants (sizes/colors defined in variants)
         const hasVariants = (product.variants?.length ?? 0) > 0;
         const hasSizes = (product.sizes?.length ?? 0) > 0;
         const hasColorsDefined = (product.colors?.length ?? 0) > 0;
-        
+
         // If product has variants, size is required
         if (hasVariants && hasSizes && !size) {
-          console.error('Size is required for this product');
+          console.error("Size is required for this product");
           return { success: false, isExisting: false };
         }
-        
+
         // Color check: if product has explicit colors array OR has variants with color attributes
-        const hasColorAttributesInVariants = hasVariants && product.variants?.some((v: any) => 
-          v.attributes?.some((a: any) => a.attributeValue?.attribute?.name === "Color")
-        );
-        
+        const hasColorAttributesInVariants =
+          hasVariants &&
+          product.variants?.some((v: any) =>
+            v.attributes?.some(
+              (a: any) => a.attributeValue?.attribute?.name === "Color"
+            )
+          );
+
         if ((hasColorsDefined || hasColorAttributesInVariants) && !color) {
-          console.error('Color is required for this product');
+          console.error("Color is required for this product");
           return { success: false, isExisting: false };
         }
-        
+
         let isExisting = false;
-        
+
         // Extract minimal product data to reduce storage size
-        const productImage = product.images?.[0]?.url || product.thumbnail || '';
-        
+        const productImage =
+          product.images?.[0]?.url || product.thumbnail || "";
+
         // Find the variant that matches the selected size and color
         // This is critical for correct variantId and price
         let selectedVariant = null;
-        let productPrice = product.price || product.maxPrice || product.minPrice || 0;
+        let productPrice =
+          product.price || product.maxPrice || product.minPrice || 0;
         let hasDiscount = false;
         let finalPrice: number | undefined;
-        
+
         if (product.variants && product.variants.length > 0) {
           // If product has variants, we MUST find a matching one
           // Normalize the inputs for comparison
           const normalizedSize = size?.trim();
           const normalizedColor = color?.trim();
-          
+
           selectedVariant = product.variants.find((variant) => {
             const variantSizeAttr = variant.attributes?.find(
               (attr) => attr.attributeValue?.attribute?.name === "Size"
@@ -102,37 +148,56 @@ export const useCartStore = create<CartState>()(
             const variantColorAttr = variant.attributes?.find(
               (attr) => attr.attributeValue?.attribute?.name === "Color"
             );
-            
+
             const variantSize = variantSizeAttr?.attributeValue?.value?.trim();
-            const variantColor = variantColorAttr?.attributeValue?.value?.trim();
-            
+            const variantColor =
+              variantColorAttr?.attributeValue?.value?.trim();
+
             // Check if both size and color match
             // If size is provided, it must match. If not provided (One Size), skip size check
-            const sizeMatch = !normalizedSize || normalizedSize === "One Size" || variantSize === normalizedSize;
+            const sizeMatch =
+              !normalizedSize ||
+              normalizedSize === "One Size" ||
+              variantSize === normalizedSize;
             // If color is provided and not "Default", it must match
-            const colorMatch = !normalizedColor || normalizedColor === "Default" || variantColor === normalizedColor;
-            
+            const colorMatch =
+              !normalizedColor ||
+              normalizedColor === "Default" ||
+              variantColor === normalizedColor;
+
             return sizeMatch && colorMatch;
           });
-          
+
           if (!selectedVariant) {
             // Product has variants but no matching one found - log for debugging
-            console.error('No matching variant found for size:', size, 'color:', color);
-            console.error('Available variants:', product.variants.map((v: any) => ({
-              id: v.id,
-              size: v.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Size")?.attributeValue?.value,
-              color: v.attributes?.find((a: any) => a.attributeValue?.attribute?.name === "Color")?.attributeValue?.value
-            })));
+            console.error(
+              "No matching variant found for size:",
+              size,
+              "color:",
+              color
+            );
+            console.error(
+              "Available variants:",
+              product.variants.map((v: any) => ({
+                id: v.id,
+                size: v.attributes?.find(
+                  (a: any) => a.attributeValue?.attribute?.name === "Size"
+                )?.attributeValue?.value,
+                color: v.attributes?.find(
+                  (a: any) => a.attributeValue?.attribute?.name === "Color"
+                )?.attributeValue?.value,
+              }))
+            );
             return { success: false, isExisting: false };
           }
-          
+
           // Use the matched variant's price
           productPrice = selectedVariant.price || productPrice;
           // Store discount info if available
           hasDiscount = selectedVariant.hasDiscount || false;
           finalPrice = selectedVariant.finalPrice;
         }
-        
+
         set((state) => {
           const existingIndex = state.items.findIndex(
             (item) =>
@@ -145,13 +210,17 @@ export const useCartStore = create<CartState>()(
             isExisting = true;
             const newItems = [...state.items];
             newItems[existingIndex].quantity += quantity;
-            return { items: newItems, isOpen: true, lastCartChange: Date.now() };
+            return {
+              items: newItems,
+              isOpen: true,
+              lastCartChange: Date.now(),
+            };
           }
 
           // Store minimal data only - use the CORRECT variantId
           const newItem: MinimalCartItem = {
             productId: product.id,
-            productName: product.name || 'Product',
+            productName: product.name || "Product",
             productImage,
             productPrice,
             hasDiscount,
@@ -171,7 +240,7 @@ export const useCartStore = create<CartState>()(
             lastCartChange: Date.now(),
           };
         });
-        
+
         // Return success=true, and isExisting tells us if it was an update or new add
         return { success: true, isExisting };
       },
@@ -185,7 +254,7 @@ export const useCartStore = create<CartState>()(
             item.selectedSize === size &&
             item.selectedColor === color
         );
-        
+
         // If there's a reservation and skipRelease is false, release it before removing
         // Note: skipRelease is used when the caller (like CartDrawer) has already handled the release
         if (!skipRelease && itemToRemove?.reservationId) {
@@ -194,26 +263,33 @@ export const useCartStore = create<CartState>()(
             const expiresAtTime = new Date(itemToRemove.expiresAt).getTime();
             const now = Date.now();
             if (expiresAtTime < now) {
-              console.log('[DEBUG] Reservation already expired, skipping release:', itemToRemove.reservationId);
+              // console.log('[DEBUG] Reservation already expired, skipping release:', itemToRemove.reservationId);
             } else {
-              console.log('[DEBUG] Releasing reservation:', itemToRemove.reservationId, 'expires:', itemToRemove.expiresAt);
+              // console.log('[DEBUG] Releasing reservation:', itemToRemove.reservationId, 'expires:', itemToRemove.expiresAt);
               try {
-                const result = await stockReservationService.releaseReservation(itemToRemove.reservationId);
+                const result = await stockReservationService.releaseReservation(
+                  itemToRemove.reservationId
+                );
                 if (!result.success) {
-                  console.error('[DEBUG] Failed to release reservation:', result.error);
+                  // console.error('[DEBUG] Failed to release reservation:', result.error);
                 } else {
-                  console.log('[DEBUG] Successfully released reservation:', itemToRemove.reservationId);
+                  // console.log('[DEBUG] Successfully released reservation:', itemToRemove.reservationId);
                 }
               } catch (error) {
-                console.error('[DEBUG] Error releasing reservation:', error);
+                console.error("[DEBUG] Error releasing reservation:", error);
               }
             }
           } else {
-            console.log('[DEBUG] No expiresAt, releasing reservation:', itemToRemove.reservationId);
+            // console.log(
+            //   "[DEBUG] No expiresAt, releasing reservation:",
+            //   itemToRemove.reservationId
+            // );
             try {
-              await stockReservationService.releaseReservation(itemToRemove.reservationId);
+              await stockReservationService.releaseReservation(
+                itemToRemove.reservationId
+              );
             } catch (error) {
-              console.error('Failed to release reservation:', error);
+              console.error("Failed to release reservation:", error);
             }
           }
         }
@@ -239,23 +315,23 @@ export const useCartStore = create<CartState>()(
             item.selectedSize === size &&
             item.selectedColor === color
         );
-        
+
         // Validate stock if we have stock information
         if (item?.variantStock !== undefined && item.variantStock > 0) {
           // Check if new quantity exceeds available stock
           if (quantity > item.variantStock) {
-            return { 
-              success: false, 
-              message: `Only ${item.variantStock} items available in stock` 
+            return {
+              success: false,
+              message: `Only ${item.variantStock} items available in stock`,
             };
           }
         }
-        
+
         // Prevent negative quantity
         if (quantity < 1) {
-          return { success: false, message: 'Quantity cannot be less than 1' };
+          return { success: false, message: "Quantity cannot be less than 1" };
         }
-        
+
         set((state) => ({
           items: state.items.map((item) =>
             String(item.productId) === String(productId) &&
@@ -266,23 +342,25 @@ export const useCartStore = create<CartState>()(
           ),
           lastCartChange: Date.now(),
         }));
-        
+
         return { success: true };
       },
 
       clearCart: async () => {
         // Get all items with reservations and release them
         const { items } = get();
-        
+
         // Release all reservations in parallel
         const releasePromises = items
           .filter((item) => item.reservationId)
           .map((item) =>
-            stockReservationService.releaseReservation(item.reservationId!).catch((error) => {
-              console.error('Failed to release reservation:', error);
-            })
+            stockReservationService
+              .releaseReservation(item.reservationId!)
+              .catch((error) => {
+                console.error("Failed to release reservation:", error);
+              })
           );
-        
+
         await Promise.all(releasePromises);
         set({ items: [], lastCartChange: Date.now() });
       },
@@ -295,8 +373,11 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
         // Use finalPrice for discounted items, otherwise use productPrice
         return items.reduce((total, item) => {
-          const price = item.hasDiscount && item.finalPrice ? item.finalPrice : item.productPrice;
-          return total + (Number(price) * item.quantity);
+          const price =
+            item.hasDiscount && item.finalPrice
+              ? item.finalPrice
+              : item.productPrice;
+          return total + Number(price) * item.quantity;
         }, 0);
       },
 
@@ -305,7 +386,11 @@ export const useCartStore = create<CartState>()(
         return items.reduce((count, item) => count + item.quantity, 0);
       },
 
-      isItemInCart: (productId: string | number, size: string, color: string) => {
+      isItemInCart: (
+        productId: string | number,
+        size: string,
+        color: string
+      ) => {
         const { items } = get();
         return items.some(
           (item) =>
@@ -315,7 +400,11 @@ export const useCartStore = create<CartState>()(
         );
       },
 
-      getItemQuantity: (productId: string | number, size: string, color: string) => {
+      getItemQuantity: (
+        productId: string | number,
+        size: string,
+        color: string
+      ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
@@ -326,7 +415,11 @@ export const useCartStore = create<CartState>()(
         return item?.quantity ?? 0;
       },
 
-      getItemStock: (productId: string | number, size: string, color: string) => {
+      getItemStock: (
+        productId: string | number,
+        size: string,
+        color: string
+      ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
@@ -337,7 +430,11 @@ export const useCartStore = create<CartState>()(
         return item?.variantStock;
       },
 
-      getItemReservation: (productId: string | number, size: string, color: string) => {
+      getItemReservation: (
+        productId: string | number,
+        size: string,
+        color: string
+      ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
@@ -357,7 +454,7 @@ export const useCartStore = create<CartState>()(
       setHydrated: (state: boolean) => set({ isHydrated: state }),
     }),
     {
-      name: 'cart-storage',
+      name: "cart-storage",
       onRehydrateStorage: () => (state) => {
         // Mark store as hydrated after rehydration completes
         state?.setHydrated(true);
