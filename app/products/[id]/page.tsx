@@ -43,7 +43,7 @@ const findVariant = (variants: any[], size: string, color?: string): any => {
     const sizeMatch = variant.attributes?.some(
       (attr: any) =>
         attr.attributeValue?.attribute?.name === "Size" &&
-        attr.attributeValue?.value === size
+        attr.attributeValue?.value === size,
     );
 
     const colorMatch =
@@ -51,7 +51,7 @@ const findVariant = (variants: any[], size: string, color?: string): any => {
       variant.attributes?.some(
         (attr: any) =>
           attr.attributeValue?.attribute?.name === "Color" &&
-          attr.attributeValue?.value === color
+          attr.attributeValue?.value === color,
       );
 
     return sizeMatch && colorMatch;
@@ -61,7 +61,9 @@ const findVariant = (variants: any[], size: string, color?: string): any => {
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [quantity, setQuantity] = useState(0);
+  const [quantityBySize, setQuantityBySize] = useState<Record<string, number>>(
+    {},
+  );
   const [activeTab, setActiveTab] = useState<
     "details" | "shipping" | "returns"
   >("details");
@@ -87,6 +89,9 @@ export default function ProductDetailsPage() {
   // Page load animation state
   const [isVisible, setIsVisible] = useState(false);
 
+  // Derived quantity for currently selected size (minimum 1)
+  const quantity = selectedSize ? (quantityBySize[selectedSize] ?? 1) : 1;
+
   useEffect(() => {
     if (product && !loading) {
       // Small delay to ensure smooth transition from skeleton
@@ -109,11 +114,11 @@ export default function ProductDetailsPage() {
         const variantSize = variant.attributes.find(
           (attr: any) =>
             attr.attributeValue?.attribute?.name === "Size" &&
-            attr.attributeValue?.value === selectedSize
+            attr.attributeValue?.value === selectedSize,
         );
         if (variantSize) {
           const colorAttr = variant.attributes.find(
-            (attr: any) => attr.attributeValue?.attribute?.name === "Color"
+            (attr: any) => attr.attributeValue?.attribute?.name === "Color",
           );
           if (
             colorAttr?.attributeValue?.value &&
@@ -130,31 +135,31 @@ export default function ProductDetailsPage() {
   // Calculate price based on selected variant using helper
   const selectedVariant = useMemo(
     () => findVariant(product?.variants || [], selectedSize, selectedColor),
-    [product?.variants, selectedSize, selectedColor]
+    [product?.variants, selectedSize, selectedColor],
   );
 
   // Determine price using API discount data when available
   const currentPrice = selectedVariant?.hasDiscount
-    ? selectedVariant?.finalPrice ??
+    ? (selectedVariant?.finalPrice ??
       selectedVariant?.price ??
       product?.variants?.[0]?.price ??
       product?.price ??
-      0
-    : selectedVariant?.price ??
+      0)
+    : (selectedVariant?.price ??
       product?.variants?.[0]?.price ??
       product?.price ??
-      0;
+      0);
 
   const originalPrice = selectedVariant?.hasDiscount
     ? selectedVariant?.price
-    : selectedVariant?.price ?? product?.originalPrice;
+    : (selectedVariant?.price ?? product?.originalPrice);
 
   const discountPercentage = selectedVariant?.hasDiscount
     ? selectedVariant?.discountValue
       ? parseInt(selectedVariant.discountValue)
       : originalPrice && currentPrice < originalPrice
-      ? Math.round((1 - currentPrice / originalPrice) * 100)
-      : 0
+        ? Math.round((1 - currentPrice / originalPrice) * 100)
+        : 0
     : 0;
 
   // Initialize defaults when product loads
@@ -167,11 +172,11 @@ export default function ProductDetailsPage() {
         const variantSize = variant.attributes?.find(
           (attr: any) =>
             attr.attributeValue?.attribute?.name === "Size" &&
-            attr.attributeValue?.value === availableSizes[0]
+            attr.attributeValue?.value === availableSizes[0],
         );
         if (variantSize) {
           const colorAttr = variant.attributes.find(
-            (attr: any) => attr.attributeValue?.attribute?.name === "Color"
+            (attr: any) => attr.attributeValue?.attribute?.name === "Color",
           );
           if (
             colorAttr?.attributeValue?.value &&
@@ -239,7 +244,7 @@ export default function ProductDetailsPage() {
           const variantSize = variant.attributes?.find(
             (attr: any) =>
               attr.attributeValue?.attribute?.name === "Size" &&
-              attr.attributeValue?.value === size
+              attr.attributeValue?.value === size,
           );
           // Use stock instead of availableStock to avoid incorrect stock display
           // availableStock has a bug where it's being over-reduced by reservations
@@ -252,7 +257,7 @@ export default function ProductDetailsPage() {
             available,
             variantSize: !!variantSize,
             sizeAttr: variant.attributes?.find(
-              (a: any) => a.attributeValue?.attribute?.name === "Size"
+              (a: any) => a.attributeValue?.attribute?.name === "Size",
             )?.attributeValue?.value,
           });
           if (variantSize && available > 0) {
@@ -266,7 +271,7 @@ export default function ProductDetailsPage() {
         // });
         return totalStock;
       },
-    [product?.variants]
+    [product?.variants],
   );
 
   // Calculate available stock for the selected variant directly from product API
@@ -279,6 +284,18 @@ export default function ProductDetailsPage() {
 
   // displayStock = what to show in UI (available minus what user is about to add in current session)
   const displayStock = Math.max(0, selectedVariantAvailableStock - quantity);
+
+  // Sync quantity when stock changes (prevent quantity > available stock)
+  useEffect(() => {
+    if (!selectedSize) return;
+    setQuantityBySize((prev) => {
+      const currentQty = prev[selectedSize] ?? 1;
+      if (remainingStock === 0) return { ...prev, [selectedSize]: 1 };
+      if (currentQty > remainingStock)
+        return { ...prev, [selectedSize]: remainingStock };
+      return prev;
+    });
+  }, [remainingStock, selectedSize]);
 
   // canAddMore: whether user can add more of this variant to cart
   const canAddMore = remainingStock > 0;
@@ -296,7 +313,7 @@ export default function ProductDetailsPage() {
               altText: "No Image",
             },
           ],
-    [product?.images]
+    [product?.images],
   );
 
   const details = product?.details ?? [];
@@ -321,7 +338,7 @@ export default function ProductDetailsPage() {
 
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img
+          typeof img === "string" ? { url: img, altText: product.name } : img,
         )
       : [];
 
@@ -330,25 +347,11 @@ export default function ProductDetailsPage() {
     const color = selectedColor || "Default";
     const isAlreadyInCart = isItemInCart(productId, size, color);
 
-    // Prevent adding if quantity is 0
-    if (!quantity || quantity <= 0) {
-      toast.error("Please select a quantity");
-      setIsAddingToCart(false);
-      return;
-    }
-
-    // Prevent adding if quantity is 0
-    if (!quantity || quantity <= 0) {
-      toast.error("Please select a quantity");
-      setIsAddingToCart(false);
-      return;
-    }
-
     // Find the variant for reservation using helper
     const selectedVariantInAddToCart = findVariant(
       product.variants || [],
       size,
-      color
+      color,
     );
     const variantId = selectedVariantInAddToCart?.id;
 
@@ -362,19 +365,18 @@ export default function ProductDetailsPage() {
     // Re-check available stock immediately before reservation to prevent race condition
     // This ensures we have the most up-to-date stock info
     try {
-      const stockCheck = await stockReservationService.getAvailableStock(
-        variantId
-      );
+      const stockCheck =
+        await stockReservationService.getAvailableStock(variantId);
       if (stockCheck.success && stockCheck.data) {
         // If no stock available, don't even try to reserve
         if (stockCheck.data.availableStock < quantity) {
           if (stockCheck.data.availableStock === 0) {
             toast.error(
-              "This item is out of stock. Please choose a different option."
+              "This item is out of stock. Please choose a different option.",
             );
           } else {
             toast.error(
-              `Only ${stockCheck.data.availableStock} available. Please adjust quantity.`
+              `Only ${stockCheck.data.availableStock} available. Please adjust quantity.`,
             );
           }
           setIsAddingToCart(false);
@@ -395,7 +397,7 @@ export default function ProductDetailsPage() {
       reservationResult = await stockReservationService.reserveStock(
         variantId,
         quantity,
-        15 // 15 minutes expiration
+        15, // 15 minutes expiration
       );
     } catch (error) {
       console.error("Failed to reserve stock:", error);
@@ -415,7 +417,7 @@ export default function ProductDetailsPage() {
       color,
       quantity,
       reservationResult?.data?.reservationId, // Pass reservation ID
-      reservationResult?.data?.expiresAt // Pass expiration time
+      reservationResult?.data?.expiresAt, // Pass expiration time
     );
 
     // Handle different outcomes
@@ -424,7 +426,7 @@ export default function ProductDetailsPage() {
       if (reservationResult?.data?.reservationId) {
         try {
           await stockReservationService.releaseReservation(
-            reservationResult.data.reservationId
+            reservationResult.data.reservationId,
           );
         } catch (releaseError) {
           console.error("Failed to release reservation:", releaseError);
@@ -432,7 +434,7 @@ export default function ProductDetailsPage() {
         }
       }
       toast.error(
-        "Selected size or color is not available. Please choose different options."
+        "Selected size or color is not available. Please choose different options.",
       );
       setIsAddingToCart(false);
       return;
@@ -447,8 +449,6 @@ export default function ProductDetailsPage() {
       toast.success("Added to bag!");
     }
 
-    // Reset quantity after successful add (set to 0 for next item)
-    setQuantity(0);
     setIsAddingToCart(false);
 
     // Refetch product to get updated stock (reservation decrements backend stock)
@@ -760,7 +760,11 @@ export default function ProductDetailsPage() {
                             <button
                               onClick={() => {
                                 setSelectedSize(size);
-                                setQuantity(0);
+
+                                setQuantityBySize((prev) => ({
+                                  ...prev,
+                                  [size]: prev[size] ?? 1,
+                                }));
                               }}
                               disabled={isOutOfStock}
                               className={`
@@ -806,9 +810,17 @@ export default function ProductDetailsPage() {
                 </span>
                 <div className="inline-flex items-center bg-muted/30 rounded-full border border-border ">
                   <button
-                    onClick={() => setQuantity(Math.max(0, quantity - 1))}
+                    onClick={() =>
+                      setQuantityBySize((prev) => ({
+                        ...prev,
+                        [selectedSize]: Math.max(
+                          (prev[selectedSize] ?? 1) - 1,
+                          1,
+                        ),
+                      }))
+                    }
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    disabled={quantity <= 0}
+                    disabled={quantity <= 1}
                     aria-label="Decrease quantity"
                   >
                     <Minus size={16} strokeWidth={2.5} />
@@ -817,7 +829,15 @@ export default function ProductDetailsPage() {
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() =>
+                      setQuantityBySize((prev) => ({
+                        ...prev,
+                        [selectedSize]: Math.min(
+                          (prev[selectedSize] ?? 1) + 1,
+                          remainingStock,
+                        ),
+                      }))
+                    }
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     disabled={remainingStock <= 0 || quantity >= remainingStock}
                     aria-label="Increase quantity"
@@ -831,8 +851,8 @@ export default function ProductDetailsPage() {
                       remainingStock <= 0
                         ? "text-gray-500"
                         : remainingStock <= 3
-                        ? "text-gray-500"
-                        : "text-green-600"
+                          ? "text-gray-500"
+                          : "text-green-600"
                     }`}
                   >
                     {isRefetchingStock ? (
@@ -891,17 +911,7 @@ export default function ProductDetailsPage() {
                 }`}
               >
                 <AnimatePresence mode="wait">
-                  {quantity <= 0 ? (
-                    <motion.span
-                      key="selectqty"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex items-center justify-center gap-2"
-                    >
-                      Select Quantity
-                    </motion.span>
-                  ) : isOutOfStock ? (
+                  {isOutOfStock ? (
                     <motion.span
                       key="outofstock"
                       initial={{ opacity: 0, y: 10 }}
@@ -1169,14 +1179,14 @@ export default function ProductDetailsPage() {
             {quantity <= 0
               ? "Select Quantity"
               : isOutOfStock
-              ? "Out of Stock"
-              : isStockExceeded
-              ? "Max Stock Reached"
-              : isInCart
-              ? "Added to Bag"
-              : isAddingToCart
-              ? "Adding..."
-              : "Add to Bag"}
+                ? "Out of Stock"
+                : isStockExceeded
+                  ? "Max Stock Reached"
+                  : isInCart
+                    ? "Added to Bag"
+                    : isAddingToCart
+                      ? "Adding..."
+                      : "Add to Bag"}
           </button>
         </div>
       </div>

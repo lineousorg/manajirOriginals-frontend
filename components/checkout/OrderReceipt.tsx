@@ -103,12 +103,6 @@ export function OrderReceipt({
     }
   };
 
-  useEffect(() => {
-    if (!hasAttempted) {
-      downloadReceipt();
-    }
-  }, [hasAttempted]);
-
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="container-fashion max-w-3xl mx-auto space-y-8">
@@ -269,18 +263,6 @@ export function OrderReceipt({
                       </p>
                     </div>
 
-                    <button
-                      onClick={downloadReceipt}
-                      className="group relative px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <span className="relative z-10 flex items-center gap-2">
-                        <RefreshCw
-                          size={14}
-                          className="group-hover:rotate-180 transition-transform duration-500"
-                        />
-                        Retry Download
-                      </span>
-                    </button>
                   </div>
                 </motion.div>
               )}
@@ -317,15 +299,6 @@ export function OrderReceipt({
                       </p>
                     </div>
 
-                    <div className="flex gap-3">
-                      <button
-                        onClick={downloadReceipt}
-                        className="group px-4 py-2 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:bg-muted hover:border-border/80 hover:text-foreground transition-all flex items-center gap-2"
-                      >
-                        <Download size={14} />
-                        Download Again
-                      </button>
-                    </div>
                   </div>
                 </motion.div>
               )}
