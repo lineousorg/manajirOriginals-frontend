@@ -128,9 +128,9 @@ export default function ProductDetailsPage() {
   const details = product?.details ?? [];
   const categories = product ? getProductCategories(product) : null;
 
-  // Stock calculations
-  const remainingStock = Math.max(0, selectedVariantAvailableStock);
-  const displayStock = Math.max(0, selectedVariantAvailableStock - quantity);
+  // Stock calculations - using availableStock from API (totalStock - reservedStock)
+  const remainingStock = selectedVariantAvailableStock;
+  const displayStock = selectedVariantAvailableStock - quantity;
   const canAddMore = remainingStock > 0;
   const isStockExceeded = !canAddMore;
 
@@ -277,10 +277,10 @@ export default function ProductDetailsPage() {
     return isItemInCart(productId, size, color);
   }, [product, selectedSize, selectedColor, productId, isItemInCart]);
 
-  // Out of stock check
+  // Out of stock check - uses availableStock (totalStock - reservedStock) from API
   const isOutOfStock = useMemo(() => {
     if (!product?.variants || product.variants.length === 0) {
-      return !product?.stock || product.stock === 0;
+      return !product?.availableStock || product.availableStock === 0;
     }
     const allVariantsOutOfStock = product.variants.every(
       (variant: ProductVariant) => {
@@ -289,7 +289,7 @@ export default function ProductDetailsPage() {
       },
     );
     return allVariantsOutOfStock;
-  }, [product?.variants, product?.stock]);
+  }, [product?.variants, product?.availableStock]);
 
   if (loading && !product) {
     return <ProductDetailsSkeleton />;

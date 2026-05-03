@@ -66,24 +66,26 @@ export const getColorsForSize = (
 };
 
 /**
- * Get total stock for a specific size (sum across all colors)
+ * Get available stock for a specific size (sum of availableStock across all colors)
+ * Uses availableStock from API which is totalStock - reservedStock
  */
 export const getStockForSize = (
   variants: ProductVariant[],
   size: string
 ): number => {
-  let totalStock = 0;
+  let totalAvailableStock = 0;
 
   variants.forEach((variant) => {
     if (getVariantAttribute(variant, "Size") === size) {
-      const stock = variant.stock ?? 0;
-      if (stock > 0) {
-        totalStock += stock;
+      // Use availableStock (total - reserved) as per API structure
+      const availableStock = variant.availableStock ?? variant.stock ?? 0;
+      if (availableStock > 0) {
+        totalAvailableStock += availableStock;
       }
     }
   });
 
-  return totalStock;
+  return totalAvailableStock;
 };
 
 /**

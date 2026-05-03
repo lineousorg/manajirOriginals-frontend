@@ -218,21 +218,21 @@ export const useCartStore = create<CartState>()(
           }
 
           // Store minimal data only - use the CORRECT variantId
-          const newItem: MinimalCartItem = {
-            productId: product.id,
-            productName: product.name || "Product",
-            productImage,
-            productPrice,
-            hasDiscount,
-            finalPrice,
-            variantId: selectedVariant?.id, // Use the matched variant ID, not first variant!
-            variantStock: selectedVariant?.stock ?? product.stock ?? 0, // Store stock for validation
-            quantity,
-            selectedSize: size,
-            selectedColor: color,
-            reservationId, // Stock reservation ID from backend
-            expiresAt, // Reservation expiration timestamp
-          };
+           const newItem: MinimalCartItem = {
+             productId: product.id,
+             productName: product.name || "Product",
+             productImage,
+             productPrice,
+             hasDiscount,
+             finalPrice,
+             variantId: selectedVariant?.id, // Use the matched variant ID, not first variant!
+             variantStock: selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0, // Store availableStock (total - reserved) for validation
+             quantity,
+             selectedSize: size,
+             selectedColor: color,
+             reservationId, // Stock reservation ID from backend
+             expiresAt, // Reservation expiration timestamp
+           };
 
           return {
             items: [...state.items, newItem],
@@ -317,6 +317,7 @@ export const useCartStore = create<CartState>()(
         );
 
         // Validate stock if we have stock information
+        // variantStock now stores availableStock (totalStock - reservedStock) from API
         if (item?.variantStock !== undefined && item.variantStock > 0) {
           // Check if new quantity exceeds available stock
           if (quantity > item.variantStock) {

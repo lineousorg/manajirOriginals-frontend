@@ -49,8 +49,9 @@ export const useVariantSelection = ({
   }, [variants, selectedSize]);
 
   // Get available stock for selected variant
+  // Use availableStock first (as per API structure: availableStock = totalStock - reservedStock)
   const selectedVariantAvailableStock =
-    selectedVariant?.stock ?? selectedVariant?.availableStock ?? 0;
+    selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
 
   // Derived quantity for currently selected size
   const quantity = selectedSize ? (quantityBySize[selectedSize] ?? 1) : 1;
