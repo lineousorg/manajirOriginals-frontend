@@ -1,0 +1,349 @@
+I've analyzed the product-related APIs from the codebase. Here's a comprehensive summary of all **Product-related APIs** with their request and response bodies:
+
+---
+
+## Product APIs
+
+### 1. `GET /api/products` - Get All Products
+
+**Access:** Public
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | 1 | Page number |
+| `limit` | number | 10 | Items per page (max 100) |
+| `includeStock` | boolean | true | Include stock info |
+
+**Response (200):**
+```json
+{
+  "message": "Products found",
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Classic T-Shirt",
+      "slug": "classic-t-shirt",
+      "isActive": true,
+      "createdAt": "2026-02-17T06:00:00.000Z",
+      "category": { "id": 1, "name": "T-Shirts" },
+      "thumbnail": "https://example.com/image.jpg",
+      "minPrice": 29.99,
+      "maxPrice": 39.99,
+      "totalStock": 100,
+      "availableStock": 95,
+      "reservedStock": 5,
+      "hasVariants": true,
+      "hasDiscount": false,
+      "discountAmount": 0
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 50,
+    "totalPages": 5,
+    "hasNext": true,
+    "hasPrevious": false
+  }
+}
+```
+
+---
+
+### 2. `GET /api/products/:id` - Get Product by ID
+
+**Access:** Public
+
+**Response (200):**
+```json
+{
+  "message": "Product found",
+  "status": "success",
+  "data": {
+    "id": 1,
+    "name": "Classic T-Shirt",
+    "slug": "classic-t-shirt",
+    "description": "Comfortable cotton t-shirt",
+    "isActive": true,
+    "categoryId": 1,
+    "category": { "id": 1, "name": "T-Shirts", "slug": "t-shirts" },
+    "variants": [
+      {
+        "id": 1,
+        "sku": "TS-001-S-BLK",
+        "price": 29.99,
+        "stock": 50,
+        "isActive": true,
+        "finalPrice": 29.99,
+        "hasDiscount": false,
+        "discountAmount": 0,
+        "availableStock": 48,
+        "reservedStock": 2,
+        "attributes": [
+          {
+            "attributeValue": {
+              "id": 1,
+              "value": "Small",
+              "attribute": { "id": 1, "name": "Size" }
+            }
+          }
+        ],
+        "images": []
+      }
+    ],
+    "images": [
+      { "id": 1, "url": "https://example.com/image.jpg", "altText": "T-Shirt", "position": 1 }
+    ],
+    "createdAt": "2026-02-17T06:00:00.000Z",
+    "updatedAt": "2026-02-17T06:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 3. `GET /api/products/category/:slug` - Get Products by Category
+
+**Access:** Public
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | 1 | Page number |
+| `limit` | number | 20 | Items per page |
+| `minPrice` | number | - | Filter by minimum price |
+| `minMaxPrice` | number | - | Filter by maximum price |
+| `sizes` | string[] | - | Filter by sizes |
+| `colors` | string[] | - | Filter by colors |
+| `sortBy` | string | 'newest' | Sort options |
+
+**Response (200):** Same structure as `GET /api/products`
+
+---
+
+### 4. `POST /api/products` - Create Product
+
+**Access:** Admin only
+
+**Request Body:**
+```json
+{
+  "name": "Classic T-Shirt",
+  "slug": "classic-t-shirt",
+  "description": "Comfortable cotton t-shirt",
+  "categoryId": 1,
+  "isActive": true,
+  "variants": [
+    {
+      "sku": "TS-001-S-BLK",
+      "price": 29.99,
+      "stock": 50,
+      "isActive": true,
+      "discountType": "PERCENTAGE",
+      "discountValue": 10,
+      "discountStart": "2026-01-01T00:00:00.000Z",
+      "discountEnd": "2026-12-31T23:59:59.000Z",
+      "attributes": [
+        { "attributeId": 1, "valueId": 1 },
+        { "attributeId": 2, "valueId": 5 }
+      ]
+    }
+  ],
+  "images": [
+    {
+      "url": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+      "altText": "Classic T-Shirt",
+      "position": 1
+    }
+  ]
+}
+```
+
+**Response (201):**
+```json
+{
+  "message": "Product created successfully",
+  "status": "success",
+  "data": {
+    "id": 1,
+    "name": "Classic T-Shirt",
+    "slug": "classic-t-shirt",
+    "description": "Comfortable cotton t-shirt",
+    "isActive": true,
+    "categoryId": 1,
+    "createdAt": "2026-02-17T06:00:00.000Z",
+    "updatedAt": "2026-02-17T06:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 5. `PATCH /api/products/:id` - Update Product
+
+**Access:** Admin only
+
+**Request Body:**
+```json
+{
+  "name": "Updated T-Shirt Name",
+  "description": "Updated description",
+  "isActive": false,
+  "categoryId": 2,
+  "variants": [
+    {
+      "id": 1,
+      "price": 34.99,
+      "stock": 75,
+      "sku": "TS-001-S-BLK",
+      "isActive": true,
+      "discountType": "PERCENTAGE",
+      "discountValue": 15,
+      "discountStart": "2026-01-01T00:00:00.000Z",
+      "discountEnd": "2026-12-31T23:59:59.000Z"
+    },
+    {
+      "sku": "TS-001-M-BLK",
+      "price": 29.99,
+      "stock": 30,
+      "attributes": [
+        { "attributeId": 1, "valueId": 2 },
+        { "attributeId": 2, "valueId": 5 }
+      ]
+    }
+  ],
+  "images": [
+    {
+      "id": 1,
+      "url": "https://example.com/new-image.jpg",
+      "altText": "Updated T-Shirt",
+      "position": 1
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Product updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Updated T-Shirt Name",
+    "slug": "classic-t-shirt",
+    "description": "Updated description",
+    "isActive": false,
+    "categoryId": 2,
+    "createdAt": "2026-02-17T06:00:00.000Z",
+    "updatedAt": "2026-02-17T06:15:00.000Z",
+    "variants": [
+      { "id": 1, "sku": "TS-001-S-BLK", "price": 34.99, "stock": 75, "isActive": true }
+    ],
+    "images": [
+      { "id": 1, "url": "https://example.com/new-image.jpg", "altText": "Updated T-Shirt", "position": 1 }
+    ]
+  }
+}
+```
+
+---
+
+### 6. `DELETE /api/products/:id` - Delete Product
+
+**Access:** Admin only
+
+**Response (200):**
+```json
+{
+  "message": "Product deleted successfully",
+  "status": "success",
+  "data": null
+}
+```
+
+---
+
+### 7. `PATCH /api/products/:id/toggle-active` - Toggle Product Active Status
+
+**Access:** Admin only
+
+**Response (200):**
+```json
+{
+  "message": "Product activated successfully",
+  "status": "success",
+  "data": {
+    "id": 1,
+    "isActive": true
+  }
+}
+```
+
+---
+
+### 8. `PATCH /api/products/:id/variants/:variantId/toggle-active` - Toggle Variant Active Status
+
+**Access:** Admin only
+
+**Response (200):**
+```json
+{
+  "message": "Variant deactivated successfully",
+  "status": "success",
+  "data": {
+    "id": 1,
+    "isActive": false
+  }
+}
+```
+
+---
+
+### 9. `DELETE /api/products/:id/variants/:variantId` - Delete Variant
+
+**Access:** Admin only
+
+**Response (200):**
+```json
+{
+  "message": "Variant deleted successfully",
+  "status": "success",
+  "data": null
+}
+```
+
+---
+
+## Key DTO Structures
+
+### `CreateProductDto`
+| Field | Type | Required |
+|-------|------|----------|
+| `name` | string | Yes |
+| `description` | string | Yes |
+| `slug` | string | Yes |
+| `categoryId` | number | Yes |
+| `isActive` | boolean | No |
+| `variants` | `VariantWithAttributesDto[]` | No |
+| `images` | `CreateProductImageDto[]` | No |
+
+### `VariantWithAttributesDto`
+| Field | Type | Required |
+|-------|------|----------|
+| `sku` | string | No |
+| `price` | number | Yes |
+| `stock` | number | Yes |
+| `isActive` | boolean | No |
+| `discountType` | `DiscountType` | No |
+| `discountValue` | number | No |
+| `discountStart` | string | No |
+| `discountEnd` | string | No |
+| `attributes` | `VariantAttributeDto[]` | Yes |
+
+### `VariantAttributeDto`
+| Field | Type | Required |
+|-------|------|----------|
+| `attributeId` | number | Yes |
+| `valueId` | number | Yes |
