@@ -75,14 +75,23 @@ class StockReservationService {
   async reserveStock(
     variantId: number,
     quantity: number,
-    expirationMinutes: number = 15
+    expirationMinutes: number = 15,
+    guestToken?: string
   ): Promise<{ success: boolean; data?: ReservationData; error?: string }> {
     try {
-      const response = await apiClient.post(`${this.getBaseUrl()}/stock-reservation/reserve`, {
+      // Prepare request data
+      const requestData: any = {
         variantId,
         quantity,
         expirationMinutes,
-      });
+      };
+      
+      // Add guestToken if provided (for anonymous users)
+      if (guestToken) {
+        requestData.guestToken = guestToken;
+      }
+
+      const response = await apiClient.post(`${this.getBaseUrl()}/stock-reservation/reserve`, requestData);
 
       const data = response.data;
 
@@ -108,12 +117,21 @@ class StockReservationService {
 
   // Release a reservation
   async releaseReservation(
-    reservationId: number
+    reservationId: number,
+    guestToken?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await apiClient.post(`${this.getBaseUrl()}/stock-reservation/release`, {
+      // Prepare request data
+      const requestData: any = {
         reservationId,
-      });
+      };
+      
+      // Add guestToken if provided (for anonymous users)
+      if (guestToken) {
+        requestData.guestToken = guestToken;
+      }
+
+      await apiClient.post(`${this.getBaseUrl()}/stock-reservation/release`, requestData);
 
       return { success: true };
     } catch (error: any) {
@@ -127,15 +145,19 @@ class StockReservationService {
   }
 
   // Get user's active reservations
-  async getMyReservations(): Promise<{
+  async getMyReservations(guestToken?: string): Promise<{
     success: boolean;
     data?: MyReservation[];
     error?: string;
   }> {
     try {
-      const response = await apiClient.get(
-        `${this.getBaseUrl()}/stock-reservation/my-reservations`
-      );
+      // Build URL with guestToken as query parameter if provided (for anonymous users)
+      let url = `${this.getBaseUrl()}/stock-reservation/my-reservations`;
+      if (guestToken) {
+        url += `?guestToken=${guestToken}`;
+      }
+
+      const response = await apiClient.get(url);
 
       return {
         success: true,
