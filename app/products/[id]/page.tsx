@@ -34,6 +34,7 @@ import { stockReservationService } from "@/services/stock-reservation.service";
 import policyData from "@/lib/policy-data.json";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
 import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
+import { trackAddToCart, trackViewItem } from "@/lib/gtm";
 
 // Helper function for className
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -91,6 +92,17 @@ export default function ProductDetailsPage() {
     }
   }, [product, loading]);
 
+  useEffect(() => {
+    if (!product || loading) return;
+
+    trackViewItem({
+      item_id: String(product.id),
+      item_name: product.name,
+      price: currentPrice || product.price || product.maxPrice || 0,
+      item_category: gtmCategory,
+    });
+  }, [product, loading]);
+
   // Refetch product stock when cart changes
   useEffect(() => {
     if (lastCartChange > 0 && lastCartChange !== prevLastCartChange.current) {
@@ -127,6 +139,10 @@ export default function ProductDetailsPage() {
 
   const details = product?.details ?? [];
   const categories = product ? getProductCategories(product) : null;
+  const gtmCategory =
+    [categories?.parent?.name, categories?.child?.name]
+      .filter(Boolean)
+      .join(" / ") || categories?.raw?.name;
 
   // Stock calculations - using availableStock from API (totalStock - reservedStock)
   const remainingStock = selectedVariantAvailableStock;
@@ -245,6 +261,15 @@ export default function ProductDetailsPage() {
     } else {
       toast.success("Added to bag!");
     }
+
+    trackAddToCart({
+      item_id: String(variantId),
+      item_name: product.name,
+      price: currentPrice || product.price || product.maxPrice || 0,
+      quantity,
+      item_category: gtmCategory,
+      item_brand: color,
+    });
 
     setIsAddingToCart(false);
     setIsRefetchingStock(true);

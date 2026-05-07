@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/gtm.ts
 
 declare global {
@@ -36,12 +37,12 @@ export const trackLogin = (method: string = "email") => {
   });
 };
 
-export const trackSignup = (method: string = "email") => {
-  pushToDataLayer({
-    event: "sign_up",
-    method,
-  });
-};
+// export const trackSignup = (method: string = "email") => {
+//   pushToDataLayer({
+//     event: "sign_up",
+//     method,
+//   });
+// };
 
 
 // =============================
@@ -87,14 +88,14 @@ export const trackAddToCart = (item: GTMItem) => {
 
 
 // 👉 Remove from cart
-export const trackRemoveFromCart = (item: GTMItem) => {
-  pushToDataLayer({
-    event: "remove_from_cart",
-    ecommerce: {
-      items: [item],
-    },
-  });
-};
+// export const trackRemoveFromCart = (item: GTMItem) => {
+//   pushToDataLayer({
+//     event: "remove_from_cart",
+//     ecommerce: {
+//       items: [item],
+//     },
+//   });
+// };
 
 
 // 👉 Begin checkout

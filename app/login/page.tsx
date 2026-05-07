@@ -8,6 +8,7 @@ import { signIn, useSession } from "next-auth/react";
 import { SignupModal } from "@/components/auth/SignupModal";
 import { userService } from "@/services/user.service";
 import Link from "next/link";
+import { trackLogin } from "@/lib/gtm";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -29,6 +30,7 @@ const LoginPage = () => {
         name: session.user.name!,
         avatar: session.user.image!,
       });
+      trackLogin("google");
       router.push("/");
     }
   }, [session, login, router]);
@@ -47,6 +49,7 @@ const LoginPage = () => {
         name: data.user.email.split("@")[0], // Use email prefix as name since API doesn't return name
       });
 
+      trackLogin("email");
       router.push("/");
     } catch (err) {
       setError(

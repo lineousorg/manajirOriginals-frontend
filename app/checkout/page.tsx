@@ -26,6 +26,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast from "react-hot-toast";
+import { trackPurchase, type GTMItem } from "@/lib/gtm";
 
 const CheckoutPageContent = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -77,6 +78,15 @@ const CheckoutPageContent = () => {
   const subtotal = getTotal();
   const shipping = deliveryLocation === "inside_dhaka" ? 120 : 200;
   const total = subtotal + shipping;
+
+  const purchaseItems: GTMItem[] = items.map((item) => ({
+    item_id: String(item.variantId ?? item.productId),
+    item_name: item.productName,
+    price: item.finalPrice ?? item.productPrice,
+    quantity: item.quantity,
+    item_category: item.selectedSize,
+    item_brand: item.selectedColor,
+  }));
 
   // Update email when user changes
   useEffect(() => {
@@ -189,6 +199,12 @@ const CheckoutPageContent = () => {
       // Also store the order ID for receipt download API
       const receivedOrderId = response?.data?.id || response?.id;
       setOrderId(receivedOrderId || finalOrderNumber);
+
+      trackPurchase({
+        transaction_id: String(receivedOrderId || finalOrderNumber),
+        value: total,
+        items: purchaseItems,
+      });
 
       // Clear cart and show success
       clearCart();

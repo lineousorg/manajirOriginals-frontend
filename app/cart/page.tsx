@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
+import { trackBeginCheckout, type GTMItem } from "@/lib/gtm";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart, isHydrated } =
@@ -50,6 +51,19 @@ const CartPage = () => {
   const subtotal = getTotal();
   const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
   const total = subtotal + shipping;
+
+  const checkoutItems: GTMItem[] = items.map((item) => ({
+    item_id: String(item.variantId ?? item.productId),
+    item_name: item.productName,
+    price: item.finalPrice ?? item.productPrice,
+    quantity: item.quantity,
+    item_category: item.selectedSize,
+    item_brand: item.selectedColor,
+  }));
+
+  const handleBeginCheckout = () => {
+    trackBeginCheckout(checkoutItems, total);
+  };
 
   if (items.length === 0) {
     return (
@@ -220,12 +234,20 @@ const CartPage = () => {
 
             {/* For unauthenticated users, redirect to guest checkout with verification */}
             {!isAuthenticated ? (
-              <Link href="/checkout?guest=true" className="btn-primary-fashion w-full mt-6">
+              <Link
+                href="/checkout?guest=true"
+                onClick={handleBeginCheckout}
+                className="btn-primary-fashion w-full mt-6"
+              >
                 Proceed to Checkout
                 <ArrowRight size={18} className="ml-2" />
               </Link>
             ) : (
-              <Link href="/checkout" className="btn-primary-fashion w-full mt-6">
+              <Link
+                href="/checkout"
+                onClick={handleBeginCheckout}
+                className="btn-primary-fashion w-full mt-6"
+              >
                 Proceed to Checkout
                 <ArrowRight size={18} className="ml-2" />
               </Link>
