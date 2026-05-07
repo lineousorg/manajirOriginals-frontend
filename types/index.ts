@@ -56,6 +56,9 @@ export interface ApiProduct {
   hasDiscount?: boolean;
   discountAmount?: number;
   stock?: number;
+  availableStock?: number;
+  reservedStock?: number;
+  totalStock?: number;
   sku?: string;
   images?: TypeImage[];
   categoryId?: number;
