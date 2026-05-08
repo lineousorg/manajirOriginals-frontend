@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
+import { getGuestToken, removeFromCart } from "@/lib/cart";
 
 export const CartDrawer = () => {
   const {
@@ -53,7 +54,15 @@ export const CartDrawer = () => {
           // by the backend's own cleanup process - that's OK, we just need to
           // remove the item from cart in that case
           try {
-            await stockReservationService.releaseReservation(item.reservationId);
+            // Try to get guest token for anonymous users
+            const guestToken = getGuestToken();
+            if (guestToken) {
+              // Use guest token for release
+              await removeFromCart(item.reservationId);
+            } else {
+              // Fall back to authenticated service
+              await stockReservationService.releaseReservation(item.reservationId);
+            }
           } catch (error) {
             // If 404 (reservation not found or already released), that's expected
             // for reservations that expired via backend cleanup - just log it
