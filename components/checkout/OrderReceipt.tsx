@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+// import { useState, useEffect } from "react";
 import { Download, CheckCircle, Loader2, AlertCircle } from "lucide-react";
-import { useAuthStore } from "@/store/auth.store";
-import toast from "react-hot-toast";
+// import { useAuthStore } from "@/store/auth.store";
+// import toast from "react-hot-toast";
 
 interface OrderReceiptProps {
   orderId: string;
@@ -11,75 +11,75 @@ interface OrderReceiptProps {
 }
 
 export const OrderReceipt = ({ orderId, orderNumber }: OrderReceiptProps) => {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [hasAttempted, setHasAttempted] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  // const [isDownloading, setIsDownloading] = useState(false);
+  // const [error, setError] = useState<string | null>(null);
+  // const [downloadSuccess, setDownloadSuccess] = useState(false);
+  // const [hasAttempted, setHasAttempted] = useState(false);
+  // const { isAuthenticated } = useAuthStore();
 
-  const downloadReceipt = async () => {
-    setIsDownloading(true);
-    setError(null);
-    setDownloadSuccess(false);
-    setHasAttempted(true);
+  // const downloadReceipt = async () => {
+  //   setIsDownloading(true);
+  //   setError(null);
+  //   setDownloadSuccess(false);
+  //   setHasAttempted(true);
 
-    try {
-      const token = localStorage.getItem("accessToken");
-      const guestPhone = localStorage.getItem("guestPhone");
+  //   try {
+  //     const token = localStorage.getItem("accessToken");
+  //     const guestPhone = localStorage.getItem("guestPhone");
 
-      let response: Response;
+  //     let response: Response;
 
-      if (token) {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/${orderId}/receipt`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      } else if (guestPhone) {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/${orderId}/receipt?phone=${guestPhone}`,
-          {
-            method: "GET",
-          }
-        );
-      } else {
-        throw new Error(
-          "Session not found. Please log in or complete checkout again."
-        );
-      }
+  //     if (token) {
+  //       response = await fetch(
+  //         `${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/${orderId}/receipt`,
+  //         {
+  //           method: "GET",
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         }
+  //       );
+  //     } else if (guestPhone) {
+  //       response = await fetch(
+  //         `${process.env.NEXT_PUBLIC_API_BASE_URL}/orders/${orderId}/receipt?phone=${guestPhone}`,
+  //         {
+  //           method: "GET",
+  //         }
+  //       );
+  //     } else {
+  //       throw new Error(
+  //         "Session not found. Please log in or complete checkout again."
+  //       );
+  //     }
 
-      if (!response.ok) {
-        throw new Error(
-          response.statusText || "Failed to download receipt"
-        );
-      }
+  //     if (!response.ok) {
+  //       throw new Error(
+  //         response.statusText || "Failed to download receipt"
+  //       );
+  //     }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `receipt-${orderNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+  //     const blob = await response.blob();
+  //     const url = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.href = url;
+  //     a.download = `receipt-${orderNumber}.pdf`;
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     window.URL.revokeObjectURL(url);
+  //     document.body.removeChild(a);
 
-      setDownloadSuccess(true);
-      toast.success("Receipt downloaded successfully!");
-    } catch (err: any) {
-      console.error("Failed to download receipt:", err);
-      setError(
-        err?.message || "Failed to download receipt. Please try again."
-      );
-      toast.error(err?.message || "Failed to download receipt");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  //     setDownloadSuccess(true);
+  //     toast.success("Receipt downloaded successfully!");
+  //   } catch (err: any) {
+  //     console.error("Failed to download receipt:", err);
+  //     setError(
+  //       err?.message || "Failed to download receipt. Please try again."
+  //     );
+  //     toast.error(err?.message || "Failed to download receipt");
+  //   } finally {
+  //     setIsDownloading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-muted/20 py-12 md:py-28">
@@ -112,7 +112,7 @@ export const OrderReceipt = ({ orderId, orderNumber }: OrderReceiptProps) => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <button
               onClick={downloadReceipt}
               disabled={isDownloading}
@@ -149,7 +149,7 @@ export const OrderReceipt = ({ orderId, orderNumber }: OrderReceiptProps) => {
               A confirmation email will be sent to you shortly with your order
               details and tracking information.
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

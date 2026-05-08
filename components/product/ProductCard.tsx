@@ -9,7 +9,6 @@ import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useCartStore } from "@/store/cart.store";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { MdArrowOutward } from "react-icons/md";
 
 interface ProductCardProps {
@@ -27,21 +26,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const productId = String(product.id);
   const inWishlist = isInWishlist(productId);
 
-  const images =
-    product.images && product.images.length > 0
-      ? product.images
-      : [
-          {
-            url: "https://placehold.co/600x800?text=No+Image",
-            altText: "No Image",
-          },
-        ];
-
   // Use new API discount fields
   const hasDiscount = product.hasDiscount ?? false;
   const discountTk = product.discountAmount ?? 0;
   const minPrice = Number(product.minPrice || 0);
   const maxPrice = Number(product.maxPrice || 0);
+  const minFinalPrice = product.minFinalPrice ?? 0
 
   // Calculate discount percentage if not provided
   const discountAmount =
@@ -51,7 +41,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         ? discountTk
         : null;
 
-  const originalPrice = hasDiscount ? maxPrice : null;
 
   // Get cart items to calculate available stock
   const cartItems = useCartStore((state) => state.items);
@@ -248,12 +237,16 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
             <span className="">
               ৳{" "}
               <span className="text-lg font-bold text-slate-700">
-                {minPrice.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                })}
+                {hasDiscount && minFinalPrice > 0 ? 
+                  minFinalPrice.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  }) : 
+                  minPrice.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
               </span>
             </span>
-            {hasDiscount && maxPrice > minPrice && (
+            {hasDiscount && maxPrice > (minFinalPrice || minPrice) && (
               <span className="text-sm text-slate-400 line-through">
                 ৳
                 {maxPrice.toLocaleString("en-US", {

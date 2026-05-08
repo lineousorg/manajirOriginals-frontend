@@ -53,6 +53,7 @@ export interface ApiProduct {
   maxPrice?: number;
   minPrice?: number;
   originalPrice?: number;
+  minFinalPrice?: number;
   hasDiscount?: boolean;
   discountAmount?: number;
   stock?: number;
