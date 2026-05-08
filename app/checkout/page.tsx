@@ -27,6 +27,7 @@ import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast from "react-hot-toast";
 import { trackPurchase, type GTMItem } from "@/lib/gtm";
+import { getGuestToken } from "@/lib/cart";
 
 const CheckoutPageContent = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -76,7 +77,7 @@ const CheckoutPageContent = () => {
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const subtotal = getTotal();
-  const shipping = deliveryLocation === "inside_dhaka" ? 120 : 200;
+  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 120;
   const total = subtotal + shipping;
 
   const purchaseItems: GTMItem[] = items.map((item) => ({
@@ -162,6 +163,12 @@ const CheckoutPageContent = () => {
       payload.address = formData.address;
       payload.city = formData.city;
       payload.postalCode = formData.zip;
+
+      // Include guestToken to verify reservation ownership
+      const guestToken = getGuestToken();
+      if (guestToken) {
+        payload.guestToken = guestToken;
+      }
 
       // Include reCAPTCHA token for verification
       if (recaptchaToken) {
@@ -984,7 +991,7 @@ const CheckoutPageContent = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">৳120</span>
+                    <span className="font-semibold text-sm">৳70</span>
                   </label>
 
                   <label
@@ -1009,7 +1016,7 @@ const CheckoutPageContent = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">৳200</span>
+                    <span className="font-semibold text-sm">৳120</span>
                   </label>
                 </div>
 

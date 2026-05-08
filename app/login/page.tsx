@@ -29,7 +29,7 @@ const LoginPage = () => {
         email: session.user.email!,
         name: session.user.name!,
         avatar: session.user.image!,
-      });
+      }, session.accessToken || "");
       trackLogin("google");
       router.push("/");
     }
@@ -43,11 +43,14 @@ const LoginPage = () => {
     try {
       const data = await userService.login(formData.email, formData.password);
 
-      login({
-        id: String(data.user.id),
-        email: data.user.email,
-        name: data.user.email.split("@")[0], // Use email prefix as name since API doesn't return name
-      });
+      login(
+        {
+          id: String(data.user.id),
+          email: data.user.email,
+          name: data.user.email.split("@")[0], // Use email prefix as name since API doesn't return name
+        },
+        data.accessToken
+      );
 
       trackLogin("email");
       router.push("/");

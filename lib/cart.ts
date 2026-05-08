@@ -1,6 +1,6 @@
 let guestToken: string | null = null;
 
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * Initialize guest token for anonymous session tracking
@@ -10,7 +10,7 @@ export async function initializeGuestToken() {
   try {
     // Check localStorage first
     guestToken = localStorage.getItem("guestToken");
-    
+
     if (!guestToken) {
       // Get token from backend
       console.log(guestToken);
@@ -68,7 +68,7 @@ export async function addToCart(variantId: number, quantity: number) {
     throw new Error("Guest token not initialized");
   }
 
-  const response = await fetch("/api/stock-reservation/reserve", {
+  const response = await fetch(`${baseUrl}/stock-reservation/reserve`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -102,7 +102,7 @@ export async function removeFromCart(reservationId: number) {
     throw new Error("Guest token not initialized");
   }
 
-  const response = await fetch("/api/stock-reservation/release", {
+  const response = await fetch(`${baseUrl}/stock-reservation/release`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export async function getActiveReservations() {
   const token = getGuestToken();
 
   const url = new URL(
-    "/api/stock-reservation/my-reservations",
+    `${baseUrl}/stock-reservation/my-reservations`,
     window.location.origin
   );
   if (token) {
@@ -158,7 +158,7 @@ export async function getActiveReservations() {
  * @returns {Promise<Object>} Availability result
  */
 export async function checkAvailability(variantId: number, quantity: number) {
-  const response = await fetch("/api/stock-reservation/check", {
+  const response = await fetch(`${baseUrl}/stock-reservation/check`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -191,7 +191,7 @@ export async function migrateGuestReservations(jwtToken: string) {
   }
 
   try {
-    await fetch("/api/stock-reservation/migrate", {
+    await fetch(`${baseUrl}/stock-reservation/migrate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

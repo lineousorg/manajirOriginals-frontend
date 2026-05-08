@@ -185,7 +185,7 @@ export const GuestCheckoutModal = ({
         setError("Failed to load captcha. Please try again.");
       }
     });
-  });
+  }, [recaptchaReady, verified, selectedOption, isOpen, containerId, handleRecaptchaSuccess, handleRecaptchaExpired, handleRecaptchaError]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -271,7 +271,7 @@ export const GuestCheckoutModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-[10000] backdrop-blur-sm"
           />
 
           {/* Modal */}
@@ -280,7 +280,7 @@ export const GuestCheckoutModal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[10001] w-full max-w-md"
           >
             <div className="bg-background rounded-2xl shadow-2xl border border-border overflow-hidden mx-4">
               {/* Header */}

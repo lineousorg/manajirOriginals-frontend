@@ -214,39 +214,14 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    let reservationResult;
-    try {
-      reservationResult = await stockReservationService.reserveStock(
-        variantId,
-        quantity,
-        15,
-      );
-    } catch (error) {
-      console.error("Failed to reserve stock:", error);
-      toast.error("Unable to reserve stock. Please try again.");
-      setIsAddingToCart(false);
-      return;
-    }
-
-    const result = addToCart(
+    const result = await addToCart(
       { ...product, id: productId, images: normalizedImages },
       size,
       color,
-      quantity,
-      reservationResult?.data?.reservationId,
-      reservationResult?.data?.expiresAt,
+      quantity
     );
 
     if (!result.success) {
-      if (reservationResult?.data?.reservationId) {
-        try {
-          await stockReservationService.releaseReservation(
-            reservationResult.data.reservationId,
-          );
-        } catch (releaseError) {
-          console.error("Failed to release reservation:", releaseError);
-        }
-      }
       toast.error(
         "Selected size or color is not available. Please choose different options.",
       );

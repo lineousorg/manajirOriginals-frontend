@@ -16,7 +16,7 @@ const WishlistPage = () => {
   // Filter out inactive products
   const activeItems = items.filter((item) => item.product.isActive !== false);
 
-  const handleAddToCart = (productId: string | number) => {
+  const handleAddToCart = async (productId: string | number) => {
     const item = items.find((i) => String(i.product.id) === String(productId));
     if (!item) return;
     const { product } = item;
@@ -35,7 +35,7 @@ const WishlistPage = () => {
     }
 
     // For products without variants, add directly with "One Size" and "Default"
-    const result = addToCart(product, "One Size", "Default", 1);
+    const result = await addToCart(product, "One Size", "Default", 1);
 
     if (result?.success) {
       removeItem(String(productId));

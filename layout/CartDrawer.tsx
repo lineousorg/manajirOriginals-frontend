@@ -14,18 +14,14 @@ import { stockReservationService } from "@/services/stock-reservation.service";
 import { getGuestToken, removeFromCart } from "@/lib/cart";
 
 export const CartDrawer = () => {
-  const {
-    items,
-    isOpen,
-    closeCart,
-    removeItem,
-    getTotal,
-    isHydrated,
-  } = useCartStore();
+  const { items, isOpen, closeCart, removeItem, getTotal, isHydrated } =
+    useCartStore();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const [showSignupModal, setShowSignupModal] = useState(false);
-  const [variantStockMap, setVariantStockMap] = useState<Record<string | number, number>>({});
+  const [variantStockMap, setVariantStockMap] = useState<
+    Record<string | number, number>
+  >({});
   // Force re-render every second to update countdown timers
   const [, setTick] = useState(0);
 
@@ -61,15 +57,26 @@ export const CartDrawer = () => {
               await removeFromCart(item.reservationId);
             } else {
               // Fall back to authenticated service
-              await stockReservationService.releaseReservation(item.reservationId);
+              await stockReservationService.releaseReservation(
+                item.reservationId
+              );
             }
           } catch (error) {
             // If 404 (reservation not found or already released), that's expected
             // for reservations that expired via backend cleanup - just log it
-            const errorObj = error as { response?: { data?: { message?: string } } };
+            const errorObj = error as {
+              response?: { data?: { message?: string } };
+            };
             const errorMessage = errorObj?.response?.data?.message || "";
-            if (errorMessage.includes("not found") || errorMessage.includes("already released") || errorMessage.includes("expired")) {
-              console.log("Reservation already expired on backend, removing from cart:", item.reservationId);
+            if (
+              errorMessage.includes("not found") ||
+              errorMessage.includes("already released") ||
+              errorMessage.includes("expired")
+            ) {
+              console.log(
+                "Reservation already expired on backend, removing from cart:",
+                item.reservationId
+              );
             } else {
               console.error("Failed to release expired reservation:", error);
             }
@@ -81,7 +88,9 @@ export const CartDrawer = () => {
     }
 
     if (hasExpiredItems) {
-      toast.error("Some items in your cart have expired and were removed. Please add them again.");
+      toast.error(
+        "Some items in your cart have expired and were removed. Please add them again."
+      );
     }
   };
 
@@ -89,8 +98,19 @@ export const CartDrawer = () => {
   // Only removes items that don't have an active reservation and are out of stock
   // Also updates variantStockMap with current available stock for UI display
   const checkStockAvailability = async () => {
-    const itemsToRemove: Array<{productId: string | number; size: string; color: string; name: string}> = [];
-    const itemsToUpdate: Array<{productId: string | number; size: string; color: string; newQuantity: number; name: string}> = [];
+    const itemsToRemove: Array<{
+      productId: string | number;
+      size: string;
+      color: string;
+      name: string;
+    }> = [];
+    const itemsToUpdate: Array<{
+      productId: string | number;
+      size: string;
+      color: string;
+      newQuantity: number;
+      name: string;
+    }> = [];
     const newStockMap: Record<string | number, number> = {};
 
     for (const item of items) {
@@ -106,11 +126,13 @@ export const CartDrawer = () => {
       }
 
       try {
-        const result = await stockReservationService.getAvailableStock(Number(item.variantId));
+        const result = await stockReservationService.getAvailableStock(
+          Number(item.variantId)
+        );
         if (result.success && result.data) {
           // Store available stock for UI display
           newStockMap[item.variantId] = result.data.availableStock;
-          
+
           // If available stock is less than cart quantity, item needs adjustment
           if (result.data.availableStock < item.quantity) {
             if (result.data.availableStock === 0) {
@@ -119,7 +141,7 @@ export const CartDrawer = () => {
                 productId: item.productId,
                 size: item.selectedSize,
                 color: item.selectedColor,
-                name: item.productName
+                name: item.productName,
               });
             } else {
               // Reduce quantity to available stock
@@ -128,13 +150,17 @@ export const CartDrawer = () => {
                 size: item.selectedSize,
                 color: item.selectedColor,
                 newQuantity: result.data.availableStock,
-                name: item.productName
+                name: item.productName,
               });
             }
           }
         }
       } catch (error) {
-        console.error("Failed to check stock for item:", item.productName, error);
+        console.error(
+          "Failed to check stock for item:",
+          item.productName,
+          error
+        );
       }
     }
 
@@ -169,14 +195,10 @@ export const CartDrawer = () => {
     return `${seconds}s`;
   };
 
-  // Reset signup modal when cart closes - must be called before early return
+  // Reset signup modal when cart closes
   useEffect(() => {
     if (!isOpen) {
-      // Small delay to allow animation to complete
-      const timer = setTimeout(() => {
-        setShowSignupModal(false);
-      }, 300);
-      return () => clearTimeout(timer);
+      setShowSignupModal(false);
     }
   }, [isOpen]);
 
@@ -337,37 +359,10 @@ export const CartDrawer = () => {
                             </div>
                             <button
                               onClick={async () => {
-                                // Release reservation if exists before removing
-                                if (item.reservationId) {
-                                  // Check if reservation has already expired
-                                  if (item.expiresAt) {
-                                    const expiresAtTime = new Date(item.expiresAt).getTime();
-                                    const now = Date.now();
-                                    if (expiresAtTime < now) {
-                                      console.log('[DEBUG] Reservation already expired in CartDrawer, skipping release:', item.reservationId);
-                                    } else {
-                                      console.log('[DEBUG] Releasing reservation from CartDrawer:', item.reservationId, 'expires:', item.expiresAt);
-                                      const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
-                                      if (!releaseResult.success) {
-                                        console.error('[DEBUG] Failed to release reservation from CartDrawer:', releaseResult.error);
-                                      } else {
-                                        console.log('[DEBUG] Successfully released reservation from CartDrawer:', item.reservationId);
-                                      }
-                                    }
-                                  } else {
-                                    // No expiresAt, try to release anyway
-                                    console.log('[DEBUG] No expiresAt in CartDrawer, releasing reservation:', item.reservationId);
-                                    const releaseResult = await stockReservationService.releaseReservation(item.reservationId);
-                                    if (!releaseResult.success) {
-                                      console.error("Failed to release reservation:", releaseResult.error);
-                                    }
-                                  }
-                                }
                                 removeItem(
                                   item.productId,
                                   item.selectedSize,
-                                  item.selectedColor,
-                                  true // skipRelease: CartDrawer already handled the release
+                                  item.selectedColor
                                 );
                               }}
                               className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-2 -mt-2"
@@ -377,41 +372,54 @@ export const CartDrawer = () => {
                             </button>
                           </div>
 
-                            <div className="mt-auto flex items-center justify-between gap-3">
-                              {/* Reservation countdown if applicable */}
-                              {item.reservationId && item.expiresAt && (
-                                <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                                  <Clock size={12} />
-                                  <span className="tabular-nums">{getTimeRemaining(item.expiresAt)}</span>
-                                </div>
-                              )}
-
-                              {/* Quantity - display only, no +/- buttons */}
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Qty:</span>
-                                <span className="text-sm font-medium tabular-nums">
-                                  {item.quantity}
+                          <div className="mt-auto flex items-center justify-between gap-3">
+                            {/* Reservation countdown if applicable */}
+                            {item.reservationId && item.expiresAt && (
+                              <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                <Clock size={12} />
+                                <span className="tabular-nums">
+                                  {getTimeRemaining(item.expiresAt)}
                                 </span>
                               </div>
+                            )}
 
-                              {/* Price */}
-                              <div className="flex items-center gap-2">
-                                {item.hasDiscount && item.finalPrice ? (
-                                  <>
-                                    <span className="text-sm text-muted-foreground line-through decoration-2">
-                                      ৳{(item.productPrice * item.quantity).toLocaleString()}
-                                    </span>
-                                    <span className="font-semibold text-sm">
-                                      ৳{(item.finalPrice * item.quantity).toLocaleString()}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="font-semibold text-sm">
-                                    ৳{(item.productPrice * item.quantity).toLocaleString()}
-                                  </span>
-                                )}
-                              </div>
+                            {/* Quantity - display only, no +/- buttons */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">
+                                Qty:
+                              </span>
+                              <span className="text-sm font-medium tabular-nums">
+                                {item.quantity}
+                              </span>
                             </div>
+
+                            {/* Price */}
+                            <div className="flex items-center gap-2">
+                              {item.hasDiscount && item.finalPrice ? (
+                                <>
+                                  <span className="text-sm text-muted-foreground line-through decoration-2">
+                                    ৳
+                                    {(
+                                      item.productPrice * item.quantity
+                                    ).toLocaleString()}
+                                  </span>
+                                  <span className="font-semibold text-sm">
+                                    ৳
+                                    {(
+                                      item.finalPrice * item.quantity
+                                    ).toLocaleString()}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="font-semibold text-sm">
+                                  ৳
+                                  {(
+                                    item.productPrice * item.quantity
+                                  ).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </motion.li>
                     ))}
@@ -472,8 +480,8 @@ export const CartDrawer = () => {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#363636',
-            color: '#fff',
+            background: "#363636",
+            color: "#fff",
           },
         }}
       />

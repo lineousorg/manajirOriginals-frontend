@@ -231,11 +231,33 @@ export const useCartStore = create<CartState>()(
     // If we don't have a reservation ID yet (new item), create one
     if (!reservationId) {
       try {
-        // Try to reserve stock using guest token service
-        const reservationResult = await addToCart(selectedVariant?.id ?? 0, quantity);
-        if (reservationResult && reservationResult.data) {
-          newReservationId = reservationResult.data.reservationId;
-          newExpiresAt = reservationResult.data.expiresAt;
+        // Determine user type and use appropriate service
+        const accessToken = typeof window !== 'undefined'
+          ? localStorage.getItem('accessToken')
+          : null;
+
+        if (accessToken) {
+          // Authenticated user: use stockReservationService
+          const result = await stockReservationService.reserveStock(
+            selectedVariant?.id ?? 0,
+            quantity,
+            15
+          );
+          if (result.success && result.data) {
+            newReservationId = result.data.reservationId;
+            newExpiresAt = result.data.expiresAt;
+          }
+        } else {
+          // Guest user: use guest token service
+          const guestToken = getGuestToken();
+          if (!guestToken) {
+            throw new Error("Guest token not initialized");
+          }
+          const result = await addToCart(selectedVariant?.id ?? 0, quantity);
+          if (result && result.data) {
+            newReservationId = result.data.reservationId;
+            newExpiresAt = result.data.expiresAt;
+          }
         }
       } catch (error) {
         console.error("Failed to reserve stock:", error);

@@ -49,7 +49,7 @@ const CartPage = () => {
   }
 
   const subtotal = getTotal();
-  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 150;
+  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 120;
   const total = subtotal + shipping;
 
   const checkoutItems: GTMItem[] = items.map((item) => ({
