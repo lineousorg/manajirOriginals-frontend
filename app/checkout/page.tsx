@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import useApi from "@/hooks/useApi";
@@ -19,23 +19,17 @@ import {
 import { useCartStore } from "@/store/cart.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-import { Address } from "@/types";
-import { AddressModal } from "@/components/auth/AddressModal";
-import { AddressSelector } from "@/components/auth/AddressSelector";
 import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast from "react-hot-toast";
 import { trackPurchase, type GTMItem } from "@/lib/gtm";
-import { getGuestToken } from "@/lib/cart";
+import { DELIVERY_CHARGES } from "@/lib/constants";
 
 const CheckoutPageContent = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const { post, loading } = useApi();
-  const searchParams = useSearchParams();
-
-  const isGuest = searchParams.get("guest") === "true";
 
   // Ensure cart drawer is closed when checkout page loads
   useEffect(() => {
@@ -54,76 +48,56 @@ const CheckoutPageContent = () => {
   const [formData, setFormData] = useState({
     email: user?.email || "",
     fullName: "",
-    firstName: "",
-    lastName: "",
     phone: "",
     address: "",
     city: "",
     zip: "",
-    country: "United States",
-    cardNumber: "",
-    cardExpiry: "",
-    cardCvc: "",
+    country: "",
   });
-
-  // Address state
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [refreshAddresses, setRefreshAddresses] = useState(0);
 
   // Order state for receipt
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  // orderId is used for the receipt download API (needs numeric ID)
   const [orderId, setOrderId] = useState<string | null>(null);
 
-  const subtotal = getTotal();
-  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 120;
-  const total = subtotal + shipping;
+   const subtotal = getTotal();
+   const shipping = deliveryLocation === "inside_dhaka" ? DELIVERY_CHARGES.INSIDE_DHAKA : DELIVERY_CHARGES.OUTSIDE_DHAKA;
+   const total = subtotal + shipping;
 
-  const purchaseItems: GTMItem[] = items.map((item) => ({
-    item_id: String(item.variantId ?? item.productId),
-    item_name: item.productName,
-    price: item.finalPrice ?? item.productPrice,
-    quantity: item.quantity,
-    item_category: item.selectedSize,
-    item_brand: item.selectedColor,
-  }));
+   // Helper to get the correct price for an item (respects discounts)
+   const getItemPrice = (item: { hasDiscount?: boolean; finalPrice?: number; productPrice: number }) => {
+     return item.hasDiscount && item.finalPrice ? item.finalPrice : item.productPrice;
+   };
+
+   const purchaseItems: GTMItem[] = items.map((item) => ({
+     item_id: String(item.variantId ?? item.productId),
+     item_name: item.productName,
+     price: getItemPrice(item),
+     quantity: item.quantity,
+     // Category not stored in cart; brand not tracked
+     item_category: "",
+     item_brand: "",
+   }));
 
   // Update email when user changes
   useEffect(() => {
-    if (isAuthenticated && user?.email && !formData.email) {
+    if (user?.email && !formData.email) {
       setFormData((prev) => ({ ...prev, email: user.email }));
     }
-  }, [isAuthenticated, user?.email]);
+  }, [user?.email]);
 
-  // Handle address selection
-  const handleAddressSelect = (address: Address) => {
-    setSelectedAddress(address);
-    // Pre-fill form with selected address
-    setFormData((prev) => ({
-      ...prev,
-      fullName: `${address.firstName} ${address.lastName}`.trim(),
-      phone: address.phone,
-      address: address.address,
-      city: address.city,
-      zip: address.postalCode,
-    }));
-  };
   const handleSubmitShipping = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // For guest users, validate that required fields are filled
-    if (isGuest) {
-      if (
-        !formData.fullName ||
-        !formData.phone ||
-        !formData.address ||
-        !formData.city ||
-        !formData.zip
-      ) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
+    // Validate all required fields
+    if (
+      !formData.fullName ||
+      !formData.phone ||
+      !formData.address ||
+      !formData.city ||
+      !formData.zip
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
     }
 
     setStep("payment");
@@ -132,69 +106,35 @@ const CheckoutPageContent = () => {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Build the items array for the API using stored variantId
+    // Build the items array for the API using stored variantId (fallback to productId if variantId missing)
     const orderItems = items.map((item) => ({
-      variantId: Number(item.variantId),
+      variantId: Number(item.variantId ?? item.productId),
       quantity: item.quantity,
-      // Include reservationId if available (stock was reserved when adding to cart)
       ...(item.reservationId && { reservationId: Number(item.reservationId) }),
     }));
 
-    // Create the payload
+    // Create the payload - all users submit the same way
     const payload: Record<string, unknown> = {
       items: orderItems,
       paymentMethod,
       deliveryType:
         deliveryLocation === "inside_dhaka" ? "INSIDE_DHAKA" : "OUTSIDE_DHAKA",
+      name: formData.fullName,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      city: formData.city,
+      postalCode: formData.zip,
+      country: "Bangladesh",
     };
 
-    // For authenticated users, use saved address
-    // For guest users, include address details at root level
-    if (isGuest) {
-      // Get reCAPTCHA token from localStorage
-      let recaptchaToken = "";
-      if (typeof window !== "undefined") {
-        recaptchaToken = localStorage.getItem("recaptchaToken") || "";
-      }
-
-      payload.name = formData.fullName;
-      payload.phone = formData.phone;
-      payload.email = formData.email;
-      payload.address = formData.address;
-      payload.city = formData.city;
-      payload.postalCode = formData.zip;
-
-      // Include guestToken to verify reservation ownership
-      const guestToken = getGuestToken();
-      if (guestToken) {
-        payload.guestToken = guestToken;
-      }
-
-      // Include reCAPTCHA token for verification
-      if (recaptchaToken) {
-        payload.recaptchaToken = recaptchaToken;
-        // Clear the token after use
-        localStorage.removeItem("recaptchaToken");
-      }
-    } else {
-      payload.addressId = selectedAddress?.id;
-    }
-
-    // Console log the payload
-    // console.log("Order Payload:", payload);
-
     try {
-      // Make the API call - use different endpoint for guest users
-      const endpoint = isGuest ? "/orders/guest" : "/orders";
-      const response = await post(endpoint, payload);
+      const response = await post("/orders", payload);
 
-      // Check if the API response indicates failure
       if (response?.status === "failed" || response?.status === "error") {
         throw new Error(response?.message || "Failed to create order");
       }
 
-      // Store order number for receipt download
-      // Try different response formats and fallback to generated ID
       const receivedOrderNumber =
         response?.data?.orderNumber ||
         response?.orderNumber ||
@@ -203,7 +143,6 @@ const CheckoutPageContent = () => {
       const finalOrderNumber = receivedOrderNumber || `ORD-${Date.now()}`;
       setOrderNumber(finalOrderNumber);
 
-      // Also store the order ID for receipt download API
       const receivedOrderId = response?.data?.id || response?.id;
       setOrderId(receivedOrderId || finalOrderNumber);
 
@@ -213,19 +152,10 @@ const CheckoutPageContent = () => {
         items: purchaseItems,
       });
 
-      // Clear cart and show success
       clearCart();
-
-      // Store phone for guest receipt download (only for guest checkout)
-      if (isGuest && formData.phone) {
-        localStorage.setItem("guestPhone", formData.phone);
-        localStorage.setItem("guestPhoneStoredAt", Date.now().toString());
-      }
-
       setStep("success");
     } catch (err: any) {
       console.error("Failed to create order:", err);
-      // Show error toast and stay on payment page
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
@@ -234,18 +164,13 @@ const CheckoutPageContent = () => {
     }
   };
 
-  const handleAddAddressSuccess = () => {
-    // Trigger address selector refresh
-    setRefreshAddresses((prev) => prev + 1);
-  };
-
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Don't render until hydrated to prevent flash of empty content
+  // Don't render until hydrated
   if (!isHydrated) {
     return <CheckoutSkeleton />;
   }
@@ -271,7 +196,6 @@ const CheckoutPageContent = () => {
     return (
       <div className="min-h-screen bg-muted/20 py-12 md:py-28">
         <div className="">
-          {/* Order Receipt */}
           {orderNumber && (
             <OrderReceipt
               orderId={orderId || orderNumber}
@@ -338,7 +262,7 @@ const CheckoutPageContent = () => {
                 <span className="hidden sm:inline">Payment</span>
               </div>
             </div>
-            <div className="w-20" /> {/* Spacer for balance */}
+            <div className="w-20" />
           </div>
         </div>
       </div>
@@ -366,22 +290,10 @@ const CheckoutPageContent = () => {
                         Shipping Details
                       </h1>
                       <p className="text-muted-foreground text-sm">
-                        Select or add a delivery address
+                        Enter your delivery address
                       </p>
                     </div>
                   </div>
-
-                  {/* Address Selector - Only show for authenticated users */}
-                  {!isGuest && (
-                    <div className="bg-background rounded-2xl border border-border/50 shadow-sm p-6 mb-6">
-                      <AddressSelector
-                        onAddressSelect={handleAddressSelect}
-                        onAddNewClick={() => setIsModalOpen(true)}
-                        selectedAddressId={selectedAddress?.id}
-                        refreshTrigger={refreshAddresses}
-                      />
-                    </div>
-                  )}
 
                   {/* Shipping Form */}
                   <div className="bg-background rounded-2xl border border-border/50 shadow-sm p-6">
@@ -391,23 +303,21 @@ const CheckoutPageContent = () => {
                     </h3>
 
                     <form onSubmit={handleSubmitShipping} className="space-y-5">
-                      {/* Full Name - Only for guest users */}
-                      {isGuest && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-muted-foreground text-left w-full">
-                            Full Name <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleInputChange}
-                            placeholder="Enter your full name"
-                            required={isGuest}
-                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
-                          />
-                        </div>
-                      )}
+                      {/* Full Name */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground text-left w-full">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          placeholder="Enter your full name"
+                          required
+                          className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
+                        />
+                      </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                         <div className="space-y-2">
@@ -419,173 +329,77 @@ const CheckoutPageContent = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            disabled={isAuthenticated && !isGuest}
-                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-muted-foreground">
-                            Phone Number{" "}
-                            {isGuest && <span className="text-red-500">*</span>}
+                            Phone Number <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleInputChange}
-                            disabled={isAuthenticated && !isGuest}
-                            placeholder={isGuest ? "01XXXXXXXXX" : ""}
-                            required={isGuest}
-                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
+                            placeholder="01XXXXXXXXX"
+                            required
+                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
                           />
                         </div>
                       </div>
 
-                      {/* Name, Address, City, Zip - Only for authenticated users (pre-filled from address) */}
-                      {!isGuest && (
-                        <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                First Name
-                              </label>
-                              <input
-                                type="text"
-                                name="firstName"
-                                value={formData.firstName}
-                                disabled
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                              />
-                            </div>
+                      {/* Full Address */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Full Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          placeholder="Enter your full address"
+                          required
+                          className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
+                        />
+                      </div>
 
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Last Name
-                              </label>
-                              <input
-                                type="text"
-                                name="lastName"
-                                value={formData.lastName}
-                                disabled
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                              />
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            City <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            placeholder="Enter city"
+                            required
+                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
+                          />
+                        </div>
 
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Street Address
-                            </label>
-                            <input
-                              type="text"
-                              name="address"
-                              value={formData.address}
-                              disabled
-                              className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
-                            <div className="sm:col-span-2 md:col-span-1">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                City
-                              </label>
-                              <input
-                                type="text"
-                                name="city"
-                                value={formData.city}
-                                disabled
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                ZIP Code
-                              </label>
-                              <input
-                                type="text"
-                                name="zip"
-                                value={formData.zip}
-                                disabled
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Country
-                              </label>
-                              <input
-                                type="text"
-                                name="country"
-                                value={formData.country}
-                                disabled
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* For guest users - Full Address */}
-                      {isGuest && (
-                        <>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Full Address{" "}
-                              <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              name="address"
-                              value={formData.address}
-                              onChange={handleInputChange}
-                              placeholder="Enter your full address"
-                              required={isGuest}
-                              className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                City <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                name="city"
-                                value={formData.city}
-                                onChange={handleInputChange}
-                                placeholder="Enter city"
-                                required={isGuest}
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                ZIP Code <span className="text-red-500">*</span>
-                              </label>
-                              <input
-                                type="text"
-                                name="zip"
-                                value={formData.zip}
-                                onChange={handleInputChange}
-                                placeholder="Enter ZIP code"
-                                required={isGuest}
-                                className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
-                              />
-                            </div>
-                          </div>
-                        </>
-                      )}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-muted-foreground">
+                            ZIP Code <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="zip"
+                            value={formData.zip}
+                            onChange={handleInputChange}
+                            placeholder="Enter ZIP code"
+                            required
+                            className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground"
+                          />
+                        </div>
+                      </div>
 
                       <div className="pt-4">
                         <button
                           type="submit"
-                          disabled={!isGuest && !selectedAddress}
                           className="w-full bg-primary text-primary-foreground font-medium py-4 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
                         >
                           Continue to Payment
@@ -594,16 +408,6 @@ const CheckoutPageContent = () => {
                             className="group-hover:translate-x-1 transition-transform"
                           />
                         </button>
-                        {!isGuest && !selectedAddress && (
-                          <p className="text-xs text-center text-muted-foreground mt-3">
-                            Please select a delivery address to continue
-                          </p>
-                        )}
-                        {isGuest && (
-                          <p className="text-xs text-center text-muted-foreground mt-3">
-                            Fill in your details to continue
-                          </p>
-                        )}
                       </div>
                     </form>
                   </div>
@@ -651,8 +455,7 @@ const CheckoutPageContent = () => {
                           </button>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {formData.firstName} {formData.lastName} •{" "}
-                          {formData.phone}
+                          {formData.fullName} • {formData.phone}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {formData.address}, {formData.city}, {formData.zip}
@@ -739,10 +542,9 @@ const CheckoutPageContent = () => {
                           </div>
                         </button>
 
-                        {/* Online Payment */}
+                        {/* Online Payment - Disabled */}
                         <button
                           type="button"
-                          onClick={() => setPaymentMethod("ONLINE_PAYMENT")}
                           disabled
                           className="relative flex items-center gap-4 p-5 rounded-2xl border-2 border-border/50 opacity-50 cursor-not-allowed text-left bg-muted/20"
                         >
@@ -787,58 +589,6 @@ const CheckoutPageContent = () => {
                           <div className="w-6 h-6 rounded-full border-2 border-muted-foreground/30" />
                         </button>
                       </div>
-
-                      {/* Card Details - Only show for Online Payment */}
-                      {paymentMethod === "ONLINE_PAYMENT" && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="space-y-4 pt-4 border-t border-border"
-                        >
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Card Number
-                            </label>
-                            <input
-                              type="text"
-                              name="cardNumber"
-                              value={formData.cardNumber}
-                              required
-                              className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                              placeholder="0000 0000 0000 0000"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                Expiry Date
-                              </label>
-                              <input
-                                type="text"
-                                name="cardExpiry"
-                                value={formData.cardExpiry}
-                                required
-                                className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                placeholder="MM / YY"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-muted-foreground">
-                                CVC
-                              </label>
-                              <input
-                                type="text"
-                                name="cardCvc"
-                                value={formData.cardCvc}
-                                required
-                                className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                placeholder="123"
-                              />
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
 
                       {/* Security Note */}
                       <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl">
@@ -956,10 +706,22 @@ const CheckoutPageContent = () => {
                             {item.selectedColor}
                           </span>
                         </div>
-                        <p className="font-semibold text-sm text-right">
-                          ৳{" "}
-                          {(item.productPrice * item.quantity).toLocaleString()}
-                        </p>
+                        <div className="flex items-center justify-end gap-2">
+                          {item.hasDiscount && item.finalPrice && item.productPrice > item.finalPrice ? (
+                            <>
+                              <span className="text-xs text-muted-foreground line-through">
+                                ৳{(item.productPrice * item.quantity).toLocaleString()}
+                              </span>
+                              <span className="font-semibold text-sm text-primary">
+                                ৳{(item.finalPrice * item.quantity).toLocaleString()}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-semibold text-sm">
+                              ৳{(getItemPrice(item) * item.quantity).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -982,7 +744,7 @@ const CheckoutPageContent = () => {
                         name="deliveryLocation"
                         checked={deliveryLocation === "inside_dhaka"}
                         onChange={() => setDeliveryLocation("inside_dhaka")}
-                        className="w-4 h-4 text-primary focus:ring-primary text-left"
+                        className="w-4 h-4 text-primary focus:ring-primary"
                       />
                       <div>
                         <p className="font-medium text-sm">Inside Dhaka</p>
@@ -990,34 +752,34 @@ const CheckoutPageContent = () => {
                           Delivery within 24-48 hours
                         </p>
                       </div>
-                    </div>
-                    <span className="font-semibold text-sm">৳70</span>
-                  </label>
+                     </div>
+                     <span className="font-semibold text-sm">৳{DELIVERY_CHARGES.INSIDE_DHAKA}</span>
+                   </label>
 
-                  <label
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      deliveryLocation === "outside_dhaka"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/30 bg-background"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 text-left">
-                      <input
-                        type="radio"
-                        name="deliveryLocation"
-                        checked={deliveryLocation === "outside_dhaka"}
-                        onChange={() => setDeliveryLocation("outside_dhaka")}
-                        className="w-4 h-4 text-primary focus:ring-primary"
-                      />
-                      <div>
-                        <p className="font-medium text-sm">Outside Dhaka</p>
-                        <p className="text-xs text-muted-foreground">
-                          Delivery within 3-5 days
-                        </p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-sm">৳120</span>
-                  </label>
+                   <label
+                     className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                       deliveryLocation === "outside_dhaka"
+                         ? "border-primary bg-primary/5"
+                         : "border-border hover:border-primary/30 bg-background"
+                     }`}
+                   >
+                     <div className="flex items-center gap-3 text-left">
+                       <input
+                         type="radio"
+                         name="deliveryLocation"
+                         checked={deliveryLocation === "outside_dhaka"}
+                         onChange={() => setDeliveryLocation("outside_dhaka")}
+                         className="w-4 h-4 text-primary focus:ring-primary"
+                       />
+                       <div>
+                         <p className="font-medium text-sm">Outside Dhaka</p>
+                         <p className="text-xs text-muted-foreground">
+                           Delivery within 3-5 days
+                         </p>
+                       </div>
+                     </div>
+                     <span className="font-semibold text-sm">৳{DELIVERY_CHARGES.OUTSIDE_DHAKA}</span>
+                   </label>
                 </div>
 
                 {/* Totals */}
@@ -1081,14 +843,6 @@ const CheckoutPageContent = () => {
           </div>
         </div>
       </div>
-
-      {/* Address Modal */}
-      <AddressModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        address={null}
-        onSuccess={handleAddAddressSuccess}
-      />
     </div>
   );
 };

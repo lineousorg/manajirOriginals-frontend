@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { trackBeginCheckout, type GTMItem } from "@/lib/gtm";
+import { DELIVERY_CHARGES } from "@/lib/constants";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart, isHydrated } =
@@ -48,9 +49,9 @@ const CartPage = () => {
     );
   }
 
-  const subtotal = getTotal();
-  const shipping = deliveryLocation === "inside_dhaka" ? 70 : 120;
-  const total = subtotal + shipping;
+   const subtotal = getTotal();
+   const shipping = deliveryLocation === "inside_dhaka" ? DELIVERY_CHARGES.INSIDE_DHAKA : DELIVERY_CHARGES.OUTSIDE_DHAKA;
+   const total = subtotal + shipping;
 
   const checkoutItems: GTMItem[] = items.map((item) => ({
     item_id: String(item.variantId ?? item.productId),
@@ -198,8 +199,8 @@ const CartPage = () => {
                       className="w-4 h-4 text-primary"
                     />
                     <span className="text-sm">Inside Dhaka</span>
-                  </div>
-                  <span className="font-medium">৳70</span>
+                   </div>
+                   <span className="font-medium">৳{DELIVERY_CHARGES.INSIDE_DHAKA}</span>
                 </label>
                 <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "outside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
                   <div className="flex items-center gap-3">
@@ -212,7 +213,7 @@ const CartPage = () => {
                     />
                     <span className="text-sm">Outside Dhaka</span>
                   </div>
-                  <span className="font-medium">৳150</span>
+                  <span className="font-medium">৳{DELIVERY_CHARGES.OUTSIDE_DHAKA}</span>
                 </label>
               </div>
             </div>
@@ -232,26 +233,15 @@ const CartPage = () => {
               </div>
             </div>
 
-            {/* For unauthenticated users, redirect to guest checkout with verification */}
-            {!isAuthenticated ? (
-              <Link
-                href="/checkout?guest=true"
-                onClick={handleBeginCheckout}
-                className="btn-primary-fashion w-full mt-6"
-              >
-                Proceed to Checkout
-                <ArrowRight size={18} className="ml-2" />
-              </Link>
-            ) : (
-              <Link
-                href="/checkout"
-                onClick={handleBeginCheckout}
-                className="btn-primary-fashion w-full mt-6"
-              >
-                Proceed to Checkout
-                <ArrowRight size={18} className="ml-2" />
-              </Link>
-            )}
+            {/* All users go directly to checkout */}
+            <Link
+              href="/checkout"
+              onClick={handleBeginCheckout}
+              className="btn-primary-fashion w-full mt-6"
+            >
+              Proceed to Checkout
+              <ArrowRight size={18} className="ml-2" />
+            </Link>
 
             <Link
               href="/products"

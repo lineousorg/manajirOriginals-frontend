@@ -31,7 +31,7 @@ import { useProductStore } from "@/store/product.store";
 import { TypeImage, ProductVariant } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
-import policyData from "@/lib/policy-data.json";
+import { policyData } from "@/lib/policy-data";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
 import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
 import { trackAddToCart, trackViewItem } from "@/lib/gtm";

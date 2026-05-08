@@ -8,17 +8,13 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
  */
 export async function initializeGuestToken() {
   try {
-    // Check localStorage first
     guestToken = localStorage.getItem("guestToken");
 
     if (!guestToken) {
-      // Get token from backend
-      console.log(guestToken);
       const response = await fetch(`${baseUrl}/stock-reservation/guest-token`, {
         method: "GET",
-        credentials: "include", // Important: include cookies
+        credentials: "include",
       });
-      console.log(response);
 
       if (!response.ok) {
         throw new Error("Failed to get guest token");
@@ -27,7 +23,6 @@ export async function initializeGuestToken() {
       const data = await response.json();
       guestToken = data.guestToken;
 
-      // Store in localStorage for easy access
       if (guestToken) {
         localStorage.setItem("guestToken", guestToken);
       }
@@ -56,10 +51,7 @@ export function clearGuestToken() {
 }
 
 /**
- * Reserve stock for a product variant
- * @param {number} variantId - Product variant ID
- * @param {number} quantity - Quantity to reserve
- * @returns {Promise<Object>} Reservation result
+ * Reserve stock for a product variant (guest users)
  */
 export async function addToCart(variantId: number, quantity: number) {
   const token = getGuestToken();
@@ -73,7 +65,7 @@ export async function addToCart(variantId: number, quantity: number) {
     headers: {
       "Content-Type": "application/json",
     },
-    credentials: "include", // Include cookies for auth
+    credentials: "include",
     body: JSON.stringify({
       variantId,
       quantity,
@@ -91,9 +83,7 @@ export async function addToCart(variantId: number, quantity: number) {
 }
 
 /**
- * Release a reservation (remove from cart)
- * @param {number} reservationId - Reservation ID to release
- * @returns {Promise<Object>} Release result
+ * Release a reservation (remove from cart) - guest version
  */
 export async function removeFromCart(reservationId: number) {
   const token = getGuestToken();
@@ -124,8 +114,7 @@ export async function removeFromCart(reservationId: number) {
 }
 
 /**
- * Get active reservations for current user/guest
- * @returns {Promise<Array>} List of reservations
+ * Get active reservations for current guest
  */
 export async function getActiveReservations() {
   const token = getGuestToken();
@@ -152,42 +141,13 @@ export async function getActiveReservations() {
 }
 
 /**
- * Check if a variant is available in the requested quantity
- * @param {number} variantId - Product variant ID
- * @param {number} quantity - Quantity to check
- * @returns {Promise<Object>} Availability result
- */
-export async function checkAvailability(variantId: number, quantity: number) {
-  const response = await fetch(`${baseUrl}/stock-reservation/check`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      variantId,
-      quantity,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to check availability");
-  }
-
-  return data;
-}
-
-/**
  * Migrate guest reservations to user account after login
- * @param {string} jwtToken - User's JWT token
- * @returns {Promise<void>}
  */
 export async function migrateGuestReservations(jwtToken: string) {
   const guestToken = getGuestToken();
 
   if (!guestToken) {
-    return; // No guest reservations to migrate
+    return;
   }
 
   try {
@@ -203,14 +163,11 @@ export async function migrateGuestReservations(jwtToken: string) {
       }),
     });
 
-    // Clear guest token after migration
     clearGuestToken();
   } catch (error) {
     console.error(
       "Failed to migrate reservations:",
       error instanceof Error ? error.message : "Unknown error"
     );
-    // Reservations will remain under guest token
-    // They can still be accessed with the token
   }
 }

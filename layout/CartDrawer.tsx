@@ -6,7 +6,6 @@ import { X, ShoppingBag, Trash2, Clock } from "lucide-react";
 
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
-import { GuestCheckoutModal } from "@/components/auth/GuestCheckoutModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
@@ -18,11 +17,9 @@ export const CartDrawer = () => {
     useCartStore();
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const [showSignupModal, setShowSignupModal] = useState(false);
   const [variantStockMap, setVariantStockMap] = useState<
     Record<string | number, number>
   >({});
-  // Force re-render every second to update countdown timers
   const [, setTick] = useState(0);
 
   // Update countdown every second
@@ -34,8 +31,6 @@ export const CartDrawer = () => {
   }, []);
 
   // Function to check and release expired reservations
-  // When a reservation expires, the backend restores the stock
-  // We just need to remove expired items from cart
   const checkExpiredReservations = async () => {
     const now = new Date();
     let hasExpiredItems = false;
@@ -45,25 +40,26 @@ export const CartDrawer = () => {
         const expiresAt = new Date(item.expiresAt);
         if (expiresAt < now) {
           hasExpiredItems = true;
-          // Try to release the reservation on backend (restores stock)
-          // Note: This might fail with 404 if the reservation was already expired/released
-          // by the backend's own cleanup process - that's OK, we just need to
-          // remove the item from cart in that case
           try {
-            // Try to get guest token for anonymous users
-            const guestToken = getGuestToken();
-            if (guestToken) {
-              // Use guest token for release
-              await removeFromCart(item.reservationId);
-            } else {
-              // Fall back to authenticated service
+            const accessToken = typeof window !== 'undefined'
+              ? localStorage.getItem('accessToken')
+              : null;
+
+            if (accessToken) {
               await stockReservationService.releaseReservation(
                 item.reservationId
               );
+            } else {
+              const guestToken = getGuestToken();
+              if (guestToken) {
+                await removeFromCart(item.reservationId);
+              } else {
+                await stockReservationService.releaseReservation(
+                  item.reservationId
+                );
+              }
             }
           } catch (error) {
-            // If 404 (reservation not found or already released), that's expected
-            // for reservations that expired via backend cleanup - just log it
             const errorObj = error as {
               response?: { data?: { message?: string } };
             };
@@ -81,7 +77,6 @@ export const CartDrawer = () => {
               console.error("Failed to release expired reservation:", error);
             }
           }
-          // Remove expired item from cart
           removeItem(item.productId, item.selectedSize, item.selectedColor);
         }
       }
@@ -94,9 +89,7 @@ export const CartDrawer = () => {
     }
   };
 
-  // Function to check stock availability for cart items
-  // Only removes items that don't have an active reservation and are out of stock
-  // Also updates variantStockMap with current available stock for UI display
+  // Function to check stock availability
   const checkStockAvailability = async () => {
     const itemsToRemove: Array<{
       productId: string | number;
@@ -114,13 +107,9 @@ export const CartDrawer = () => {
     const newStockMap: Record<string | number, number> = {};
 
     for (const item of items) {
-      // Skip items without variantId
       if (!item.variantId) continue;
 
-      // Skip items with active reservation - they're still valid
-      // The reservation will either be used (order placed) or released (expired/cancelled)
       if (item.reservationId) {
-        // Items with reservation: available = quantity in cart (reserved)
         newStockMap[item.variantId] = item.quantity;
         continue;
       }
@@ -130,13 +119,10 @@ export const CartDrawer = () => {
           Number(item.variantId)
         );
         if (result.success && result.data) {
-          // Store available stock for UI display
           newStockMap[item.variantId] = result.data.availableStock;
 
-          // If available stock is less than cart quantity, item needs adjustment
           if (result.data.availableStock < item.quantity) {
             if (result.data.availableStock === 0) {
-              // No stock and no reservation - remove item
               itemsToRemove.push({
                 productId: item.productId,
                 size: item.selectedSize,
@@ -144,7 +130,6 @@ export const CartDrawer = () => {
                 name: item.productName,
               });
             } else {
-              // Reduce quantity to available stock
               itemsToUpdate.push({
                 productId: item.productId,
                 size: item.selectedSize,
@@ -164,10 +149,8 @@ export const CartDrawer = () => {
       }
     }
 
-    // Update stock map state for UI display
     setVariantStockMap(newStockMap);
 
-    // Remove items that are no longer available
     if (itemsToRemove.length > 0) {
       itemsToRemove.forEach((item) => {
         removeItem(item.productId, item.size, item.color);
@@ -178,7 +161,6 @@ export const CartDrawer = () => {
     }
   };
 
-  // Helper to format time remaining
   const getTimeRemaining = (expiresAt: string): string => {
     const now = new Date();
     const expiry = new Date(expiresAt);
@@ -195,47 +177,26 @@ export const CartDrawer = () => {
     return `${seconds}s`;
   };
 
-  // Reset signup modal when cart closes
-  useEffect(() => {
-    if (!isOpen) {
-      setShowSignupModal(false);
-    }
-  }, [isOpen]);
-
   // Check for expired reservations and stock availability when cart opens
   useEffect(() => {
     if (!isOpen || !items.length) return;
-    // Clear stock map when cart opens to ensure fresh data fetch
-    // eslint-disable-next-line no-unused-vars
-    const clearAndCheck = async () => {
+    const checkCart = async () => {
       setVariantStockMap({});
       await checkExpiredReservations();
       await checkStockAvailability();
     };
-    clearAndCheck();
+    checkCart();
   }, [isOpen]);
 
-  // Don't render until hydrated to prevent flash of empty content
-  // The isHydrated flag is set by the persist middleware after rehydration
   if (!isHydrated) {
     return null;
   }
 
   const handleCheckout = () => {
-    // Check if user is authenticated before showing modal
-    if (isAuthenticated) {
-      // User is logged in - go directly to checkout
-      closeCart();
-      setTimeout(() => {
-        router.push("/checkout");
-      }, 350);
-    } else {
-      // User is not logged in - show guest checkout modal
-      closeCart();
-      setTimeout(() => {
-        setShowSignupModal(true);
-      }, 350);
-    }
+    closeCart();
+    setTimeout(() => {
+      router.push("/checkout");
+    }, 350);
   };
 
   return (
@@ -243,7 +204,6 @@ export const CartDrawer = () => {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -252,7 +212,6 @@ export const CartDrawer = () => {
               className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
             />
 
-            {/* Drawer */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -260,7 +219,6 @@ export const CartDrawer = () => {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-9999 shadow-2xl flex flex-col"
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-border/50">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -287,7 +245,6 @@ export const CartDrawer = () => {
                 </button>
               </div>
 
-              {/* Cart Items */}
               <div className="flex-1 overflow-y-auto px-6 py-6">
                 {items.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center">
@@ -327,7 +284,6 @@ export const CartDrawer = () => {
                         exit={{ opacity: 0, x: -100 }}
                         className="flex gap-4 group"
                       >
-                        {/* Image */}
                         <div className="w-16 md:w-20 md:h-24 lg:w-24 lg:h-32 relative rounded-xl overflow-hidden bg-muted shrink-0 ring-1 ring-border/50 group-hover:ring-border transition-all">
                           <Image
                             src={item.productImage}
@@ -338,7 +294,6 @@ export const CartDrawer = () => {
                           />
                         </div>
 
-                        {/* Content */}
                         <div className="flex-1 flex flex-col min-w-0 py-1">
                           <div className="flex justify-between items-start gap-3">
                             <div className="min-w-0 flex-1">
@@ -373,7 +328,6 @@ export const CartDrawer = () => {
                           </div>
 
                           <div className="mt-auto flex items-center justify-between gap-3">
-                            {/* Reservation countdown if applicable */}
                             {item.reservationId && item.expiresAt && (
                               <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
                                 <Clock size={12} />
@@ -383,7 +337,6 @@ export const CartDrawer = () => {
                               </div>
                             )}
 
-                            {/* Quantity - display only, no +/- buttons */}
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-muted-foreground">
                                 Qty:
@@ -393,7 +346,6 @@ export const CartDrawer = () => {
                               </span>
                             </div>
 
-                            {/* Price */}
                             <div className="flex items-center gap-2">
                               {item.hasDiscount && item.finalPrice ? (
                                 <>
@@ -427,10 +379,8 @@ export const CartDrawer = () => {
                 )}
               </div>
 
-              {/* Footer */}
               {items.length > 0 && (
                 <div className="border-t border-border/50 bg-muted/20 px-6 py-6 space-y-5">
-                  {/* Subtotal */}
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm text-muted-foreground">
                       Subtotal
@@ -440,7 +390,6 @@ export const CartDrawer = () => {
                     </span>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                     <button
                       onClick={closeCart}
@@ -457,7 +406,6 @@ export const CartDrawer = () => {
                     </button>
                   </div>
 
-                  {/* Shipping Note */}
                   <p className="text-xs text-muted-foreground text-center">
                     Shipping & taxes calculated at checkout
                   </p>
@@ -468,13 +416,6 @@ export const CartDrawer = () => {
         )}
       </AnimatePresence>
 
-      {/* Guest Checkout Modal - rendered independently */}
-      <GuestCheckoutModal
-        isOpen={showSignupModal}
-        onClose={() => setShowSignupModal(false)}
-      />
-
-      {/* Toast notifications */}
       <Toaster
         position="bottom-center"
         toastOptions={{
