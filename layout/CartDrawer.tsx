@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { stockReservationService } from "@/services/stock-reservation.service";
 import { getGuestToken, removeFromCart } from "@/lib/cart";
+import { GTMItem, trackBeginCheckout } from "@/lib/gtm";
+import { DELIVERY_CHARGES } from "@/lib/constants";
 
 export const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, getTotal, isHydrated } =
@@ -21,6 +23,9 @@ export const CartDrawer = () => {
     Record<string | number, number>
   >({});
   const [, setTick] = useState(0);
+  const [deliveryLocation, setDeliveryLocation] = useState<
+    "inside_dhaka" | "outside_dhaka"
+  >("inside_dhaka");
 
   // Update countdown every second
   useEffect(() => {
@@ -41,9 +46,10 @@ export const CartDrawer = () => {
         if (expiresAt < now) {
           hasExpiredItems = true;
           try {
-            const accessToken = typeof window !== 'undefined'
-              ? localStorage.getItem('accessToken')
-              : null;
+            const accessToken =
+              typeof window !== "undefined"
+                ? localStorage.getItem("accessToken")
+                : null;
 
             if (accessToken) {
               await stockReservationService.releaseReservation(
@@ -192,8 +198,25 @@ export const CartDrawer = () => {
     return null;
   }
 
+  const subtotal = getTotal();
+  const shipping =
+    deliveryLocation === "inside_dhaka"
+      ? DELIVERY_CHARGES.INSIDE_DHAKA
+      : DELIVERY_CHARGES.OUTSIDE_DHAKA;
+  const total = subtotal + shipping;
+
+  const checkoutItems: GTMItem[] = items.map((item) => ({
+    item_id: String(item.variantId ?? item.productId),
+    item_name: item.productName,
+    price: item.finalPrice ?? item.productPrice,
+    quantity: item.quantity,
+    item_category: item.selectedSize,
+    item_brand: item.selectedColor,
+  }));
+
   const handleCheckout = () => {
     closeCart();
+    trackBeginCheckout(checkoutItems, total);
     setTimeout(() => {
       router.push("/checkout");
     }, 350);

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import useApi from "@/hooks/useApi";
+import { getGuestToken } from "@/lib/cart";
 
 const CheckoutPageContent = () => {
   const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
@@ -175,6 +176,10 @@ const CheckoutPageContent = () => {
       ...(item.reservationId && { reservationId: Number(item.reservationId) }),
     }));
 
+    // Determine if user is guest
+    const isGuest = !user; // Assuming 'user' is from useAuthStore()
+
+    // Prepare base payload
     const payload: Record<string, unknown> = {
       items: orderItems,
       paymentMethod,
@@ -186,16 +191,42 @@ const CheckoutPageContent = () => {
       address: formData.address,
       city: formData.city,
       postalCode: "",
-      country: "Bangladesh",
     };
 
-    try {
-      const response = await post("/orders", payload);
+    // Add guestToken for guest users if any items have reservationId
+    if (isGuest) {
+      const hasReservation = orderItems.some(
+        (item) => item.reservationId !== undefined
+      );
+      if (hasReservation) {
+        // Import getGuestToken from "@/lib/cart" at the top of file
+        const guestToken = getGuestToken();
+        if (guestToken) {
+          payload.guestToken = guestToken;
+        }
+      }
 
+      // Optional: Add recaptchaToken if available
+      // if (typeof window !== "undefined") {
+      //   const recaptchaToken = localStorage.getItem("recaptchaToken") || "";
+      //   if (recaptchaToken) {
+      //     payload.recaptchaToken = recaptchaToken;
+      //   }
+      // }
+    }
+
+    try {
+      // Use correct endpoint based on user status
+      const endpoint = isGuest ? "/orders/guest" : "/orders";
+      const response = await post(endpoint, payload);
+
+      // Check if the API response indicates failure
       if (response?.status === "failed" || response?.status === "error") {
         throw new Error(response?.message || "Failed to create order");
       }
 
+      // Store order number for receipt download
+      // Try different response formats and fallback to generated ID
       const receivedOrderNumber =
         response?.data?.orderNumber ||
         response?.orderNumber ||
@@ -204,6 +235,7 @@ const CheckoutPageContent = () => {
       const finalOrderNumber = receivedOrderNumber || `ORD-${Date.now()}`;
       setOrderNumber(finalOrderNumber);
 
+      // Also store the order ID for receipt download API
       const receivedOrderId = response?.data?.id || response?.id;
       setOrderId(receivedOrderId || finalOrderNumber);
 
@@ -213,9 +245,18 @@ const CheckoutPageContent = () => {
         items: purchaseItems,
       });
 
+      // Clear cart and show success
       clearCart();
+
+      // Store phone for guest receipt download (only for guest checkout)
+      if (isGuest && formData.phone) {
+        localStorage.setItem("guestPhone", formData.phone);
+        localStorage.setItem("guestPhoneStoredAt", Date.now().toString());
+      }
+
     } catch (err: any) {
       console.error("Failed to create order:", err);
+      // Show error toast and stay on payment page
       toast.error(
         err?.response?.data?.message ||
           err?.message ||

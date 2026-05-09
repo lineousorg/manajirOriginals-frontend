@@ -53,19 +53,6 @@ const CartPage = () => {
    const shipping = deliveryLocation === "inside_dhaka" ? DELIVERY_CHARGES.INSIDE_DHAKA : DELIVERY_CHARGES.OUTSIDE_DHAKA;
    const total = subtotal + shipping;
 
-  const checkoutItems: GTMItem[] = items.map((item) => ({
-    item_id: String(item.variantId ?? item.productId),
-    item_name: item.productName,
-    price: item.finalPrice ?? item.productPrice,
-    quantity: item.quantity,
-    item_category: item.selectedSize,
-    item_brand: item.selectedColor,
-  }));
-
-  const handleBeginCheckout = () => {
-    trackBeginCheckout(checkoutItems, total);
-  };
-
   if (items.length === 0) {
     return (
       <div className="border flex items-center justify-center py-16 min-h-[90dvh] pt-40">
@@ -236,7 +223,6 @@ const CartPage = () => {
             {/* All users go directly to checkout */}
             <Link
               href="/checkout"
-              onClick={handleBeginCheckout}
               className="btn-primary-fashion w-full mt-6"
             >
               Proceed to Checkout

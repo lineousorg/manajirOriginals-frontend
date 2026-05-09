@@ -100,6 +100,7 @@ export const trackAddToCart = (item: GTMItem) => {
 
 // 👉 Begin checkout
 export const trackBeginCheckout = (items: GTMItem[], value: number) => {
+  console.log(items, value);
   pushToDataLayer({
     event: "begin_checkout",
     ecommerce: {
