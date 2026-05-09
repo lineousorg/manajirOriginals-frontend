@@ -54,6 +54,7 @@ const CheckoutPageContent = () => {
     address: "",
     city: "",
     country: "",
+    note: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -124,7 +125,9 @@ const CheckoutPageContent = () => {
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -191,6 +194,7 @@ const CheckoutPageContent = () => {
       address: formData.address,
       city: formData.city,
       postalCode: "",
+      ...(formData.note.trim() && { note: formData.note.trim() }),
     };
 
     // Add guestToken for guest users if any items have reservationId
@@ -512,10 +516,24 @@ const CheckoutPageContent = () => {
                       className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
+
+                  {/* Note (Optional) */}
+                  <div className="space-y-2 text-left col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground text-left w-full">
+                      Note
+                    </label>
+                    <textarea
+                      name="note"
+                      value={formData.note}
+                      onChange={handleInputChange}
+                      placeholder="Add a note for your order (optional)"
+                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px] resize-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Payment Selection */}
-                <div className="space-y-3 pt-2 border-t border-border/50 mt-16">
+                <div className="space-y-3 pt-2 border-t border-border/50 mt-10">
                   <h4 className="font-sans text-lg font-medium text-left">
                     Payment Method
                   </h4>
@@ -658,7 +676,7 @@ const CheckoutPageContent = () => {
                 </div>
 
                 {/* Security Note */}
-                <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl">
+                {/* <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl">
                   <Shield
                     size={20}
                     className="text-muted-foreground shrink-0"
@@ -667,7 +685,7 @@ const CheckoutPageContent = () => {
                     Your payment information is encrypted and secure. We never
                     store your full card details.
                   </p>
-                </div>
+                </div> */}
 
                 {/* Submit Button */}
                 <div className="pt-4 space-y-3">
