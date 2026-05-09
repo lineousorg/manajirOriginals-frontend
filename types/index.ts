@@ -85,6 +85,7 @@ export interface ApiProduct {
   colors?: ProductColor[];
   sizes?: string[];
   variants?: ProductVariant[];
+  productDetailsHtml?: string;
   isNew?: boolean;
   isSale?: boolean;
   isActive?: boolean;

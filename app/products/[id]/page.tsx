@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
@@ -35,6 +36,9 @@ import { policyData } from "@/lib/policy-data";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
 import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
 import { trackAddToCart, trackViewItem } from "@/lib/gtm";
+import { sanitizeHtml } from "@/src/utils/sanitizeHtml";
+
+
 
 // Helper function for className
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -393,7 +397,7 @@ export default function ProductDetailsPage() {
             <div className="mb-8">
               {/* Header Row: Title + Share */}
               <div className="flex items-start justify-between gap-2 md:gap-4 mb-4">
-                <h1 className="font-serif text-2xl md:text-3xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left break-words max-w-[85%] md:max-w-none">
+                <h1 className="font-serif text-2xl md:text-3xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left wrap-break-word max-w-[85%] md:max-w-none">
                   {product.name}
                 </h1>
                 <button
@@ -466,7 +470,7 @@ export default function ProductDetailsPage() {
                       stiffness: 200,
                       damping: 15,
                     }}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 border border-emerald-500/30 shadow-sm backdrop-blur-sm"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-linear-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 border border-emerald-500/30 shadow-sm backdrop-blur-sm"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-800 mr-2 animate-pulse" />
                     Save {discountPercentage}%
@@ -791,10 +795,20 @@ export default function ProductDetailsPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="min-h-50"
+              className="min-h-50 font-sans"
             >
               {activeTab === "details" && (
                 <div className="w-full">
+                  {product.productDetailsHtml && (
+                    <div className="mb-8">
+                      <div
+                        className="product-details font-sans text-left leading-relaxed [&>*]:mb-1 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2 [&_th]:text-left [&_td]:text-left"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(product.productDetailsHtml),
+                        }}
+                      />
+                    </div>
+                  )}
                   {details.length > 0 ? (
                     <ul className="space-y-3">
                       {details.map((detail: string, index: number) => (
@@ -809,7 +823,7 @@ export default function ProductDetailsPage() {
                     </ul>
                   ) : (
                     <p className="text-muted-foreground">
-                      No additional details available for this product.
+                    
                     </p>
                   )}
                 </div>
