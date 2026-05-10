@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "dompurify";
 
 export const sanitizeHtml = (html: string | null | undefined): string => {
   if (!html) return "";
