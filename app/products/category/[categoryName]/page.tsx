@@ -21,7 +21,7 @@ export default function CategoryProductsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const categoryName = params.categoryName as string;
-
+console.log(categoryName);
   // Get filters from URL params
   const urlMinPrice = searchParams.get("minPrice");
   const urlMaxPrice = searchParams.get("maxPrice");
@@ -44,6 +44,8 @@ export default function CategoryProductsPage() {
     categoryTree,
     loading: categoriesLoading,
   } = useCategories();
+
+  console.log(categories);
 
   // Find the current category from the category tree
   const currentCategory = useMemo(() => {
@@ -99,6 +101,9 @@ export default function CategoryProductsPage() {
     filters: apiFilters,
     fetchOnMount: true,
   });
+
+  console.log(products);
+  console.log(fetchedCategory);
 
   // Use fetched category from API or fallback to local category
   const displayCategory = fetchedCategory || currentCategory;
@@ -168,14 +173,22 @@ export default function CategoryProductsPage() {
     return crumbs;
   }, [displayCategory, categories]);
 
+  const fallbackCategoryName = categoryName
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
   // Show loader while loading
-  if (isLoading && !displayCategory) {
+  if (isLoading && !displayCategory && filteredProducts.length === 0) {
     return (
       <div className="container-fashion py-8 min-h-screen">
         <ProductGridSkeleton count={12} />
       </div>
     );
   }
+
+  console.log(currentCategory);
 
   // Show category not found only after loading is complete and category is still not found
   // if (!currentCategory && !isLoading) {
@@ -199,8 +212,8 @@ export default function CategoryProductsPage() {
   //   );
   // }
 
-  // Early return if currentCategory is still null after loading
-  if (!displayCategory) {
+  // Only block rendering when category metadata is missing and there are no products to show.
+  if (!displayCategory && filteredProducts.length === 0) {
     return (
       <div className="container-fashion py-8 min-h-screen">
         <ProductGridSkeleton count={12} />
@@ -208,8 +221,7 @@ export default function CategoryProductsPage() {
     );
   }
 
-  // At this point, displayCategory is guaranteed to be non-null
-  const categoryNameDisplay = displayCategory.name;
+  const categoryNameDisplay = displayCategory?.name || fallbackCategoryName;
 
   return (
     <div className="container-fashion py-8 min-h-screen pt-24 lg:pt-40">
