@@ -26,20 +26,15 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const productId = String(product.id);
   const inWishlist = isInWishlist(productId);
 
-  // Use new API discount fields
-  const hasDiscount = product.hasDiscount ?? false;
-  const discountTk = product.discountAmount ?? 0;
-  const minPrice = Number(product.minPrice || 0);
-  const maxPrice = Number(product.maxPrice || 0);
-  const minFinalPrice = product.minFinalPrice ?? 0
+  // Pricing data - supports both old API (top-level) and new API (nested pricing)
+  const hasDiscount = product.pricing?.hasDiscount ?? product.hasDiscount ?? false;
+  const minPrice = Number(product.pricing?.minPrice ?? product.minPrice ?? 0);
+  const maxPrice = Number(product.pricing?.maxPrice ?? product.maxPrice ?? 0);
+  const minFinalPrice = product.pricing?.finalMinPrice ?? product.minFinalPrice ?? 0;
 
-  // Calculate discount percentage if not provided
-  const discountAmount =
-    hasDiscount && maxPrice > minPrice
-      ? Math.round(((maxPrice - minPrice) / maxPrice) * 100)
-      : discountTk > 0
-        ? discountTk
-        : null;
+  // Discount info for badge
+  const discountValue = product.pricing?.discount?.value ?? product.discountAmount ?? 0;
+  const discountType = product.pricing?.discount?.type ?? product.discountType ?? null;
 
 
   // Get cart items to calculate available stock
@@ -128,9 +123,9 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
         {/* Premium Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2">
-          {hasDiscount && discountAmount && (
+          {hasDiscount && discountValue && (
             <span className="inline-flex items-center px-3 py-1.5 bg-slate-900 text-white text-[10px] font-semibold tracking-wider uppercase rounded-full shadow-lg">
-              {discountAmount}৳ Off
+              {discountType === "PERCENTAGE" ? `${discountValue}%` : `${discountValue}৳`} Off
             </span>
           )}
           {!product.isActive && (

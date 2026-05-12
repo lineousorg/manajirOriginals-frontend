@@ -35,14 +35,26 @@ export interface ProductColor {
   name: string;
   value: string;
 }
-// export interface ImageType {
-//   altText: string;
-//   url: string;
-// }
 
 export interface TypeImage {
   altText: string;
   url: string;
+}
+
+// New pricing structures for updated API responses
+export interface ProductDiscount {
+  type: "FIXED" | "PERCENTAGE" | null;
+  value: number;        // raw discount input (e.g., 700 or 35)
+  savedAmount: number;  // computed savings amount (e.g., 700)
+}
+
+export interface ProductPricing {
+  minPrice: number;
+  maxPrice: number;
+  finalMinPrice: number;
+  finalMaxPrice: number;
+  hasDiscount: boolean;
+  discount?: ProductDiscount | null;
 }
 
 export interface ApiProduct {
@@ -91,6 +103,8 @@ export interface ApiProduct {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // New nested pricing object (from updated API endpoints)
+  pricing?: ProductPricing;
   [key: string]: any;
 }
 
