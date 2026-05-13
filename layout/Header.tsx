@@ -17,7 +17,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
 import { isInAppBrowser } from "@/lib/isInAppBrowser";
 
@@ -41,7 +41,6 @@ export const Header = () => {
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const router = useRouter()
 
   // Timer to clear guest data from localStorage after 10 minutes
   useEffect(() => {
@@ -164,34 +163,55 @@ export const Header = () => {
               </motion.div>
 
               {/* Cart */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() =>
-                  isInAppBrowser()
-                    ? router.push("/cart")
-                    : openCart()
-                }
-                className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                aria-label="Cart"
-              >
-                <ShoppingBag
-                  size={16}
-                  className="transition-transform group-hover:scale-110"
-                />
-                <AnimatePresence>
-                  {showCartCount && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
-                    >
-                      {cartItemCount}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
+              {isInAppBrowser() ? (
+                <Link
+                  href="/cart"
+                  className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                  aria-label="Cart"
+                >
+                  <ShoppingBag
+                    size={16}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <AnimatePresence>
+                    {showCartCount && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
+                      >
+                        {cartItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={openCart}
+                  className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                  aria-label="Cart"
+                >
+                  <ShoppingBag
+                    size={16}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <AnimatePresence>
+                    {showCartCount && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white text-black text-[8px] font-bold rounded-full flex items-center justify-center"
+                      >
+                        {cartItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              )}
 
               {/* Profile */}
               <motion.div
@@ -448,34 +468,55 @@ export const Header = () => {
               </motion.div>
 
               {/* Cart */}
-               <motion.button
-                 whileHover={{ scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() =>
-                   isInAppBrowser()
-                     ? router.push("/cart")
-                     : openCart()
-                 }
-                 className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                 aria-label="Cart"
-               >
-                <ShoppingBag
-                  size={18}
-                  className="transition-transform group-hover:scale-110"
-                />
-                <AnimatePresence>
-                  {showCartCount && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
-                    >
-                      {cartItemCount}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
+              {isInAppBrowser() ? (
+                <Link
+                  href="/cart"
+                  className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                  aria-label="Cart"
+                >
+                  <ShoppingBag
+                    size={18}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <AnimatePresence>
+                    {showCartCount && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
+                      >
+                        {cartItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={openCart}
+                  className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                  aria-label="Cart"
+                >
+                  <ShoppingBag
+                    size={18}
+                    className="transition-transform group-hover:scale-110"
+                  />
+                  <AnimatePresence>
+                    {showCartCount && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black text-[9px] font-bold rounded-full flex items-center justify-center"
+                      >
+                        {cartItemCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              )}
 
               {/* Profile */}
               <motion.div

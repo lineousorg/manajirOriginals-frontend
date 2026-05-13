@@ -18,8 +18,8 @@ import { isInAppBrowser } from "@/lib/isInAppBrowser";
 export const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, getTotal, isHydrated } =
     useCartStore();
-  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
   const [variantStockMap, setVariantStockMap] = useState<
     Record<string | number, number>
   >({});
@@ -200,9 +200,8 @@ export const CartDrawer = () => {
   }
 
   // In-app browsers (Facebook, Instagram, Messenger) cannot render the drawer
-  // reliably due to WebView limitations. Redirect to /cart instead.
+  // reliably due to WebView limitations. Hide the drawer in those environments.
   if (isInAppBrowser()) {
-    router.push("/cart");
     return null;
   }
 
