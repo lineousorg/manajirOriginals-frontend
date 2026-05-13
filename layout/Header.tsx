@@ -17,8 +17,9 @@ import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
+import { isInAppBrowser } from "@/lib/isInAppBrowser";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -31,7 +32,7 @@ export const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const pathname = usePathname();
-  const { items: cartItems, getItemCount, isHydrated } = useCartStore();
+  const { items: cartItems, getItemCount, isHydrated, setHydrated } = useCartStore();
   const cartItemCount = getItemCount();
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
@@ -40,6 +41,7 @@ export const Header = () => {
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const router = useRouter()
 
   // Timer to clear guest data from localStorage after 10 minutes
   useEffect(() => {
@@ -71,6 +73,11 @@ export const Header = () => {
       }
     }
   }, []);
+
+  // Fix: Mark cart as hydrated on mount so badge and drawer work correctly
+  useEffect(() => {
+    setHydrated(true);
+  }, [setHydrated]);
 
   const showCartCount = isHydrated && cartItemCount > 0;
 
@@ -160,7 +167,11 @@ export const Header = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={openCart}
+                onClick={() =>
+                  isInAppBrowser()
+                    ? router.push("/cart")
+                    : openCart()
+                }
                 className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
                 aria-label="Cart"
               >
@@ -437,13 +448,17 @@ export const Header = () => {
               </motion.div>
 
               {/* Cart */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={openCart}
-                className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
-                aria-label="Cart"
-              >
+               <motion.button
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
+                 onClick={() =>
+                   isInAppBrowser()
+                     ? router.push("/cart")
+                     : openCart()
+                 }
+                 className="relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white/70 hover:text-white group"
+                 aria-label="Cart"
+               >
                 <ShoppingBag
                   size={18}
                   className="transition-transform group-hover:scale-110"

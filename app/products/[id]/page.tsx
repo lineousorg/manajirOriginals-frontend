@@ -31,6 +31,7 @@ import { useProductById, getProductCategories } from "@/hooks/useProduct";
 import { useProductStore } from "@/store/product.store";
 import { TypeImage, ProductVariant } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
+import { isInAppBrowser } from "@/lib/isInAppBrowser";
 import { stockReservationService } from "@/services/stock-reservation.service";
 import { policyData } from "@/lib/policy-data";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
@@ -233,13 +234,38 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    if (result.isExisting) {
-      toast.success("Updated quantity in your bag!");
-    } else if (isAlreadyInCart) {
-      toast.success(`Added another ${product.name} to your bag!`);
-    } else {
-      toast.success("Added to bag!");
-    }
+    // Build toast with optional "View Cart" action for in-app browsers
+     const toastMessage = result.isExisting
+       ? "Updated quantity in your bag!"
+       : isAlreadyInCart
+       ? `Added another ${product.name} to your bag!`
+       : "Added to bag!";
+
+     if (isInAppBrowser()) {
+       toast.custom(
+         (t) => (
+           <div
+             className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
+               t.visible ? "animate-in slide-in-from-bottom" : "animate-out fade-out"
+             }`}
+           >
+             <span className="text-sm font-medium">{toastMessage}</span>
+             <button
+               onClick={() => {
+                 router.push("/cart");
+                 toast.dismiss(t.id);
+               }}
+               className="text-sm font-semibold text-primary hover:underline"
+             >
+               View Cart
+             </button>
+           </div>
+         ),
+         { duration: 4000 }
+       );
+     } else {
+       toast.success(toastMessage);
+     }
 
     trackAddToCart({
       item_id: String(variantId),
@@ -893,7 +919,7 @@ export default function ProductDetailsPage() {
       )}
 
       {/* Mobile Sticky Add to Cart */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 lg:hidden z-50">
+      {/* <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 lg:hidden z-50">
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <p className="text-xs text-muted-foreground">Total</p>
@@ -921,7 +947,7 @@ export default function ProductDetailsPage() {
                       : "Add to Bag"}
           </button>
         </div>
-      </div>
+      </div> */}
 
       <Toaster
         position="bottom-center"

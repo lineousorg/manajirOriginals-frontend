@@ -107,11 +107,11 @@ const CartPage = () => {
               </Link>
 
               <div className="flex-1 flex flex-col">
-                <div className="flex justify-between gap-4">
+                <div className="flex justify-between gap-4 text-left">
                   <div>
                     <Link
                       href={`/products/${item.productId}`}
-                      className="font-medium hover:text-primary transition-colors"
+                      className="font-medium hover:text-primary transition-colors text-left"
                     >
                       {item.productName}
                     </Link>
@@ -171,39 +171,6 @@ const CartPage = () => {
         >
           <div className="bg-muted/30 rounded-xl p-4 md:p-6">
             <h2 className="font-serif text-xl mb-6">Order Summary</h2>
-
-            {/* Delivery Location Selection */}
-            <div className="mb-6">
-              <h4 className="text-sm font-medium mb-3">Delivery Location</h4>
-              <div className="space-y-2">
-                <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "inside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="deliveryLocation"
-                      checked={deliveryLocation === "inside_dhaka"}
-                      onChange={() => setDeliveryLocation("inside_dhaka")}
-                      className="w-4 h-4 text-primary"
-                    />
-                    <span className="text-sm">Inside Dhaka</span>
-                   </div>
-                   <span className="font-medium">৳{DELIVERY_CHARGES.INSIDE_DHAKA}</span>
-                </label>
-                <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${deliveryLocation === "outside_dhaka" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/50"}`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="deliveryLocation"
-                      checked={deliveryLocation === "outside_dhaka"}
-                      onChange={() => setDeliveryLocation("outside_dhaka")}
-                      className="w-4 h-4 text-primary"
-                    />
-                    <span className="text-sm">Outside Dhaka</span>
-                  </div>
-                  <span className="font-medium">৳{DELIVERY_CHARGES.OUTSIDE_DHAKA}</span>
-                </label>
-              </div>
-            </div>
 
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">

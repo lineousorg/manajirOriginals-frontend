@@ -13,6 +13,7 @@ import { stockReservationService } from "@/services/stock-reservation.service";
 import { getGuestToken, removeFromCart } from "@/lib/cart";
 import { GTMItem, trackBeginCheckout } from "@/lib/gtm";
 import { DELIVERY_CHARGES } from "@/lib/constants";
+import { isInAppBrowser } from "@/lib/isInAppBrowser";
 
 export const CartDrawer = () => {
   const { items, isOpen, closeCart, removeItem, getTotal, isHydrated } =
@@ -195,6 +196,13 @@ export const CartDrawer = () => {
   }, [isOpen]);
 
   if (!isHydrated) {
+    return null;
+  }
+
+  // In-app browsers (Facebook, Instagram, Messenger) cannot render the drawer
+  // reliably due to WebView limitations. Redirect to /cart instead.
+  if (isInAppBrowser()) {
+    router.push("/cart");
     return null;
   }
 

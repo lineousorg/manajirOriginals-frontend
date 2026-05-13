@@ -7,6 +7,7 @@ import { Providers } from "./providers";
 import { Header } from "@/layout/Header";
 import { Footer } from "@/layout/Footer";
 import { CartDrawer } from "@/layout/CartDrawer";
+import { FloatingCartButton } from "@/components/FloatingCartButton";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 import Script from "next/script";
 import GTMPageTracker from "@/lib/GTMpageTracker";
@@ -73,6 +74,7 @@ export default function RootLayout({
               <Sonner />
               <Header />
               <CartDrawer />
+              <FloatingCartButton />
               <ScrollToTop />
               {children}
               <Footer />
