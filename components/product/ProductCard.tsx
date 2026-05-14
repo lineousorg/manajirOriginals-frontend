@@ -117,7 +117,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     rest: { scale: 1 },
     hover: {
       scale: 1.08,
-      transition: { duration: 0.7, ease: [0.33, 1, 0.68, 1] as [number, number, number, number] },
+      transition: {
+        duration: 0.7,
+        ease: [0.33, 1, 0.68, 1] as [number, number, number, number],
+      },
     },
   };
 
@@ -134,7 +137,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     hover: {
       y: 0,
       opacity: 1,
-      transition: { duration: 0.35, ease: [0.33, 1, 0.68, 1] as [number, number, number, number] },
+      transition: {
+        duration: 0.35,
+        ease: [0.33, 1, 0.68, 1] as [number, number, number, number],
+      },
     },
   };
 
@@ -326,27 +332,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         {/* ═══════════════════════════════════════
             ACTION BUTTONS - Top Right
            ═══════════════════════════════════════ */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-          {/* Wishlist Button */}
-          <motion.button
-            onClick={handleWishlistClick}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className={`p-2.5 rounded-xl backdrop-blur-md transition-all duration-300
-                       shadow-lg cursor-pointer
-                       ${
-                         inWishlist
-                           ? "bg-rose-500 text-white shadow-rose-500/30"
-                           : "bg-white/80 text-neutral-600 hover:bg-white hover:text-rose-500 shadow-black/5"
-                       }`}
-          >
-            <Heart
-              size={18}
-              fill={inWishlist ? "currentColor" : "none"}
-              strokeWidth={inWishlist ? 0 : 2}
-            />
-          </motion.button>
-        </div>
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10"></div>
 
         {/* ═══════════════════════════════════════
             BOTTOM ACTION BAR - Appears on Hover
@@ -418,11 +404,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         )}
 
         {/* Product Name */}
-        <h3
-          className="text- font-semibold text-neutral-600 leading-snug 
-                       line-clamp-2 group-hover:text-neutral-600 
-                       transition-colors duration-300 font-sans"
-        >
+        <h3 className="text- font-semibold text-neutral-600 leading-snug line-clamp-2 group-hover:text-neutral-600 transition-colors duration-300 font-sans">
           {product.name}
         </h3>
 
@@ -475,14 +457,14 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </div>
 
           {/* Savings Amount */}
-          {hasDiscount && savedAmount > 0 && (
+          {/* {hasDiscount && savedAmount > 0 && (
             <span
               className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 
                            px-2 py-1 rounded-md"
             >
               Save ৳{formatPrice(savedAmount)}
             </span>
-          )}
+          )} */}
         </div>
 
         {/* Bottom Action Row */}
@@ -506,14 +488,35 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
             )}
           </div>
 
-          {/* Arrow Link */}
-          <motion.div
-            animate={{ x: isHovered ? 4 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-neutral-400 group-hover:text-neutral-800 transition-colors"
-          >
-            <ArrowUpRight size={18} strokeWidth={2} />
-          </motion.div>
+          <div className="flex gap-3">
+            {/* Wishlist Button */}
+            <motion.button
+              onClick={handleWishlistClick}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className={`rounded-xl transition-all duration-300 cursor-pointer
+                       ${
+                         inWishlist
+                           ? "bg-rose-500 text-white shadow-rose-500/30"
+                           : "bg-white/80 text-neutral-400 hover:bg-white hover:text-rose-500 shadow-black/5"
+                       }`}
+            >
+              <Heart
+                size={18}
+                fill={inWishlist ? "currentColor" : "none"}
+                strokeWidth={inWishlist ? 0 : 2}
+              />
+            </motion.button>
+
+            {/* Arrow Link */}
+            <motion.div
+              animate={{ x: isHovered ? 4 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-neutral-400 group-hover:text-neutral-800 transition-colors"
+            >
+              <ArrowUpRight size={18} strokeWidth={2} />
+            </motion.div>
+          </div>
         </div>
       </div>
     </motion.article>

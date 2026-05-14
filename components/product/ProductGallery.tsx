@@ -79,7 +79,7 @@ export const ProductGallery = ({
       {/* Main Image with Zoom */}
       <div
         ref={containerRef}
-        className="relative h-[50vh] md:h-[70vh] lg:h-[80vh] max-h-200 overflow-hidden rounded-lg bg-muted group"
+        className="relative h-[50vh] md:h-[70vh] lg:h-[80vh] max-h-150 overflow-hidden rounded-lg bg-muted group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}

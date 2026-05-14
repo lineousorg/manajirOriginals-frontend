@@ -22,12 +22,17 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { SizeGuide } from "@/components/product/SizeGuide";
 import { Loader, ProductDetailsSkeleton } from "@/components/ui/Loader";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useProductById, getProductCategories, useRelatedProducts } from "@/hooks/useProduct";
+import {
+  useProductById,
+  getProductCategories,
+  useRelatedProducts,
+} from "@/hooks/useProduct";
 import { TypeImage, ProductVariant } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
 import { isInAppBrowser } from "@/lib/isInAppBrowser";
@@ -53,7 +58,7 @@ export default function ProductDetailsPage() {
   const { product, loading, refetch } = useProductById(id);
   const { relatedProducts } = useRelatedProducts(
     product?.id,
-    product?.category?.slug
+    product?.category?.slug,
   );
 
   const addToCart = useCartStore((state) => state.addItem);
@@ -142,10 +147,9 @@ export default function ProductDetailsPage() {
       .join(" / ") || categories?.raw?.name;
 
   // Stock calculations - using availableStock from API (totalStock - reservedStock)
-  const remainingStock = selectedVariantAvailableStock;
-  const displayStock = selectedVariantAvailableStock - quantity;
-  const canAddMore = remainingStock > 0;
-  const isStockExceeded = !canAddMore;
+   const remainingStock = selectedVariantAvailableStock;
+   const canAddMore = remainingStock > 0;
+   const isStockExceeded = !canAddMore;
 
   // Add to cart handler
   const handleAddToCart = async () => {
@@ -343,22 +347,22 @@ export default function ProductDetailsPage() {
   }
 
   return (
-    <div className="pt-24 md:pt-32 pb-20 bg-white">
+    <div className="pt-20 md:pt-28 pb-16 bg-white min-h-screen">
       {/* Breadcrumb */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="container-fashion py-4"
+        className="container-fashion py-3 md:py-4"
       >
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+        <nav className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground flex-wrap">
           <Link
             href="/"
             className="hover:text-foreground transition-colors duration-200"
           >
             Home
           </Link>
-          <ChevronRight size={14} className="opacity-60" />
+          <ChevronRight size={12} className="opacity-50" />
           <Link
             href="/products"
             className="hover:text-foreground transition-colors duration-200"
@@ -367,7 +371,7 @@ export default function ProductDetailsPage() {
           </Link>
           {categories?.parent && (
             <>
-              <ChevronRight size={14} className="opacity-60" />
+              <ChevronRight size={12} className="opacity-50" />
               <Link
                 href={`/products?category=${categories.parent.slug}`}
                 className="hover:text-foreground transition-colors duration-200"
@@ -378,7 +382,7 @@ export default function ProductDetailsPage() {
           )}
           {categories?.child && (
             <>
-              <ChevronRight size={14} className="opacity-60" />
+              <ChevronRight size={12} className="opacity-50" />
               <Link
                 href={`/products?category=${categories.child.slug}`}
                 className="hover:text-foreground transition-colors duration-200"
@@ -387,23 +391,45 @@ export default function ProductDetailsPage() {
               </Link>
             </>
           )}
-          <ChevronRight size={14} className="opacity-60" />
-          <span className="text-foreground font-medium truncate max-w-50 md:max-w-xs">
+          <ChevronRight size={12} className="opacity-50" />
+          <span className="text-foreground font-medium truncate max-w-32 md:max-w-xs">
             {product.name}
           </span>
         </nav>
       </motion.div>
 
       {/* Product Details */}
-      <div className="container-fashion py-6 md:py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+      <div className="container-fashion py-4 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-12">
           {/* Gallery */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="order-1 z-0"
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="order-1 z-0 col-span-2 relative"
           >
+            <div className="absolute top-2 left-2 z-20">
+              {discountPercentage > 0 && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={
+                    isVisible
+                      ? { opacity: 1, scale: 1 }
+                      : { opacity: 0, scale: 0.85 }
+                  }
+                  transition={{
+                    delay: 0.2,
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 20,
+                  }}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                >
+                  <span className="w-1 h-1 rounded-full bg-emerald-600 mr-1.5 animate-pulse" />
+                  Save {discountPercentage}%
+                </motion.span>
+              )}
+            </div>
             <ProductGallery images={images} productName={product.name} />
           </motion.div>
 
@@ -411,21 +437,21 @@ export default function ProductDetailsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="order-2 lg:sticky lg:top-28 lg:self-start"
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="order-2 lg:sticky lg:top-24 lg:self-start col-span-3"
           >
-            <div className="mb-8">
+            <div className="mb-6">
               {/* Header Row: Title + Share */}
-              <div className="flex items-start justify-between gap-2 md:gap-4 mb-4">
-                <h1 className="font-serif text-2xl md:text-3xl lg:text-[42px] font-bold leading-[1.1] tracking-tight text-left wrap-break-word max-w-[85%] md:max-w-none">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <h1 className="font-serif text-xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight text-left flex-1">
                   {product.name}
                 </h1>
                 <button
                   onClick={handleShare}
-                  className="p-2.5 hover:bg-muted rounded-full transition-colors shrink-0 mt-1"
+                  className="p-2 hover:bg-muted rounded-full transition-colors shrink-0 mt-0.5"
                   aria-label="Share product"
                 >
-                  <Share2 size={20} strokeWidth={1.5} />
+                  <Share2 size={18} strokeWidth={1.5} />
                 </button>
               </div>
 
@@ -434,8 +460,8 @@ export default function ProductDetailsPage() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                  className="text-muted-foreground text-base leading-relaxed mb-8 max-w-2xl text-left"
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="text-muted-foreground text-sm leading-relaxed mb-5 max-w-2xl text-left"
                 >
                   {product.description}
                 </motion.p>
@@ -443,57 +469,36 @@ export default function ProductDetailsPage() {
 
               {/* Price Row */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={
-                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
                 }
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-center gap-3 mb-6"
+                className="flex items-center gap-2.5 mb-5 flex-wrap"
               >
                 <motion.span
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={
                     isVisible
                       ? { opacity: 1, scale: 1 }
-                      : { opacity: 0, scale: 0.9 }
+                      : { opacity: 0, scale: 0.95 }
                   }
                   transition={{ delay: 0.1, duration: 0.3 }}
-                  className="text-3xl font-semibold tracking-tight"
+                  className="text-2xl md:text-3xl font-semibold tracking-tight"
                 >
-                  ৳ {currentPrice.toLocaleString()}
+                  ৳{currentPrice.toLocaleString()}
                 </motion.span>
 
                 {originalPrice && originalPrice > currentPrice && (
                   <motion.span
-                    initial={{ opacity: 0, x: -10 }}
+                    initial={{ opacity: 0, x: -8 }}
                     animate={
-                      isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }
+                      isVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -8 }
                     }
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                    className="text-lg text-muted-foreground line-through decoration-2"
+                    transition={{ delay: 0.15, duration: 0.3 }}
+                    className="text-sm md:text-base text-muted-foreground line-through decoration-2"
                   >
                     ৳{originalPrice.toLocaleString()}
-                  </motion.span>
-                )}
-
-                {discountPercentage > 0 && (
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={
-                      isVisible
-                        ? { opacity: 1, scale: 1 }
-                        : { opacity: 0, scale: 0.8 }
-                    }
-                    transition={{
-                      delay: 0.3,
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 15,
-                    }}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-linear-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 border border-emerald-500/30 shadow-sm backdrop-blur-sm"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-800 mr-2 animate-pulse" />
-                    Save {discountPercentage}%
                   </motion.span>
                 )}
               </motion.div>
@@ -502,37 +507,37 @@ export default function ProductDetailsPage() {
               <motion.div
                 initial={{ scaleX: 0 }}
                 animate={isVisible ? { scaleX: 1 } : { scaleX: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="h-px bg-border w-full origin-left"
+                transition={{ duration: 0.5, delay: 0.25 }}
+                className="h-px bg-border/80 w-full origin-left"
               />
             </div>
 
             {/* Variant Selection */}
-            <div className="space-y-8 mb-8">
+            <div className="space-y-5 mb-6">
               {/* Color Selection */}
               {availableColorsForSelectedSize.length > 1 && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={
-                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
                   }
-                  transition={{ duration: 0.4, delay: 0.35 }}
-                  className="space-y-3"
+                  transition={{ duration: 0.35, delay: 0.3 }}
+                  className="space-y-2"
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
                       Color
                     </span>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {availableColorsForSelectedSize.map((color) => (
                         <button
                           key={color}
                           onClick={() => setSelectedColor(color)}
                           className={cn(
-                            "relative px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer",
+                            "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer",
                             selectedColor === color
-                              ? "bg-foreground text-background shadow-lg scale-105"
-                              : "bg-muted/50 text-foreground hover:bg-muted border border-border",
+                              ? "bg-foreground text-background shadow-md scale-105"
+                              : "bg-muted/40 text-foreground hover:bg-muted border border-border/60",
                           )}
                         >
                           {color}
@@ -540,10 +545,10 @@ export default function ProductDetailsPage() {
                             <motion.div
                               initial={{ scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
-                              className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-sm"
+                              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm"
                             >
                               <Check
-                                size={10}
+                                size={8}
                                 className="text-background"
                                 strokeWidth={3}
                               />
@@ -558,80 +563,94 @@ export default function ProductDetailsPage() {
 
               {/* Size Selection */}
               {product.sizes && product.sizes.length > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={
-                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
-                  }
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0 text-left pl-3">
-                      Size
-                    </span>
-                    <div className="flex flex-wrap gap-4">
-                      {product.sizes.map((size) => {
-                        const stock = getStockForSize(
-                          product.variants || [],
-                          size,
-                        );
-                        const isOutOfStock = stock <= 0;
-                        return (
-                          <div key={size} className="relative">
-                            <button
-                              onClick={() => {
-                                setSelectedSize(size);
-                                setQuantityBySize((prev) => ({
-                                  ...prev,
-                                  [size]: prev[size] ?? 1,
-                                }));
-                              }}
-                              disabled={isOutOfStock}
-                              className={cn(
-                                "w-10 h-10 rounded-lg text-sm font-semibold transition-all duration-200",
-                                isOutOfStock
-                                  ? "opacity-40 cursor-not-allowed line-through"
-                                  : "cursor-pointer",
-                                selectedSize === size
-                                  ? "bg-foreground text-background shadow-md scale-105"
-                                  : "bg-background text-foreground border-2 border-border hover:border-primary/50 hover:bg-muted/30",
-                              )}
-                            >
-                              {size}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+                 <motion.div
+                   initial={{ opacity: 0, y: 8 }}
+                   animate={
+                     isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
+                   }
+                   transition={{ duration: 0.35, delay: 0.35 }}
+                   className="space-y-2"
+                 >
+                   <div className="flex items-center gap-3">
+                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                       Size
+                     </span>
+                     <div className="flex flex-wrap gap-2">
+                       {product.sizes.map((size) => {
+                         const stock = getStockForSize(
+                           product.variants || [],
+                           size,
+                         );
+                         const isOutOfStock = stock <= 0;
+                         return (
+                           <TooltipProvider key={size}>
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <div className="relative">
+                                   <button
+                                     onClick={() => {
+                                       setSelectedSize(size);
+                                       setQuantityBySize((prev) => ({
+                                         ...prev,
+                                         [size]: prev[size] ?? 1,
+                                       }));
+                                     }}
+                                     disabled={isOutOfStock}
+                                     className={cn(
+                                       "w-8 h-8 rounded-md text-xs font-semibold transition-all duration-150 flex items-center justify-center",
+                                       isOutOfStock
+                                         ? "opacity-35 cursor-not-allowed line-through bg-muted/30"
+                                         : "cursor-pointer",
+                                       selectedSize === size
+                                         ? "bg-foreground text-background shadow-sm scale-105"
+                                         : "bg-background text-foreground border border-border/80 hover:border-primary/40 hover:bg-muted/20",
+                                     )}
+                                   >
+                                     {size}
+                                   </button>
+                                 </div>
+                               </TooltipTrigger>
+                               <TooltipContent
+                                 side="top"
+                                 className="bg-background border border-border/80 shadow-lg rounded-lg px-3 py-2 text-xs font-medium"
+                               >
+                                 {isOutOfStock
+                                   ? "Out of stock"
+                                   : `${stock} available`}
+                               </TooltipContent>
+                             </Tooltip>
+                           </TooltipProvider>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 </motion.div>
+               )}
 
               {/* Quantity */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={
-                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
                 }
-                transition={{ duration: 0.4, delay: 0.45 }}
-                className="flex items-center gap-4"
+                transition={{ duration: 0.35, delay: 0.4 }}
+                className="flex items-center gap-3"
               >
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground w-24 shrink-0">
-                  Quantity
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                  Qty
                 </span>
-                <div className="inline-flex items-center bg-muted/30 rounded-full border border-border">
+                <div className="inline-flex items-center bg-muted/30 rounded-lg border border-border/60 h-8">
                   <button
                     onClick={() =>
                       setQuantity(selectedSize, Math.max(quantity - 1, 1))
                     }
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
                     disabled={quantity <= 1}
                     aria-label="Decrease quantity"
                   >
-                    -
+                    −
                   </button>
-                  <span className="w-12 text-center font-semibold text-lg tabular-nums">
+                  <span className="w-10 text-center font-semibold text-sm tabular-nums">
                     {quantity}
                   </span>
                   <button
@@ -641,66 +660,21 @@ export default function ProductDetailsPage() {
                         Math.min(quantity + 1, remainingStock),
                       )
                     }
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-background transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
                     disabled={remainingStock <= 0 || quantity >= remainingStock}
                     aria-label="Increase quantity"
                   >
                     +
                   </button>
                 </div>
-                {selectedVariantAvailableStock > 0 && (
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      remainingStock <= 0
-                        ? "text-gray-500"
-                        : remainingStock <= 3
-                          ? "text-gray-500"
-                          : "text-green-600",
-                    )}
-                  >
-                    {isRefetchingStock ? (
-                      <span className="flex items-center gap-1">
-                        <svg
-                          className="animate-spin h-3 w-3"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          />
-                        </svg>
-                        Updating...
-                      </span>
-                    ) : remainingStock > 0 ? (
-                      quantity > 0 ? (
-                        `${displayStock} available`
-                      ) : (
-                        `${remainingStock} available`
-                      )
-                    ) : (
-                      "Out of stock"
-                    )}
-                  </span>
-                )}
-              </motion.div>
+               </motion.div>
 
               {/* Size Guide */}
               <SizeGuide categorySlug={categories?.raw?.slug} />
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mb-8">
+            <div className="flex gap-2.5 mb-6">
               <AddToCartButton
                 isAdding={isAddingToCart}
                 isOutOfStock={isOutOfStock}
@@ -714,57 +688,48 @@ export default function ProductDetailsPage() {
                 onClick={() => {
                   toggleItem({ ...product, id: productId, images } as any);
                 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.92 }}
                 className={cn(
-                  "p-4 border-2 rounded-lg transition-all duration-200",
+                  "p-3 border rounded-lg transition-all duration-150",
                   inWishlist
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border hover:border-foreground bg-background",
+                    : "border-border/80 hover:border-foreground bg-background",
                 )}
                 aria-label={
                   inWishlist ? "Remove from wishlist" : "Add to wishlist"
                 }
               >
                 <Heart
-                  size={24}
+                  size={20}
                   fill={inWishlist ? "currentColor" : "none"}
-                  strokeWidth={inWishlist ? 0 : 2}
+                  strokeWidth={inWishlist ? 0 : 1.5}
                 />
               </motion.button>
             </div>
 
             {/* Trust Badges */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4 py-6 border-t border-border">
-              <div className="text-center group px-1">
-                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <Truck
-                    size={14}
-                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
-                  />
+            <div className="grid grid-cols-3 gap-2 py-4 border-t border-border/60">
+              <div className="text-center group px-0.5">
+                <div className="bg-muted/50 rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center mx-auto mb-1.5 group-hover:bg-muted transition-colors">
+                  <Truck size={13} className="text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
+                <p className="text-[10px] md:text-xs text-muted-foreground font-medium leading-tight">
                   Cash on Delivery
                 </p>
               </div>
-              <div className="text-center group px-1">
-                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <RotateCcw
-                    size={14}
-                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
-                  />
+              <div className="text-center group px-0.5">
+                <div className="bg-muted/50 rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center mx-auto mb-1.5 group-hover:bg-muted transition-colors">
+                  <RotateCcw size={13} className="text-muted-foreground" />
                 </div>
-                <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
+                <p className="text-[10px] md:text-xs text-muted-foreground font-medium leading-tight">
                   Easy Returns
                 </p>
               </div>
-              <div className="text-center group px-1">
-                <div className="bg-muted rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center mx-auto mb-2 group-hover:bg-muted/80 transition-colors">
-                  <ShieldCheck
-                    size={14}
-                    className="text-muted-foreground w-3.5 h-3.5 md:w-4.5 md:h-4.5"
-                  />
+              <div className="text-center group px-0.5">
+                <div className="bg-muted/50 rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center mx-auto mb-1.5 group-hover:bg-muted transition-colors">
+                  <ShieldCheck size={13} className="text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
+                <p className="text-[10px] md:text-xs text-muted-foreground font-medium leading-tight">
                   Secure Checkout
                 </p>
               </div>
@@ -774,14 +739,14 @@ export default function ProductDetailsPage() {
       </div>
 
       {/* Product Information Tabs */}
-      <div className="container-fashion py-8 mb-12">
-        <div className="border-t border-border pt-8">
+      <div className="container-fashion py-6 md:py-10 mb-8">
+        <div className="border-t border-border/60 pt-6">
           {/* Tab Navigation */}
-          <div className="flex gap-8 border-b border-border mb-6 overflow-x-auto">
+          <div className="flex gap-6 md:gap-8 border-b border-border/60 mb-5 overflow-x-auto scrollbar-hide">
             {[
-              { id: "details", label: "Product Details", icon: Info },
-              { id: "shipping", label: "Shipping & Delivery", icon: Truck },
-              { id: "returns", label: "Returns & Exchanges", icon: RotateCcw },
+              { id: "details", label: "Details", icon: Info },
+              { id: "shipping", label: "Shipping", icon: Truck },
+              { id: "returns", label: "Returns", icon: RotateCcw },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -789,13 +754,13 @@ export default function ProductDetailsPage() {
                   setActiveTab(tab.id as "details" | "shipping" | "returns")
                 }
                 className={cn(
-                  "pb-4 text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-2 whitespace-nowrap",
+                  "pb-3 text-xs md:text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-1.5 whitespace-nowrap",
                   activeTab === tab.id
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <tab.icon size={16} />
+                <tab.icon size={14} />
                 {tab.label}
                 {activeTab === tab.id && (
                   <motion.div
@@ -811,18 +776,18 @@ export default function ProductDetailsPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="min-h-50 font-sans"
+              className="min-h-40 font-sans"
             >
               {activeTab === "details" && (
                 <div className="w-full">
                   {product.productDetailsHtml && (
-                    <div className="mb-8">
+                    <div className="mb-6">
                       <div
-                        className="product-details font-sans text-left leading-relaxed [&>*]:mb-1 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2 [&_th]:text-left [&_td]:text-left"
+                        className="product-details font-sans text-left leading-relaxed text-sm [&>*]:mb-1 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2 [&_th]:text-left [&_td]:text-left"
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(product.productDetailsHtml),
                         }}
@@ -830,50 +795,50 @@ export default function ProductDetailsPage() {
                     </div>
                   )}
                   {details.length > 0 ? (
-                    <ul className="space-y-3">
+                    <ul className="space-y-2.5">
                       {details.map((detail: string, index: number) => (
                         <li
                           key={index}
-                          className="flex items-start gap-3 text-muted-foreground"
+                          className="flex items-start gap-2.5 text-muted-foreground text-sm"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-foreground mt-2 shrink-0" />
+                          <span className="w-1 h-1 rounded-full bg-foreground mt-1.5 shrink-0" />
                           <span>{detail}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-muted-foreground"></p>
+                    <p className="text-muted-foreground text-sm"></p>
                   )}
                 </div>
               )}
 
               {(activeTab === "shipping" || activeTab === "returns") && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-6"
+                  transition={{ duration: 0.25 }}
+                  className="space-y-5"
                 >
-                  <h3 className="text-2xl font-sans text-left font-medium text-foreground">
+                  <h3 className="text-lg md:text-xl font-sans text-left font-medium text-foreground">
                     {policyData[activeTab].title}
                   </h3>
                   {policyData[activeTab]?.intro && (
-                    <p className="text- leading-relaxed text-left">
+                    <p className="text-sm leading-relaxed text-left text-muted-foreground">
                       {policyData[activeTab]?.intro}
                     </p>
                   )}
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {policyData[activeTab].content.map((section, index) => (
-                      <div key={index} className="space-y-2">
+                      <div key={index} className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <div className="p-1 w-8 text-sm font-semibold border-2 border-gray-400 bg- rounded-full">
+                          <div className="p-0.5 w-6 h-6 text-[10px] font-bold border border-border/80 bg-muted/30 rounded-full flex items-center justify-center shrink-0">
                             {index + 1}
                           </div>
-                          <h4 className="font-medium text-foreground text-lg font-sans text-left">
+                          <h4 className="font-medium text-foreground text-sm font-sans text-left">
                             {section.heading}
                           </h4>
                         </div>
-                        <div className="text- text-muted-foreground whitespace-pre-line leading-relaxed text-left pl-10">
+                        <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed text-left pl-8">
                           {section.body}
                         </div>
                       </div>
@@ -888,20 +853,20 @@ export default function ProductDetailsPage() {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="container-fashion py-16 border-t border-border">
+        <section className="container-fashion py-12 md:py-16 border-t border-border/60">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           >
-            <h2 className="font-serif text-2xl md:text-3xl font-medium mb-2 text-center">
+            <h2 className="font-serif text-xl md:text-2xl font-medium mb-1.5 text-center">
               You May Also Like
             </h2>
-            <p className="text-muted-foreground text-center mb-10">
+            <p className="text-muted-foreground text-center mb-8 text-sm">
               Complete your look with these curated pieces
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
               {relatedProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}
@@ -913,10 +878,14 @@ export default function ProductDetailsPage() {
       <Toaster
         position="bottom-center"
         toastOptions={{
-          style: { background: "#000", color: "#fff", borderRadius: "8px" },
+          style: {
+            background: "#000",
+            color: "#fff",
+            borderRadius: "10px",
+            fontSize: "13px",
+          },
         }}
       />
     </div>
   );
 }
-
