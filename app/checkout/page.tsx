@@ -257,7 +257,6 @@ const CheckoutPageContent = () => {
         localStorage.setItem("guestPhone", formData.phone);
         localStorage.setItem("guestPhoneStoredAt", Date.now().toString());
       }
-
     } catch (err: any) {
       console.error("Failed to create order:", err);
       // Show error toast and stay on payment page
@@ -818,17 +817,17 @@ const OrderSummaryPanel = ({
   getItemPrice: (item: any) => number;
 }) => (
   <div className="bg-background rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-    <div className="p-6 border-b border-border/50 bg-muted/20">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-          <Package size={20} className="text-primary" />
+    {/* <div className="p-6 border-b border-border/50 bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <Package size={20} className="text-primary" />
+          </div>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-lg">Order Summary</h2>
+            <p className="text-xs text-muted-foreground">{items.length} items</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-lg">Order Summary</h2>
-          <p className="text-xs text-muted-foreground">{items.length} items</p>
-        </div>
-      </div>
-    </div>
+      </div> */}
 
     <div className="p-6 space-y-4 max-h-[400px] overflow-y-auto">
       {items.map((item) => (

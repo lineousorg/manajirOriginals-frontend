@@ -252,7 +252,7 @@ export default function ProductDetailsPage() {
              <span className="text-sm font-medium">{toastMessage}</span>
              <button
                onClick={() => {
-                 router.push("/cart");
+                 router.push("/checkout");
                  toast.dismiss(t.id);
                }}
                className="text-sm font-semibold text-primary hover:underline"

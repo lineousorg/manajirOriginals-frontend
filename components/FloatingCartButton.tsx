@@ -30,7 +30,7 @@ export const FloatingCartButton = () => {
 
   return (
     <Link
-      href="/cart"
+      href="/checkout"
       className="fixed bottom-6 right-6 z-50 md:hidden flex items-center justify-center w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-black/25 hover:bg-primary/90 active:scale-90 transition-all duration-200"
       aria-label={`View cart with ${cartCount} item${cartCount === 1 ? "" : "s"}`}
     >
