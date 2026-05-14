@@ -224,7 +224,7 @@ export default function ProductDetailsPage() {
 
     if (!result.success) {
       toast.error(
-        "Selected size or color is not available. Please choose different options.",
+        "Unable to add item to cart. Please try again or choose different options.",
       );
       setIsAddingToCart(false);
       return;

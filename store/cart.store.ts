@@ -197,59 +197,76 @@ export const useCartStore = create<CartState>()(
           let newExpiresAt = expiresAt;
 
           if (!reservationId) {
-            try {
-              const accessToken = typeof window !== 'undefined'
-                ? localStorage.getItem('accessToken')
-                : null;
+             try {
+               const accessToken = typeof window !== 'undefined'
+                 ? localStorage.getItem('accessToken')
+                 : null;
 
-              if (accessToken) {
-                const result = await stockReservationService.reserveStock(
-                  selectedVariant?.id ?? 0,
-                  quantity,
-                  15
-                );
-                if (result.success && result.data) {
-                  newReservationId = result.data.reservationId;
-                  newExpiresAt = result.data.expiresAt;
-                }
-              } else {
-                const guestToken = getGuestToken();
-                if (!guestToken) {
-                  throw new Error("Guest token not initialized");
-                }
-                const result = await addToCart(selectedVariant?.id ?? 0, quantity);
-                if (result && result.data) {
-                  newReservationId = result.data.reservationId;
-                  newExpiresAt = result.data.expiresAt;
-                }
-              }
-            } catch (error) {
-              console.error("Failed to reserve stock:", error);
-            }
-          }
+               if (accessToken) {
+                 const result = await stockReservationService.reserveStock(
+                   selectedVariant?.id ?? 0,
+                   quantity,
+                   15
+                 );
+                 if (result.success && result.data) {
+                   newReservationId = result.data.reservationId;
+                   newExpiresAt = result.data.expiresAt;
+                 } else {
+                   console.error("Stock reservation failed:", result.error);
+                   resolve({ success: false, isExisting: false });
+                   return;
+                 }
+               } else {
+                 const guestToken = getGuestToken();
+                 if (!guestToken) {
+                   throw new Error("Guest token not initialized");
+                 }
+                 const result = await addToCart(selectedVariant?.id ?? 0, quantity);
+                 if (result && result.data) {
+                   newReservationId = result.data.reservationId;
+                   newExpiresAt = result.data.expiresAt;
+                 } else {
+                   console.error("Failed to add to cart for guest user");
+                   resolve({ success: false, isExisting: false });
+                   return;
+                 }
+               }
+             } catch (error) {
+               console.error("Failed to reserve stock:", error);
+               resolve({ success: false, isExisting: false });
+               return;
+             }
+           }
 
-          const newItem: MinimalCartItem = {
-            productId: product.id,
-            productName: product.name || "Product",
-            productImage,
-            productPrice,
-            hasDiscount,
-            finalPrice,
-            variantId: selectedVariant?.id,
-            variantStock: selectedVariant?.stock ?? product.stock ?? 0,
-            quantity,
-            selectedSize: size,
-            selectedColor: color,
-            reservationId: newReservationId,
-            expiresAt: newExpiresAt,
-          };
+           // Only add to cart if reservation was successful
+           if (!newReservationId) {
+             console.error("No reservation ID available");
+             resolve({ success: false, isExisting: false });
+             return;
+           }
 
-          set({
-            items: [...items, newItem],
-            isOpen: true,
-            lastCartChange: Date.now(),
-          });
-          resolve({ success: true, isExisting: false });
+           const newItem: MinimalCartItem = {
+             productId: product.id,
+             productName: product.name || "Product",
+             productImage,
+             productPrice,
+             hasDiscount,
+             finalPrice,
+             variantId: selectedVariant?.id,
+             variantStock: selectedVariant?.stock ?? product.stock ?? 0,
+             quantity,
+             selectedSize: size,
+             selectedColor: color,
+             reservationId: newReservationId,
+             expiresAt: newExpiresAt,
+           };
+
+           set({
+             items: [...items, newItem],
+             isOpen: true,
+             lastCartChange: Date.now(),
+           });
+           resolve({ success: true, isExisting: false });
         });
       },
 
