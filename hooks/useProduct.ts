@@ -374,6 +374,50 @@ export function useProductById(
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// useRelatedProducts – fetch related products by category slug
+// ═══════════════════════════════════════════════════════════════════
+export function useRelatedProducts(
+  productId: string | number | undefined,
+  categorySlug: string | undefined,
+  limit: number = 4
+) {
+  const { get, loading, error } = useApi();
+  const [relatedProducts, setRelatedProducts] = useState<ApiProduct[]>([]);
+
+  useEffect(() => {
+    if (!categorySlug || !productId) {
+      setRelatedProducts([]);
+      return;
+    }
+
+    const fetchRelatedProducts = async () => {
+      try {
+        const response = await get<ProductsApiResponse>(
+          `/products/category/${categorySlug}?limit=${limit + 1}`,
+          { skipAuth: true }
+        );
+        const normalized = (response.data || [])
+          .map(normalizeProduct)
+          .filter((p) => p.id !== productId)
+          .slice(0, limit);
+        setRelatedProducts(normalized);
+      } catch (err) {
+        console.error("Failed to fetch related products:", err);
+        setRelatedProducts([]);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [categorySlug, productId, limit, get]);
+
+  return {
+    relatedProducts,
+    loading,
+    error,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // useCategoryProductCounts – get product counts per category
 // Uses global products store when available (no extra API call)
 // ═══════════════════════════════════════════════════════════════════

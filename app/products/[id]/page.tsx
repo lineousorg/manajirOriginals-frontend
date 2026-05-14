@@ -27,8 +27,7 @@ import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useProductById, getProductCategories } from "@/hooks/useProduct";
-import { useProductStore } from "@/store/product.store";
+import { useProductById, getProductCategories, useRelatedProducts } from "@/hooks/useProduct";
 import { TypeImage, ProductVariant } from "@/types";
 import toast, { Toaster } from "react-hot-toast";
 import { isInAppBrowser } from "@/lib/isInAppBrowser";
@@ -38,8 +37,6 @@ import { useVariantSelection } from "@/hooks/useVariantSelection";
 import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
 import { trackAddToCart, trackViewItem } from "@/lib/gtm";
 import { sanitizeHtml } from "@/src/utils/sanitizeHtml";
-
-
 
 // Helper function for className
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -54,7 +51,10 @@ export default function ProductDetailsPage() {
   >("details");
 
   const { product, loading, refetch } = useProductById(id);
-  const globalProducts = useProductStore((state) => state.products);
+  const { relatedProducts } = useRelatedProducts(
+    product?.id,
+    product?.category?.slug
+  );
 
   const addToCart = useCartStore((state) => state.addItem);
   const isItemInCart = useCartStore((state) => state.isItemInCart);
@@ -116,14 +116,6 @@ export default function ProductDetailsPage() {
       refetch().finally(() => setIsRefetchingStock(false));
     }
   }, [lastCartChange, refetch]);
-
-  // Related products
-  const relatedProducts = useMemo(() => {
-    if (!product) return [];
-    return globalProducts
-      .filter((p) => p.id !== product.id && p.categoryId === product.categoryId)
-      .slice(0, 4);
-  }, [product, globalProducts]);
 
   const productId = product ? String(product.id) : "";
   const inWishlist = product ? isInWishlist(productId) : false;
@@ -223,7 +215,7 @@ export default function ProductDetailsPage() {
       { ...product, id: productId, images: normalizedImages },
       size,
       color,
-      quantity
+      quantity,
     );
 
     if (!result.success) {
@@ -235,37 +227,39 @@ export default function ProductDetailsPage() {
     }
 
     // Build toast with optional "View Cart" action for in-app browsers
-     const toastMessage = result.isExisting
-       ? "Updated quantity in your bag!"
-       : isAlreadyInCart
-       ? `Added another ${product.name} to your bag!`
-       : "Added to bag!";
+    const toastMessage = result.isExisting
+      ? "Updated quantity in your bag!"
+      : isAlreadyInCart
+        ? `Added another ${product.name} to your bag!`
+        : "Added to bag!";
 
-     if (isInAppBrowser()) {
-       toast.custom(
-         (t) => (
-           <div
-             className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
-               t.visible ? "animate-in slide-in-from-bottom" : "animate-out fade-out"
-             }`}
-           >
-             <span className="text-sm font-medium">{toastMessage}</span>
-             <button
-               onClick={() => {
-                 router.push("/cart");
-                 toast.dismiss(t.id);
-               }}
-               className="text-sm font-semibold text-primary hover:underline"
-             >
-               View Cart
-             </button>
-           </div>
-         ),
-         { duration: 4000 }
-       );
-     } else {
-       toast.success(toastMessage);
-     }
+    if (isInAppBrowser()) {
+      toast.custom(
+        (t) => (
+          <div
+            className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
+              t.visible
+                ? "animate-in slide-in-from-bottom"
+                : "animate-out fade-out"
+            }`}
+          >
+            <span className="text-sm font-medium">{toastMessage}</span>
+            <button
+              onClick={() => {
+                router.push("/cart");
+                toast.dismiss(t.id);
+              }}
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              View Cart
+            </button>
+          </div>
+        ),
+        { duration: 4000 },
+      );
+    } else {
+      toast.success(toastMessage);
+    }
 
     trackAddToCart({
       item_id: String(variantId),
@@ -848,9 +842,7 @@ export default function ProductDetailsPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-muted-foreground">
-                    
-                    </p>
+                    <p className="text-muted-foreground"></p>
                   )}
                 </div>
               )}
@@ -918,37 +910,6 @@ export default function ProductDetailsPage() {
         </section>
       )}
 
-      {/* Mobile Sticky Add to Cart */}
-      {/* <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 lg:hidden z-50">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-lg font-medium">
-              ৳{(currentPrice * quantity).toLocaleString()}
-            </p>
-          </div>
-          <button
-            onClick={handleAddToCart}
-            disabled={
-              isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0
-            }
-            className="flex-1 btn-primary-fashion h-12 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {quantity <= 0
-              ? "Select Quantity"
-              : isOutOfStock
-                ? "Out of Stock"
-                : isStockExceeded
-                  ? "Max Stock Reached"
-                  : isInCart
-                    ? "Added to Bag"
-                    : isAddingToCart
-                      ? "Adding..."
-                      : "Add to Bag"}
-          </button>
-        </div>
-      </div> */}
-
       <Toaster
         position="bottom-center"
         toastOptions={{
@@ -958,3 +919,4 @@ export default function ProductDetailsPage() {
     </div>
   );
 }
+
