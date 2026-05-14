@@ -44,7 +44,7 @@
     --popover-foreground: 40 20% 25%;
 
     /* Soft cream accent */
-    --primary:0 60% 35%;
+    --primary: 0 60% 35%;
     --primary-foreground: 100 100% 100%;
 
     /* Soft stone secondary */
@@ -349,7 +349,8 @@
 }
 
 .bg-luxury-cream-black {
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at top left,
       rgba(200, 180, 160, 0.4),
       transparent 45%
@@ -365,7 +366,8 @@
     rgba(255, 255, 255, 0.06),
     rgba(255, 255, 255, 0.01)
   );
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45),
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -380,4 +382,77 @@
 }
 .animate-subtle-zoom {
   animation: subtle-zoom 20s ease-in-out infinite;
+}
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Smooth image loading transition */
+.product-image-enter {
+  opacity: 0;
+  transform: scale(1.05);
+}
+
+.product-image-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.7s ease-out;
+}
+
+/* Custom scrollbar for color swatches if needed */
+.color-swatches::-webkit-scrollbar {
+  height: 2px;
+}
+
+.color-swatches::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.color-swatches::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Backdrop blur support */
+@supports not (backdrop-filter: blur(12px)) {
+  .backdrop-blur-md {
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  .backdrop-blur-sm {
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    animation: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
