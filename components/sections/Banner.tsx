@@ -157,7 +157,7 @@ const Banner = () => {
             >
               <Link
                 href="/products"
-                className="group relative px-8 py-4 bg-white text-black text-sm font-medium tracking-wider overflow-hidden rounded-none hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-500"
+                className="group relative px-8 py-4 bg-white text-black text-sm font-medium tracking-wider overflow-hidden hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-500 rounded-xl"
               >
                 <span className="relative z-10 flex items-center gap-3">
                   EXPLORE COLLECTION

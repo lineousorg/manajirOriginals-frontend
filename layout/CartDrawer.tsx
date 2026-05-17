@@ -54,7 +54,7 @@ export const CartDrawer = () => {
 
             if (accessToken) {
               await stockReservationService.releaseReservation(
-                item.reservationId
+                item.reservationId,
               );
             } else {
               const guestToken = getGuestToken();
@@ -62,7 +62,7 @@ export const CartDrawer = () => {
                 await removeFromCart(item.reservationId);
               } else {
                 await stockReservationService.releaseReservation(
-                  item.reservationId
+                  item.reservationId,
                 );
               }
             }
@@ -78,7 +78,7 @@ export const CartDrawer = () => {
             ) {
               console.log(
                 "Reservation already expired on backend, removing from cart:",
-                item.reservationId
+                item.reservationId,
               );
             } else {
               console.error("Failed to release expired reservation:", error);
@@ -91,7 +91,7 @@ export const CartDrawer = () => {
 
     if (hasExpiredItems) {
       toast.error(
-        "Some items in your cart have expired and were removed. Please add them again."
+        "Some items in your cart have expired and were removed. Please add them again.",
       );
     }
   };
@@ -123,7 +123,7 @@ export const CartDrawer = () => {
 
       try {
         const result = await stockReservationService.getAvailableStock(
-          Number(item.variantId)
+          Number(item.variantId),
         );
         if (result.success && result.data) {
           newStockMap[item.variantId] = result.data.availableStock;
@@ -151,7 +151,7 @@ export const CartDrawer = () => {
         console.error(
           "Failed to check stock for item:",
           item.productName,
-          error
+          error,
         );
       }
     }
@@ -163,7 +163,7 @@ export const CartDrawer = () => {
         removeItem(item.productId, item.size, item.color);
       });
       toast.error(
-        `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`
+        `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`,
       );
     }
   };
@@ -239,105 +239,107 @@ export const CartDrawer = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeCart}
-              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
             />
 
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-9999 shadow-2xl flex flex-col"
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="fixed right-0 top-0 h-full w-full max-w-sm bg-background z-[9999] shadow-2xl flex flex-col"
             >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/40 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <ShoppingBag
-                      className="w-5 h-5 text-primary"
+                      className="w-4 h-4 text-primary"
                       strokeWidth={2}
                     />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-serif text-xl font-medium">
-                      Shopping Bag
-                    </h2>
-                    <span className="text-xs text-muted-foreground">
-                      ({items?.length} {items?.length === 1 ? "item" : "items"})
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-serif text-lg font-medium">Your Bag</h2>
+                    <span className="text-[11px] text-muted-foreground">
+                      ({items?.length})
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={closeCart}
-                  className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
                   aria-label="Close cart"
                 >
-                  <X size={18} strokeWidth={2} />
+                  <X size={16} strokeWidth={2} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6 py-6">
+              {/* Items List */}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
                 {items.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center">
+                  <div className="h-full flex flex-col items-center justify-center text-center px-4">
                     <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
+                      initial={{ scale: 0.85, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="w-24 h-24 rounded-full bg-muted/50 flex items-center justify-center mb-6"
+                      transition={{ type: "spring", stiffness: 200 }}
+                      className="w-20 h-20 rounded-full bg-muted/40 flex items-center justify-center mb-5"
                     >
                       <ShoppingBag
-                        size={40}
-                        className="text-muted-foreground/60"
+                        size={32}
+                        className="text-muted-foreground/50"
                         strokeWidth={1.5}
                       />
                     </motion.div>
-                    <h3 className="font-serif text-xl mb-2">
+                    <h3 className="font-serif text-lg mb-1.5">
                       Your bag is empty
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">
+                    <p className="text-sm text-muted-foreground mb-6 max-w-[220px]">
                       Discover our latest collection and add something beautiful
-                      to your bag
                     </p>
                     <button
                       onClick={closeCart}
-                      className="btn-primary-fashion rounded-full px-8"
+                      className="btn-primary-fashion rounded-full px-7 py-2.5 text-sm"
                     >
                       Start Shopping
                     </button>
                   </div>
                 ) : (
-                  <ul className="space-y-5">
+                  <ul className="space-y-3">
                     {items.map((item, index) => (
                       <motion.li
                         key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        exit={{ opacity: 0, x: -100 }}
-                        className="flex gap-4 group"
+                        transition={{ delay: index * 0.04, duration: 0.3 }}
+                        exit={{ opacity: 0, x: -80 }}
+                        className="flex gap-3 group"
                       >
-                        <div className="w-16 md:w-20 md:h-24 lg:w-24 lg:h-32 relative rounded-xl overflow-hidden bg-muted shrink-0 ring-1 ring-border/50 group-hover:ring-border transition-all">
+                        {/* Product Image */}
+                        <div className="w-16 h-20 relative rounded-lg overflow-hidden bg-muted shrink-0 ring-1 ring-border/40">
                           <Image
                             src={item.productImage}
                             alt={item.productName}
                             fill
-                            sizes="96px"
+                            sizes="64px"
                             className="object-cover"
                           />
                         </div>
 
-                        <div className="flex-1 flex flex-col min-w-0 py-1">
-                          <div className="flex justify-between items-start gap-3">
+                        {/* Product Details */}
+                        <div className="flex-1 flex flex-col min-w-0 py-0.5">
+                          <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0 flex-1">
-                              <h4 className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors text-left">
+                              <h4 className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors text-left">
                                 {item.productName}
                               </h4>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="text-xs px-2 py-0.5 bg-muted rounded-md text-muted-foreground">
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
                                   {item.selectedSize}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-[11px] text-muted-foreground">
                                   ·
                                 </span>
-                                <span className="text-xs text-muted-foreground capitalize">
+                                <span className="text-[11px] text-muted-foreground capitalize">
                                   {item.selectedColor}
                                 </span>
                               </div>
@@ -347,39 +349,36 @@ export const CartDrawer = () => {
                                 removeItem(
                                   item.productId,
                                   item.selectedSize,
-                                  item.selectedColor
+                                  item.selectedColor,
                                 );
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-2 -mt-2"
+                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-1 -mt-1 shrink-0"
                               aria-label="Remove item"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
 
-                          <div className="mt-auto flex items-center justify-between gap-3">
+                          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                             {item.reservationId && item.expiresAt && (
-                              <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                                <Clock size={12} />
+                              <div className="flex items-center gap-1 text-[11px] text-orange-600 dark:text-orange-400">
+                                <Clock size={11} />
                                 <span className="tabular-nums">
                                   {getTimeRemaining(item.expiresAt)}
                                 </span>
                               </div>
                             )}
 
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">
-                                Qty:
-                              </span>
-                              <span className="text-sm font-medium tabular-nums">
-                                {item.quantity}
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              <span className="text-xs text-muted-foreground">
+                                ×{item.quantity}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                               {item.hasDiscount && item.finalPrice ? (
                                 <>
-                                  <span className="text-sm text-muted-foreground line-through decoration-2">
+                                  <span className="text-xs text-muted-foreground line-through decoration-2">
                                     ৳
                                     {(
                                       item.productPrice * item.quantity
@@ -409,34 +408,34 @@ export const CartDrawer = () => {
                 )}
               </div>
 
+              {/* Footer */}
               {items.length > 0 && (
-                <div className="border-t border-border/50 bg-muted/20 px-6 py-6 space-y-5">
+                <div className="border-t border-border/40 bg-muted/10 px-4 py-4 space-y-3 shrink-0">
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm text-muted-foreground">
                       Subtotal
                     </span>
-                    <span className="text-2xl font-semibold tracking-tight">
+                    <span className="text-xl font-semibold tracking-tight">
                       ৳{getTotal().toLocaleString()}
                     </span>
                   </div>
 
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-                    <button
-                      onClick={closeCart}
-                      className="text-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-3/4 hover:border-2 hover:border-muted-foreground rounded-lg"
-                    >
-                      Continue Shopping
-                    </button>
-
+                  <div className="flex flex-col gap-2">
                     <button
                       onClick={handleCheckout}
-                      className="w-4/5 btn-primary-fashion rounded-lg py-3.5 text-sm font-medium cursor-pointer"
+                      className="w-full btn-primary-fashion rounded-xl py-3 text-sm font-medium cursor-pointer"
                     >
                       Checkout
                     </button>
+                    <button
+                      onClick={closeCart}
+                      className="w-full text-center py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-xl hover:bg-muted/50"
+                    >
+                      Continue Shopping
+                    </button>
                   </div>
 
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-[11px] text-muted-foreground text-center">
                     Shipping & taxes calculated at checkout
                   </p>
                 </div>
@@ -445,7 +444,6 @@ export const CartDrawer = () => {
           </>
         )}
       </AnimatePresence>
-
       <Toaster
         position="bottom-center"
         toastOptions={{

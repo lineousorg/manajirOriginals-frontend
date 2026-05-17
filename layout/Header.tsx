@@ -11,6 +11,8 @@ import {
   ShoppingBag,
   User,
   ArrowRight,
+  ArrowUpRight,
+  ChevronDown,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCartStore } from "@/store/cart.store";
@@ -32,7 +34,12 @@ export const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const pathname = usePathname();
-  const { items: cartItems, getItemCount, isHydrated, setHydrated } = useCartStore();
+  const {
+    items: cartItems,
+    getItemCount,
+    isHydrated,
+    setHydrated,
+  } = useCartStore();
   const cartItemCount = getItemCount();
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
@@ -41,6 +48,7 @@ export const Header = () => {
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Timer to clear guest data from localStorage after 10 minutes
   useEffect(() => {
@@ -101,8 +109,8 @@ export const Header = () => {
           backgroundColor: isScrolled
             ? "#631515"
             : pathname === "/"
-            ? "rgba(10, 10, 10, 0)"
-            : "#631515",
+              ? "rgba(10, 10, 10, 0)"
+              : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${
@@ -601,63 +609,108 @@ export const Header = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-9999 lg:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
             />
             <motion.div
-              initial={{ x: "-100%" }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
+              exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 w-[80%] max-w-sm bg-[#0a0a0a] border-r border-white/10 z-9999 lg:hidden overflow-y-auto"
+              className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-50 lg:hidden overflow-y-auto flex flex-col"
             >
-              <div className="p-6 pt-12">
-                <nav className="space-y-1">
-                  {navLinks.map((link, index) => (
-                    <motion.div
-                      key={link.href + link.label}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+              {/* Header */}
+              <div className="flex items-center justify-end p-6">
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-black hover:text-white hover:border-white/20 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 px-8 pb-8">
+                {navLinks.map((link, index) => (
+                  <motion.div
+                    key={link.href + link.label}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                  >
+                    <Link
+                      href={link.href}
+                      onClick={() =>
+                        !link.hasDropdown && setIsMobileMenuOpen(false)
+                      }
+                      className="group flex items-center justify-between py-5 font-light text-black hover:text-black transition-colors border-b border-black/6"
                     >
-                      <Link
-                        href={link.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center justify-between py-4 text-lg font-light text-white/80 hover:text-white border-b border-white/5 transition-colors"
-                      >
-                        <span className="tracking-wider">{link.label}</span>
-                        {link.hasDropdown && (
-                          <ChevronRight size={16} className="text-white/40" />
-                        )}
-                      </Link>
-                      {link.hasDropdown && (
-                        <div className="pl-4 py-2 space-y-2">
-                          {categories.map((cat, idx) => (
-                            <motion.div
-                              key={cat.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.3 + idx * 0.05 }}
-                            >
-                              <Link
-                                href={"/products/category/" + cat.slug}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="block py-2 text-sm text-white/50 hover:text-white/80 transition-colors"
-                              >
-                                {cat.name}
-                              </Link>
-                            </motion.div>
-                          ))}
-                        </div>
+                      <span className="tracking-wide font-medium">{link.label}</span>
+                      {link.hasDropdown ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDropdownOpen(!dropdownOpen);
+                          }}
+                          className="p-2 -mr-2 text-black/50 hover:text-black/60 transition-colors"
+                        >
+                          <ChevronDown
+                            size={20}
+                            className={`transition-transform duration-300 ${dropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                      ) : (
+                        <ArrowUpRight
+                          size={18}
+                          className="text-black/50 group-hover:text-black/60 transition-colors"
+                        />
                       )}
-                    </motion.div>
-                  ))}
-                </nav>
-                {/* <div className="mt-12 pt-8 border-t border-white/10">
-                  <div className="flex items-center gap-4 text-white/40">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center"><span className="text-xs">EN</span></div>
-                    <span className="text-xs tracking-wider">USD ($)</span>
-                  </div>
-                </div> */}
+                    </Link>
+
+                    {/* Dropdown */}
+                    <AnimatePresence>
+                      {link.hasDropdown && dropdownOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="py-4 space-y-1">
+                            {categories.map((cat, idx) => (
+                              <motion.div
+                                key={cat.id}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                              >
+                                <Link
+                                  href={`/products/category/${cat.slug}`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="flex items-center justify-between py-3 px-4 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/[0.03] transition-all"
+                                >
+                                  <span>{cat.name}</span>
+                                  <ArrowUpRight
+                                    size={14}
+                                    className="opacity-0 group-hover:opacity-100"
+                                  />
+                                </Link>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                ))}
+              </nav>
+
+              {/* Footer */}
+              <div className="px-8 py-6 border-t border-white/[0.06]">
+                <p className="text-xs text-white/20 tracking-wider uppercase">
+                  © 2026
+                </p>
               </div>
             </motion.div>
           </>

@@ -255,10 +255,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               initial="initial"
               animate="animate"
               className="inline-flex items-center gap-1 px-3 py-1.5 
-                         bg-red-900/70 text-white text-[11px] font-bold tracking-wide uppercase
-                         rounded-lg shadow-lg shadow-rose-500/25"
+                         bg-white text-black text-[11px] font-bold tracking-wide uppercase
+                         rounded-lg"
             >
-              <Sparkles size={12} className="fill-white" />
+              {/* <Sparkles size={12} className="fill-white" /> */}
               {discountPercentage}% OFF
             </motion.div>
           )}
@@ -344,22 +344,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           animate={isHovered ? "hover" : "rest"}
         >
           <div className="flex gap-2">
-            {/* Quick View Button */}
-            {/* <button
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/products/${product.id}`);
-              }}
-              className="flex-1 flex items-center justify-center gap-2 
-                         bg-white/95 backdrop-blur-sm text-neutral-800 
-                         px-4 py-3 rounded-xl text-sm font-medium
-                         hover:bg-white transition-colors duration-200
-                         shadow-lg shadow-black/10"
-            >
-              <Eye size={16} />
-              Quick View
-            </button> */}
-
             {/* Add to Cart / Shop Now Button */}
             {!isOutOfStock ? (
               <button
