@@ -436,7 +436,7 @@ export const Header = () => {
             {/* Right: Actions */}
             <div className="flex items-center justify-end gap-2">
               {/* Search */}
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -444,7 +444,7 @@ export const Header = () => {
                 aria-label="Search"
               >
                 <Search size={18} />
-              </motion.button>
+              </motion.button> */}
 
               {/* Wishlist */}
               <motion.div
@@ -644,7 +644,9 @@ export const Header = () => {
                       }
                       className="group flex items-center justify-between py-5 font-light text-black hover:text-black transition-colors border-b border-black/6"
                     >
-                      <span className="tracking-wide font-medium">{link.label}</span>
+                      <span className="tracking-wide font-medium">
+                        {link.label}
+                      </span>
                       {link.hasDropdown ? (
                         <button
                           onClick={(e) => {
