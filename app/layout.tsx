@@ -33,53 +33,63 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-
-          {/* ✅ DataLayer INIT (must come first) */}
-      <Script id="dataLayer-init" strategy="beforeInteractive">
-        {`
+        {/* ✅ DataLayer INIT (must come first) */}
+        <Script id="dataLayer-init" strategy="beforeInteractive">
+          {`
           window.dataLayer = window.dataLayer || [];
           window.dataLayer.push({
             event: 'page_init'
           });
         `}
-      </Script>
+        </Script>
 
-      <Script id="gtm" strategy="beforeInteractive">
-        {`
+        <Script id="gtm" strategy="beforeInteractive">
+          {`
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
           new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
           j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
           })(window,document,'script','dataLayer','GTM-MLG8FP2F');
         `}
-      </Script>
+        </Script>
 
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-6V4F4E03SJ"
+          strategy="afterInteractive"
+        />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-6V4F4E03SJ');
+        `}
+        </Script>
       </head>
       <body className={`${inter.variable} ${cormorant.variable}`}>
-
-         
-            {/* Google Tag Manager (noscript) */}
-      <noscript>
-        <iframe
-          src="https://www.googletagmanager.com/ns.html?id=GTM-MLG8FP2F"
-          height="0"
-          width="0"
-          style={{ display: "none", visibility: "hidden" }}
-        />
-      </noscript>
-          <div className="glass-overlay text-center">
-            <Providers>
-              <GTMPageTracker />
-              {/* <Toaster /> */}
-              <Sonner />
-              <Header />
-              <CartDrawer />
-              <FloatingCartButton />
-              <ScrollToTop />
-              {children}
-              <Footer />
-            </Providers>
-          </div>
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-MLG8FP2F"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+        <div className="glass-overlay text-center">
+          <Providers>
+            <GTMPageTracker />
+            {/* <Toaster /> */}
+            <Sonner />
+            <Header />
+            <CartDrawer />
+            <FloatingCartButton />
+            <ScrollToTop />
+            {children}
+            <Footer />
+          </Providers>
+        </div>
       </body>
     </html>
   );
