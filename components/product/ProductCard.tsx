@@ -167,8 +167,8 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       ? discountValue
       : hasDiscount && minPrice > 0
         ? Math.round(
-            ((minPrice - (minFinalPrice || minPrice)) / minPrice) * 100,
-          )
+          ((minPrice - (minFinalPrice || minPrice)) / minPrice) * 100,
+        )
         : 0;
 
   return (
@@ -233,6 +233,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               opacity: imageLoaded ? 1 : 0,
               transition: "opacity 0.4s ease",
             }}
+            unoptimized
           />
         </motion.div>
 
@@ -479,11 +480,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               className={`rounded-xl transition-all duration-300 cursor-pointer
-                       ${
-                         inWishlist
-                           ? "bg-rose-500 text-white shadow-rose-500/30"
-                           : "bg-white/80 text-neutral-400 hover:bg-white hover:text-rose-500 shadow-black/5"
-                       }`}
+                       ${inWishlist
+                  ? "bg-rose-500 text-white shadow-rose-500/30"
+                  : "bg-white/80 text-neutral-400 hover:bg-white hover:text-rose-500 shadow-black/5"
+                }`}
             >
               <Heart
                 size={18}

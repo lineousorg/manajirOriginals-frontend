@@ -67,10 +67,10 @@ export default function Home() {
       {categories.length > 0 && (
         <section
           className="py-20 bg-white rounded-t-[30px] -mt-7 relative z-999"
-          // style={{
-          //   backgroundImage: "./section-bg.png",
-          //   backgroundSize: "cover",
-          // }}
+        // style={{
+        //   backgroundImage: "./section-bg.png",
+        //   backgroundSize: "cover",
+        // }}
         >
           <div className="container-fashion">
             <motion.div
@@ -105,6 +105,7 @@ export default function Home() {
                           fill
                           sizes="(max-width: 768px) 100vw, 33vw"
                           className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          unoptimized
                         />
                       </div>
                     ) : (

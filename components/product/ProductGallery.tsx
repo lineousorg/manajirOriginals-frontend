@@ -73,7 +73,7 @@ export const ProductGallery = ({
 
   // Calculate background position for zoom effect
   const bgPosition = `${mousePosition.x}% ${mousePosition.y}%`;
-  
+
   console.log(images);
 
   return (
@@ -114,9 +114,8 @@ export const ProductGallery = ({
               alt={`${productName} - ${images[currentIndex].altText}`}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
-              className={`object-cover object-top transition-all duration-200 ${
-                isHovering ? "opacity-0" : "opacity-100"
-              } cursor-zoom-in`}
+              className={`object-cover object-top transition-all duration-200 ${isHovering ? "opacity-0" : "opacity-100"
+                } cursor-zoom-in`}
               onClick={handleImageClick}
               priority={currentIndex === 0}
               unoptimized
@@ -156,11 +155,10 @@ export const ProductGallery = ({
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex
+                className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
                     ? "bg-foreground w-6"
                     : "bg-foreground/40 hover:bg-foreground/60"
-                }`}
+                  }`}
                 aria-label={`Go to image ${index + 1}`}
               />
             ))}
@@ -174,11 +172,10 @@ export const ProductGallery = ({
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-square rounded-md transition-all ${
-              index === currentIndex
+            className={`aspect-square rounded-md transition-all ${index === currentIndex
                 ? "ring-2 ring-foreground"
                 : "opacity-60 hover:opacity-100"
-            }`}
+              }`}
           >
             <Image
               src={images[index].url}
@@ -187,6 +184,7 @@ export const ProductGallery = ({
               height={250}
               sizes="(max-width: 768px) 20vw, 10vw"
               className="object-cover"
+              unoptimized
             />
           </button>
         ))}

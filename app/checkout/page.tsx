@@ -262,8 +262,8 @@ const CheckoutPageContent = () => {
       // Show error toast and stay on payment page
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to create order. Please try again."
+        err?.message ||
+        "Failed to create order. Please try again."
       );
     }
   };
@@ -385,11 +385,10 @@ const CheckoutPageContent = () => {
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         placeholder="Enter your full name"
-                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                          showError("fullName")
+                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("fullName")
                             ? "border-red-500/70"
                             : "border-border"
-                        }`}
+                          }`}
                       />
                       {showError("fullName") && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -422,11 +421,10 @@ const CheckoutPageContent = () => {
                         onBlur={handleBlur}
                         placeholder="01XXXXXXXXX"
                         maxLength={11}
-                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                          showError("phone")
+                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("phone")
                             ? "border-red-500/70"
                             : "border-border"
-                        }`}
+                          }`}
                       />
                       {showError("phone") && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -457,11 +455,10 @@ const CheckoutPageContent = () => {
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         placeholder="Enter your full address"
-                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                          showError("address")
+                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("address")
                             ? "border-red-500/70"
                             : "border-border"
-                        }`}
+                          }`}
                       />
                       {showError("address") && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -492,11 +489,10 @@ const CheckoutPageContent = () => {
                         onChange={handleInputChange}
                         onBlur={handleBlur}
                         placeholder="Enter city"
-                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                          showError("city")
+                        className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("city")
                             ? "border-red-500/70"
                             : "border-border"
-                        }`}
+                          }`}
                       />
                     </div>
                   </div>
@@ -541,18 +537,16 @@ const CheckoutPageContent = () => {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod("CASH_ON_DELIVERY")}
-                      className={`relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                        paymentMethod === "CASH_ON_DELIVERY"
+                      className={`relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left ${paymentMethod === "CASH_ON_DELIVERY"
                           ? "border-primary bg-primary/5 shadow-md"
                           : "border-border hover:border-primary/30 hover:bg-muted/30"
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          paymentMethod === "CASH_ON_DELIVERY"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${paymentMethod === "CASH_ON_DELIVERY"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground"
-                        }`}
+                          }`}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -573,11 +567,10 @@ const CheckoutPageContent = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p
-                            className={`font-semibold ${
-                              paymentMethod === "CASH_ON_DELIVERY"
+                            className={`font-semibold ${paymentMethod === "CASH_ON_DELIVERY"
                                 ? "text-primary"
                                 : "text-foreground"
-                            }`}
+                              }`}
                           >
                             Cash on Delivery
                           </p>
@@ -591,11 +584,10 @@ const CheckoutPageContent = () => {
                       </div>
 
                       <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          paymentMethod === "CASH_ON_DELIVERY"
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${paymentMethod === "CASH_ON_DELIVERY"
                             ? "border-primary bg-primary"
                             : "border-muted-foreground/30"
-                        }`}
+                          }`}
                       >
                         {paymentMethod === "CASH_ON_DELIVERY" && (
                           <CheckCircle
@@ -755,9 +747,8 @@ const CheckoutPageContent = () => {
                         </div>
                       </div>
                       <div
-                        className={`transition-transform duration-200 ${
-                          isSummaryOpen ? "rotate-180" : ""
-                        }`}
+                        className={`transition-transform duration-200 ${isSummaryOpen ? "rotate-180" : ""
+                          }`}
                       >
                         <ChevronDown
                           size={20}
@@ -842,6 +833,7 @@ const OrderSummaryPanel = ({
               fill
               sizes="80px"
               className="object-cover rounded-lg"
+              unoptimized
             />
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center shadow-md">
               {item.quantity}
@@ -860,8 +852,8 @@ const OrderSummaryPanel = ({
             </div>
             <div className="flex items-center justify-end gap-2">
               {item.hasDiscount &&
-              item.finalPrice &&
-              item.productPrice > item.finalPrice ? (
+                item.finalPrice &&
+                item.productPrice > item.finalPrice ? (
                 <>
                   <span className="text-xs text-muted-foreground line-through">
                     ৳{(item.productPrice * item.quantity).toLocaleString()}
@@ -885,11 +877,10 @@ const OrderSummaryPanel = ({
       <h4 className="text-sm font-medium mb-3">Delivery Option</h4>
 
       <label
-        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-          deliveryLocation === "inside_dhaka"
+        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${deliveryLocation === "inside_dhaka"
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/30 bg-background"
-        }`}
+          }`}
       >
         <div className="flex items-center gap-3 text-left">
           <input
@@ -912,11 +903,10 @@ const OrderSummaryPanel = ({
       </label>
 
       <label
-        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-          deliveryLocation === "outside_dhaka"
+        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${deliveryLocation === "outside_dhaka"
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/30 bg-background"
-        }`}
+          }`}
       >
         <div className="flex items-center gap-3 text-left">
           <input
