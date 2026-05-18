@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { ProductVariant } from "@/types";
 import {
-  getVariantAttribute,
   findVariantBySizeColor,
   getColorsForSize,
   getStockForSize,
@@ -58,26 +57,58 @@ export const useVariantSelection = ({
 
   // Initialize defaults when product loads
   useEffect(() => {
-    if (sizes.length > 0 && !selectedSize) {
-      setSelectedSize(sizes[0]);
-      
-      // Get all colors for the initial size
-      const initialColors = getColorsForSize(variants, sizes[0]);
-      if (initialColors.length > 0) {
-        setSelectedColor(initialColors[0]);
+    if (sizes.length === 0) {
+      if (selectedSize) {
+        setSelectedSize("");
       }
+      if (selectedColor) {
+        setSelectedColor("");
+      }
+      return;
+    }
+
+    const selectedSizeExists = selectedSize
+      ? sizes.includes(selectedSize)
+      : false;
+    const selectedSizeHasStock = selectedSizeExists
+      ? getStockForSize(variants, selectedSize) > 0
+      : false;
+
+    if (selectedSizeHasStock) {
+      return;
+    }
+
+    const firstAvailableSize =
+      sizes.find((size) => getStockForSize(variants, size) > 0) ?? "";
+
+    if (selectedSize !== firstAvailableSize) {
+      setSelectedSize(firstAvailableSize);
+    }
+
+    const initialColors = firstAvailableSize
+      ? getColorsForSize(variants, firstAvailableSize)
+      : [];
+    const nextColor = initialColors[0] ?? "";
+
+    if (selectedColor !== nextColor) {
+      setSelectedColor(nextColor);
     }
   }, [sizes, variants, selectedSize]);
 
   // Update color when size changes
   useEffect(() => {
-    if (selectedSize && availableColorsForSelectedSize.length > 0) {
-      if (
-        !selectedColor ||
-        !availableColorsForSelectedSize.includes(selectedColor)
-      ) {
-        setSelectedColor(availableColorsForSelectedSize[0]);
+    if (!selectedSize || availableColorsForSelectedSize.length === 0) {
+      if (selectedColor) {
+        setSelectedColor("");
       }
+      return;
+    }
+
+    if (
+      !selectedColor ||
+      !availableColorsForSelectedSize.includes(selectedColor)
+    ) {
+      setSelectedColor(availableColorsForSelectedSize[0]);
     }
   }, [selectedSize, availableColorsForSelectedSize, selectedColor]);
 

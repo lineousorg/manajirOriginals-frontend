@@ -7,7 +7,6 @@ import {
   getGuestToken,
   addToCart,
   removeFromCart,
-  clearGuestToken,
 } from "@/lib/cart";
 
 // Minimal cart item interface to reduce localStorage size
@@ -21,7 +20,6 @@ interface MinimalCartItem {
   variantId?: number | string;
   variantStock?: number;
   reservationId?: number;
-  reservationIds?: number[];
   expiresAt?: string;
   quantity: number;
   selectedSize: string;
@@ -46,7 +44,7 @@ interface CartState {
     size: string,
     color: string,
     skipRelease?: boolean,
-  ) => Promise<void>;
+  ) => Promise<{ success: boolean; message?: string }>;
   updateQuantity: (
     productId: string | number,
     size: string,
@@ -54,6 +52,7 @@ interface CartState {
     quantity: number,
   ) => { success: boolean; message?: string };
   clearCart: () => Promise<void>;
+  resetCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -99,6 +98,63 @@ export const useCartStore = create<CartState>()(
         expiresAt,
       ): Promise<{ success: boolean; isExisting: boolean }> => {
         return new Promise(async (resolve) => {
+          const reserveVariantStock = async (
+            variantId: number,
+            reserveQuantity: number,
+          ) => {
+            const accessToken =
+              typeof window !== "undefined"
+                ? localStorage.getItem("accessToken")
+                : null;
+
+            if (accessToken) {
+              return stockReservationService.reserveStock(
+                variantId,
+                reserveQuantity,
+                15,
+              );
+            }
+
+            const guestToken = getGuestToken();
+            if (!guestToken) {
+              throw new Error("Guest token not initialized");
+            }
+
+            const result = await addToCart(variantId, reserveQuantity);
+            if (result?.data) {
+              return {
+                success: true,
+                data: result.data,
+              };
+            }
+
+            return {
+              success: false,
+              error: "Failed to add to cart for guest user",
+            };
+          };
+
+          const releaseReservationById = async (reservationId: number) => {
+            const accessToken =
+              typeof window !== "undefined"
+                ? localStorage.getItem("accessToken")
+                : null;
+
+            if (accessToken) {
+              return stockReservationService.releaseReservation(reservationId);
+            }
+
+            const guestToken = getGuestToken();
+            if (!guestToken) {
+              throw new Error("Guest token not initialized");
+            }
+
+            const result = await removeFromCart(reservationId);
+            return result?.data?.success === false
+              ? { success: false, error: "Failed to release reservation" }
+              : { success: true };
+          };
+
           const hasVariants = (product.variants?.length ?? 0) > 0;
           const hasSizes = (product.sizes?.length ?? 0) > 0;
           const hasColorsDefined = (product.colors?.length ?? 0) > 0;
@@ -198,76 +254,114 @@ export const useCartStore = create<CartState>()(
             isExisting = true;
             const newItems = [...items];
             const existingItem = newItems[existingIndex];
+            const currentQuantity = existingItem.quantity;
             const nextQuantity = existingItem.quantity + quantity;
+            const maxCartQuantity = currentQuantity + availableVariantStock;
 
             if (availableVariantStock > 0 && quantity > availableVariantStock) {
               console.error(
                 "Requested additional quantity exceeds available stock:",
                 quantity,
                 "available:",
-                availableVariantStock
+                availableVariantStock,
               );
               resolve({ success: false, isExisting: false });
               return;
             }
 
             try {
-              const accessToken =
-                typeof window !== "undefined"
-                  ? localStorage.getItem("accessToken")
-                  : null;
-
-              let additionalReservationId: number | undefined;
-              let additionalExpiresAt: string | undefined;
-              let remainingAvailableStock = availableVariantStock;
-
-              if (accessToken) {
-                const result = await stockReservationService.reserveStock(
-                  selectedVariant?.id ?? 0,
-                  quantity,
-                  15,
-                );
-                if (result.success && result.data) {
-                  additionalReservationId = result.data.reservationId;
-                  additionalExpiresAt = result.data.expiresAt;
-                  remainingAvailableStock = result.data.availableStock;
-                } else {
-                  console.error("Stock reservation failed:", result.error);
-                  resolve({ success: false, isExisting: false });
-                  return;
-                }
-              } else {
-                const guestToken = getGuestToken();
-                if (!guestToken) {
-                  throw new Error("Guest token not initialized");
-                }
-                const result = await addToCart(selectedVariant?.id ?? 0, quantity);
-                if (result && result.data) {
-                  additionalReservationId = result.data.reservationId;
-                  additionalExpiresAt = result.data.expiresAt;
-                  remainingAvailableStock = result.data.availableStock;
-                } else {
-                  console.error("Failed to add to cart for guest user");
-                  resolve({ success: false, isExisting: false });
-                  return;
-                }
-              }
-
-              if (!additionalReservationId) {
-                console.error("No reservation ID available for additional quantity");
+              const existingReservationId = existingItem.reservationId;
+              if (!existingReservationId) {
+                console.error("No existing reservation ID available");
                 resolve({ success: false, isExisting: false });
                 return;
               }
 
+              let replacementResult;
+
+              if (nextQuantity <= availableVariantStock) {
+                replacementResult = await reserveVariantStock(
+                  selectedVariant?.id ?? 0,
+                  nextQuantity,
+                );
+                if (!replacementResult.success || !replacementResult.data) {
+                  console.error(
+                    "Stock reservation failed:",
+                    replacementResult.error,
+                  );
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+
+                const releaseResult =
+                  await releaseReservationById(existingReservationId);
+                if (!releaseResult.success) {
+                  if (replacementResult.data?.reservationId) {
+                    try {
+                      await releaseReservationById(
+                        replacementResult.data.reservationId,
+                      );
+                    } catch (rollbackError) {
+                      console.error(
+                        "Failed to rollback replacement reservation:",
+                        rollbackError,
+                      );
+                    }
+                  }
+                  console.error(
+                    "Failed to release previous reservation:",
+                    releaseResult.error,
+                  );
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              } else {
+                const releaseResult =
+                  await releaseReservationById(existingReservationId);
+                if (!releaseResult.success) {
+                  console.error(
+                    "Failed to release previous reservation:",
+                    releaseResult.error,
+                  );
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+
+                replacementResult = await reserveVariantStock(
+                  selectedVariant?.id ?? 0,
+                  nextQuantity,
+                );
+                if (!replacementResult.success || !replacementResult.data) {
+                  const restoreResult = await reserveVariantStock(
+                    selectedVariant?.id ?? 0,
+                    currentQuantity,
+                  );
+                  if (restoreResult.success && restoreResult.data) {
+                    existingItem.reservationId = restoreResult.data.reservationId;
+                    existingItem.expiresAt =
+                      restoreResult.data.expiresAt ?? existingItem.expiresAt;
+                  } else {
+                    newItems.splice(existingIndex, 1);
+                    set({
+                      items: newItems,
+                      isOpen: true,
+                      lastCartChange: Date.now(),
+                    });
+                  }
+                  console.error(
+                    "Stock reservation failed after replacing reservation:",
+                    replacementResult.error,
+                  );
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              }
+
               existingItem.quantity = nextQuantity;
-              existingItem.variantStock = nextQuantity + remainingAvailableStock;
-              existingItem.reservationIds = [
-                ...(existingItem.reservationIds ?? []),
-                ...(existingItem.reservationId ? [existingItem.reservationId] : []),
-              ].filter((value, index, arr) => arr.indexOf(value) === index);
-              existingItem.reservationIds.push(additionalReservationId);
-              existingItem.reservationId = existingItem.reservationIds[0];
-              existingItem.expiresAt = additionalExpiresAt ?? existingItem.expiresAt;
+              existingItem.variantStock = maxCartQuantity;
+              existingItem.reservationId = replacementResult.data.reservationId;
+              existingItem.expiresAt =
+                replacementResult.data.expiresAt ?? existingItem.expiresAt;
             } catch (error) {
               console.error("Failed to reserve stock:", error);
               resolve({ success: false, isExisting: false });
@@ -352,7 +446,6 @@ export const useCartStore = create<CartState>()(
              selectedSize: size,
              selectedColor: color,
              reservationId: newReservationId,
-             reservationIds: newReservationId ? [newReservationId] : [],
              expiresAt: newExpiresAt,
           };
 
@@ -370,7 +463,7 @@ export const useCartStore = create<CartState>()(
         size: string,
         color: string,
         skipRelease = false,
-      ): Promise<void> => {
+      ): Promise<{ success: boolean; message?: string }> => {
         return new Promise(async (resolve) => {
           const { items } = get();
           const itemToRemove = items.find(
@@ -379,15 +472,9 @@ export const useCartStore = create<CartState>()(
               item.selectedSize === size &&
               item.selectedColor === color,
           );
+          let releaseFailed = false;
 
           if (!skipRelease && itemToRemove?.reservationId) {
-            const reservationIds =
-              itemToRemove.reservationIds && itemToRemove.reservationIds.length > 0
-                ? itemToRemove.reservationIds
-                : itemToRemove.reservationId
-                  ? [itemToRemove.reservationId]
-                  : [];
-
             if (itemToRemove.expiresAt) {
               const expiresAtTime = new Date(itemToRemove.expiresAt).getTime();
               const now = Date.now();
@@ -400,29 +487,22 @@ export const useCartStore = create<CartState>()(
                       : null;
 
                   if (accessToken) {
-                    await Promise.all(
-                      reservationIds.map((reservationId) =>
-                        stockReservationService.releaseReservation(reservationId),
-                      ),
+                    await stockReservationService.releaseReservation(
+                      itemToRemove.reservationId,
                     );
                   } else {
                     const guestToken = getGuestToken();
                     if (guestToken) {
-                      await Promise.all(
-                        reservationIds.map((reservationId) =>
-                          removeFromCart(reservationId),
-                        ),
-                      );
+                      await removeFromCart(itemToRemove.reservationId);
                     } else {
-                      await Promise.all(
-                        reservationIds.map((reservationId) =>
-                          stockReservationService.releaseReservation(reservationId),
-                        ),
+                      await stockReservationService.releaseReservation(
+                        itemToRemove.reservationId,
                       );
                     }
                   }
                 } catch (error) {
                   console.error("[DEBUG] Error releasing reservation:", error);
+                  releaseFailed = true;
                 }
               }
             } else {
@@ -433,29 +513,22 @@ export const useCartStore = create<CartState>()(
                     : null;
 
                 if (accessToken) {
-                  await Promise.all(
-                    reservationIds.map((reservationId) =>
-                      stockReservationService.releaseReservation(reservationId),
-                    ),
+                  await stockReservationService.releaseReservation(
+                    itemToRemove.reservationId,
                   );
                 } else {
                   const guestToken = getGuestToken();
                   if (guestToken) {
-                    await Promise.all(
-                      reservationIds.map((reservationId) =>
-                        removeFromCart(reservationId),
-                      ),
-                    );
+                    await removeFromCart(itemToRemove.reservationId);
                   } else {
-                    await Promise.all(
-                      reservationIds.map((reservationId) =>
-                        stockReservationService.releaseReservation(reservationId),
-                      ),
+                    await stockReservationService.releaseReservation(
+                      itemToRemove.reservationId,
                     );
                   }
                 }
               } catch (error) {
                 console.error("Failed to release reservation:", error);
+                releaseFailed = true;
               }
             }
           }
@@ -471,7 +544,18 @@ export const useCartStore = create<CartState>()(
             ),
             lastCartChange: Date.now(),
           }));
-          resolve();
+          resolve(
+            releaseFailed
+              ? {
+                  success: false,
+                  message:
+                    "Item was removed from your cart, but its stock reservation could not be fully released.",
+                }
+              : {
+                  success: true,
+                  message: "Item removed from your cart.",
+                },
+          );
         });
       },
 
@@ -515,42 +599,25 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
 
         const releasePromises = items
-          .filter((item) =>
-            (item.reservationIds && item.reservationIds.length > 0) ||
-            (item.reservationId !== undefined && item.reservationId !== null),
-          )
+          .filter((item) => item.reservationId !== undefined && item.reservationId !== null)
           .map(async (item) => {
             try {
-              const reservationIds =
-                item.reservationIds && item.reservationIds.length > 0
-                  ? item.reservationIds
-                  : item.reservationId
-                    ? [item.reservationId]
-                    : [];
               const accessToken =
                 typeof window !== "undefined"
                   ? localStorage.getItem("accessToken")
                   : null;
 
               if (accessToken) {
-                await Promise.all(
-                  reservationIds.map((reservationId) =>
-                    stockReservationService.releaseReservation(reservationId),
-                  ),
+                await stockReservationService.releaseReservation(
+                  item.reservationId!,
                 );
               } else {
                 const guestToken = getGuestToken();
                 if (guestToken) {
-                  await Promise.all(
-                    reservationIds.map((reservationId) =>
-                      removeFromCart(reservationId),
-                    ),
-                  );
+                  await removeFromCart(item.reservationId!);
                 } else {
-                  await Promise.all(
-                    reservationIds.map((reservationId) =>
-                      stockReservationService.releaseReservation(reservationId),
-                    ),
+                  await stockReservationService.releaseReservation(
+                    item.reservationId!,
                   );
                 }
               }
@@ -562,6 +629,8 @@ export const useCartStore = create<CartState>()(
         await Promise.all(releasePromises);
         set({ items: [], lastCartChange: Date.now() });
       },
+
+      resetCart: () => set({ items: [], lastCartChange: Date.now() }),
 
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),

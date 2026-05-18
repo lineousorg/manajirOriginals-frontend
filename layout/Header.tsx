@@ -22,6 +22,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCategories, useCategoryProductCounts } from "@/hooks/useProduct";
 import { isInAppBrowser } from "@/lib/isInAppBrowser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -44,11 +45,20 @@ export const Header = () => {
   const wishlistItems = useWishlistStore((state) => state.items);
   const openCart = useCartStore((state) => state.openCart);
   const { user } = useAuthStore();
-  const { categories, categoryTree } = useCategories();
+  const { categories, categoryTree, loading: categoriesLoading } =
+    useCategories();
   const { getCountBySlug } = useCategoryProductCounts();
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const desktopSkeletonCount = Math.max(
+    3,
+    Math.min(6, categoryTree.length || categories.length || 4)
+  );
+  const mobileSkeletonCount = Math.max(
+    4,
+    Math.min(8, categories.length || categoryTree.length || 5)
+  );
 
   // Timer to clear guest data from localStorage after 10 minutes
   useEffect(() => {
@@ -362,7 +372,31 @@ export const Header = () => {
                               <div className="h-px flex-1 ml-4 bg-linear-to-r from-white/10 to-transparent" />
                             </div>
                             <div className="flex flex-col gap-5 ">
-                              {categoryTree.map((category, idx) => (
+                              {categoriesLoading
+                                ? Array.from({
+                                    length: desktopSkeletonCount,
+                                  }).map((_, idx) => (
+                                    <div
+                                      key={`desktop-category-skeleton-${idx}`}
+                                      className="space-y-3"
+                                    >
+                                      <Skeleton className="h-4 w-32 bg-white/10" />
+                                      <div className="space-y-2 pl-2">
+                                        {Array.from({
+                                          length: (idx % 3) + 2,
+                                        }).map((__, childIdx) => (
+                                          <Skeleton
+                                            key={`desktop-category-skeleton-${idx}-child-${childIdx}`}
+                                            className="h-3 bg-white/6"
+                                            style={{
+                                              width: `${56 + childIdx * 10}%`,
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))
+                                : categoryTree.map((category, idx) => (
                                 <motion.div
                                   key={category.id}
                                   initial={{ opacity: 0, y: 10 }}
@@ -680,26 +714,45 @@ export const Header = () => {
                           className="overflow-hidden"
                         >
                           <div className="py-4 space-y-1">
-                            {categories.map((cat, idx) => (
-                              <motion.div
-                                key={cat.id}
-                                initial={{ opacity: 0, x: 10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                              >
-                                <Link
-                                  href={`/products/category/${cat.slug}`}
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                  className="flex items-center justify-between py-3 px-4 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/[0.03] transition-all"
-                                >
-                                  <span>{cat.name}</span>
-                                  <ArrowUpRight
-                                    size={14}
-                                    className="opacity-0 group-hover:opacity-100"
-                                  />
-                                </Link>
-                              </motion.div>
-                            ))}
+                            {categoriesLoading
+                              ? Array.from({
+                                  length: mobileSkeletonCount,
+                                }).map((_, idx) => (
+                                  <div
+                                    key={`mobile-category-skeleton-${idx}`}
+                                    className="px-4 py-3"
+                                  >
+                                    <div className="flex items-center justify-between gap-4">
+                                      <Skeleton
+                                        className="h-4 bg-black/10"
+                                        style={{
+                                          width: `${44 + (idx % 4) * 12}%`,
+                                        }}
+                                      />
+                                      <Skeleton className="h-4 w-4 rounded-full bg-black/10" />
+                                    </div>
+                                  </div>
+                                ))
+                              : categories.map((cat, idx) => (
+                                  <motion.div
+                                    key={cat.id}
+                                    initial={{ opacity: 0, x: 10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                  >
+                                    <Link
+                                      href={`/products/category/${cat.slug}`}
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="flex items-center justify-between py-3 px-4 rounded-lg text-sm text-black/70 hover:text-black hover:bg-black/[0.03] transition-all"
+                                    >
+                                      <span>{cat.name}</span>
+                                      <ArrowUpRight
+                                        size={14}
+                                        className="opacity-0 group-hover:opacity-100"
+                                      />
+                                    </Link>
+                                  </motion.div>
+                                ))}
                           </div>
                         </motion.div>
                       )}

@@ -509,7 +509,7 @@ export function useCategoryProductCounts(
 // useCategories – fetch categories (with global store caching)
 // ═══════════════════════════════════════════════════════════════════
 export function useCategories() {
-  const { get, loading, error } = useApi();
+  const { get, error } = useApi();
   const [categories, setCategories] = useState<Category[]>([]);
 
   const {
@@ -577,12 +577,17 @@ export function useCategories() {
       ? activeCategories.filter((c) => c.parentId === parentId)
       : activeCategories.filter((c) => c.parentId !== null);
 
+  const isInitialCategoryLoad =
+    globalLoading &&
+    globalCategories.length === 0 &&
+    categories.length === 0;
+
   return {
     categories: activeCategories,
     categoryTree,
     getParentCategories,
     getChildCategories,
-    loading,
+    loading: isInitialCategoryLoad,
     error,
     refetch: () => {},
   };

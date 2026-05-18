@@ -32,7 +32,7 @@ import useApi from "@/hooks/useApi";
 import { getGuestToken } from "@/lib/cart";
 
 const CheckoutPageContent = () => {
-  const { items, getTotal, clearCart, closeCart, isHydrated } = useCartStore();
+  const { items, getTotal, resetCart, closeCart, isHydrated } = useCartStore();
   const { user } = useAuthStore();
   const { post, loading } = useApi();
   const isMobile = useIsMobile();
@@ -249,8 +249,8 @@ const CheckoutPageContent = () => {
         items: purchaseItems,
       });
 
-      // Clear cart and show success
-      clearCart();
+      // Clear local cart only. Reservations are already marked USED by backend.
+      resetCart();
 
       // Store phone for guest receipt download (only for guest checkout)
       if (isGuest && formData.phone) {

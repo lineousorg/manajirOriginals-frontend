@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { trackBeginCheckout, type GTMItem } from "@/lib/gtm";
 import { DELIVERY_CHARGES } from "@/lib/constants";
+import toast from "react-hot-toast";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart, isHydrated } =
@@ -165,13 +166,18 @@ const CartPage = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() =>
-                        removeItem(
+                      onClick={async () => {
+                        const result = await removeItem(
                           item.productId,
                           item.selectedSize,
                           item.selectedColor,
-                        )
-                      }
+                        );
+                        if (result.success) {
+                          toast.success(result.message || "Item removed from your cart.");
+                        } else {
+                          toast.error(result.message || "Failed to fully remove item from your cart.");
+                        }
+                      }}
                       className="p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors h-fit shrink-0 -mr-1 -mt-1"
                       aria-label="Remove item"
                     >
