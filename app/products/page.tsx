@@ -18,6 +18,7 @@ export default function ProductsPage() {
     await goToPage(page);
     setIsPaginating(false);
     setPendingPage(null);
+    window.scrollTo(0, 0)
   };
 
   // Get the current page - use pendingPage if we're paginating

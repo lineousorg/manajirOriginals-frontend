@@ -5,7 +5,7 @@
  Original code preserved in version control.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import axios from "axios";
 import type {
   AxiosRequestConfig,

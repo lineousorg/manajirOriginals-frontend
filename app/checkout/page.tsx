@@ -20,7 +20,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { OrderReceipt } from "@/components/checkout/OrderReceipt";
 import { CheckoutSkeleton } from "@/components/checkout/CheckoutSkeleton";
 import toast from "react-hot-toast";
-import { trackPurchase, type GTMItem } from "@/lib/gtm";
+import { trackPurchase, trackUserCheckoutData, type GTMItem } from "@/lib/gtm";
 import { DELIVERY_CHARGES } from "@/lib/constants";
 import {
   Collapsible,
@@ -62,6 +62,8 @@ const CheckoutPageContent = () => {
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [isSummaryOpen, setIsSummaryOpen] = useState(true);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasTrackedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const subtotal = getTotal();
@@ -94,7 +96,61 @@ const CheckoutPageContent = () => {
     if (user?.email && !formData.email) {
       setFormData((prev) => ({ ...prev, email: user.email }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);
+
+  const resetInactivityTimer = () => {
+    if (hasTrackedRef.current) return;
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      if (!hasTrackedRef.current) {
+        trackInterestedUser();
+        hasTrackedRef.current = true;
+      }
+    }, 10000);
+  };
+
+  const trackInterestedUser = () => {
+    const hasAnyData = Object.values(formData).some(
+      (val) => val && val.toString().trim() !== ""
+    );
+    if (!hasAnyData || orderNumber) return;
+    trackUserCheckoutData(formData);
+  };
+
+  const handleActivity = () => {
+    resetInactivityTimer();
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+    handleActivity();
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    handleActivity();
+  };
+
+  useEffect(() => {
+    resetInactivityTimer();
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validateField = (name: string, value: string): string => {
     switch (name) {
@@ -116,22 +172,6 @@ const CheckoutPageContent = () => {
         return "";
       default:
         return "";
-    }
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const error = validateField(name, value);
-    setErrors((prev) => ({ ...prev, [name]: error }));
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -378,13 +418,14 @@ const CheckoutPageContent = () => {
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        onBlur={handleBlur}
-                        placeholder="Enter your full name"
+<input
+                         type="text"
+                         name="fullName"
+                         value={formData.fullName}
+                         onChange={handleInputChange}
+                         onBlur={handleBlur}
+                         onFocus={handleActivity}
+                         placeholder="Enter your full name"
                         className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("fullName")
                             ? "border-red-500/70"
                             : "border-border"
@@ -412,14 +453,15 @@ const CheckoutPageContent = () => {
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        onBlur={handleBlur}
-                        placeholder="01XXXXXXXXX"
+<input
+                         type="tel"
+                         inputMode="numeric"
+                         name="phone"
+                         value={formData.phone}
+                         onChange={handleInputChange}
+                         onBlur={handleBlur}
+                         onFocus={handleActivity}
+                         placeholder="01XXXXXXXXX"
                         maxLength={11}
                         className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("phone")
                             ? "border-red-500/70"
@@ -448,13 +490,14 @@ const CheckoutPageContent = () => {
                       Full Address <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        onBlur={handleBlur}
-                        placeholder="Enter your full address"
+<input
+                         type="text"
+                         name="address"
+                         value={formData.address}
+                         onChange={handleInputChange}
+                         onBlur={handleBlur}
+                         onFocus={handleActivity}
+                         placeholder="Enter your full address"
                         className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("address")
                             ? "border-red-500/70"
                             : "border-border"
@@ -482,13 +525,14 @@ const CheckoutPageContent = () => {
                       City
                     </label>
                     <div className="relative">
-                      <input
-                        type="text"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        onBlur={handleBlur}
-                        placeholder="Enter city"
+<input
+                         type="text"
+                         name="city"
+                         value={formData.city}
+                         onChange={handleInputChange}
+                         onBlur={handleBlur}
+                         onFocus={handleActivity}
+                         placeholder="Enter city"
                         className={`w-full px-4 py-3 rounded-xl bg-muted/50 border text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30 ${showError("city")
                             ? "border-red-500/70"
                             : "border-border"
@@ -502,14 +546,15 @@ const CheckoutPageContent = () => {
                     <label className="text-sm font-medium text-muted-foreground text-left w-full">
                       Email Address
                     </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="you@example.com"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
+<input
+                       type="email"
+                       name="email"
+                       value={formData.email}
+                       onChange={handleInputChange}
+                       onFocus={handleActivity}
+                       placeholder="you@example.com"
+                       className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                     />
                   </div>
 
                   {/* Note (Optional) */}
@@ -517,13 +562,14 @@ const CheckoutPageContent = () => {
                     <label className="text-sm font-medium text-muted-foreground text-left w-full">
                       Note
                     </label>
-                    <textarea
-                      name="note"
-                      value={formData.note}
-                      onChange={handleInputChange}
-                      placeholder="Add a note for your order (optional)"
-                      className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px] resize-none"
-                    />
+<textarea
+                       name="note"
+                       value={formData.note}
+                       onChange={handleInputChange}
+                       onFocus={handleActivity}
+                       placeholder="Add a note for your order (optional)"
+                       className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px] resize-none"
+                     />
                   </div>
                 </div>
 

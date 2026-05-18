@@ -132,3 +132,34 @@ export const trackPurchase = ({
     },
   });
 };
+
+
+// =============================
+// 👤 USER / CHECKOUT DATA
+// =============================
+export interface UserCheckoutData {
+  email: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  note: string;
+}
+
+// 👉 Push user checkout data
+export const trackUserCheckoutData = (data: UserCheckoutData) => {
+  console.log(data)
+  pushToDataLayer({
+    event: "user_checkout_data",
+    user_data: {
+      email: data.email || "",
+      fullName: data.fullName || "",
+      phone: data.phone || "",
+      address: data.address || "",
+      city: data.city || "",
+      country: data.country || "",
+      note: data.note || "",
+    },
+  });
+};
