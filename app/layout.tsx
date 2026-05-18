@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+// import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Providers } from "./providers";
 import { Header } from "@/layout/Header";
@@ -70,7 +70,7 @@ export default function RootLayout({
           <div className="glass-overlay text-center">
             <Providers>
               <GTMPageTracker />
-              <Toaster />
+              {/* <Toaster /> */}
               <Sonner />
               <Header />
               <CartDrawer />

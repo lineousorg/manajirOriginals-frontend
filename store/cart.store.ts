@@ -3,7 +3,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product } from "@/types";
 import { stockReservationService } from "@/services/stock-reservation.service";
-import { getGuestToken, addToCart, removeFromCart, clearGuestToken } from "@/lib/cart";
+import {
+  getGuestToken,
+  addToCart,
+  removeFromCart,
+  clearGuestToken,
+} from "@/lib/cart";
 
 // Minimal cart item interface to reduce localStorage size
 interface MinimalCartItem {
@@ -16,6 +21,7 @@ interface MinimalCartItem {
   variantId?: number | string;
   variantStock?: number;
   reservationId?: number;
+  reservationIds?: number[];
   expiresAt?: string;
   quantity: number;
   selectedSize: string;
@@ -33,19 +39,19 @@ interface CartState {
     color: string,
     quantity?: number,
     reservationId?: number,
-    expiresAt?: string
+    expiresAt?: string,
   ) => Promise<{ success: boolean; isExisting: boolean }>;
   removeItem: (
     productId: string | number,
     size: string,
     color: string,
-    skipRelease?: boolean
+    skipRelease?: boolean,
   ) => Promise<void>;
   updateQuantity: (
     productId: string | number,
     size: string,
     color: string,
-    quantity: number
+    quantity: number,
   ) => { success: boolean; message?: string };
   clearCart: () => Promise<void>;
   openCart: () => void;
@@ -56,22 +62,22 @@ interface CartState {
   isItemInCart: (
     productId: string | number,
     size: string,
-    color: string
+    color: string,
   ) => boolean;
   getItemQuantity: (
     productId: string | number,
     size: string,
-    color: string
+    color: string,
   ) => number;
   getItemStock: (
     productId: string | number,
     size: string,
-    color: string
+    color: string,
   ) => number | undefined;
   getItemReservation: (
     productId: string | number,
     size: string,
-    color: string
+    color: string,
   ) => { reservationId?: number; expiresAt?: string } | undefined;
   setHydrated: (state: boolean) => void;
 }
@@ -90,7 +96,7 @@ export const useCartStore = create<CartState>()(
         color,
         quantity = 1,
         reservationId,
-        expiresAt
+        expiresAt,
       ): Promise<{ success: boolean; isExisting: boolean }> => {
         return new Promise(async (resolve) => {
           const hasVariants = (product.variants?.length ?? 0) > 0;
@@ -107,8 +113,8 @@ export const useCartStore = create<CartState>()(
             hasVariants &&
             product.variants?.some((v: any) =>
               v.attributes?.some(
-                (a: any) => a.attributeValue?.attribute?.name === "Color"
-              )
+                (a: any) => a.attributeValue?.attribute?.name === "Color",
+              ),
             );
 
           if ((hasColorsDefined || hasColorAttributesInVariants) && !color) {
@@ -134,13 +140,14 @@ export const useCartStore = create<CartState>()(
 
             selectedVariant = product.variants.find((variant) => {
               const variantSizeAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Size"
+                (attr) => attr.attributeValue?.attribute?.name === "Size",
               );
               const variantColorAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Color"
+                (attr) => attr.attributeValue?.attribute?.name === "Color",
               );
 
-              const variantSize = variantSizeAttr?.attributeValue?.value?.trim();
+              const variantSize =
+                variantSizeAttr?.attributeValue?.value?.trim();
               const variantColor =
                 variantColorAttr?.attributeValue?.value?.trim();
 
@@ -161,7 +168,7 @@ export const useCartStore = create<CartState>()(
                 "No matching variant found for size:",
                 size,
                 "color:",
-                color
+                color,
               );
               resolve({ success: false, isExisting: false });
               return;
@@ -172,18 +179,101 @@ export const useCartStore = create<CartState>()(
             finalPrice = selectedVariant.finalPrice;
           }
 
+          const availableVariantStock =
+            selectedVariant?.availableStock ??
+            selectedVariant?.stock ??
+            product.availableStock ??
+            product.stock ??
+            0;
+
           const { items } = get();
           const existingIndex = items.findIndex(
             (item) =>
               String(item.productId) === String(product.id) &&
               item.selectedSize === size &&
-              item.selectedColor === color
+              item.selectedColor === color,
           );
 
           if (existingIndex > -1) {
             isExisting = true;
             const newItems = [...items];
-            newItems[existingIndex].quantity += quantity;
+            const existingItem = newItems[existingIndex];
+            const nextQuantity = existingItem.quantity + quantity;
+
+            if (availableVariantStock > 0 && quantity > availableVariantStock) {
+              console.error(
+                "Requested additional quantity exceeds available stock:",
+                quantity,
+                "available:",
+                availableVariantStock
+              );
+              resolve({ success: false, isExisting: false });
+              return;
+            }
+
+            try {
+              const accessToken =
+                typeof window !== "undefined"
+                  ? localStorage.getItem("accessToken")
+                  : null;
+
+              let additionalReservationId: number | undefined;
+              let additionalExpiresAt: string | undefined;
+              let remainingAvailableStock = availableVariantStock;
+
+              if (accessToken) {
+                const result = await stockReservationService.reserveStock(
+                  selectedVariant?.id ?? 0,
+                  quantity,
+                  15,
+                );
+                if (result.success && result.data) {
+                  additionalReservationId = result.data.reservationId;
+                  additionalExpiresAt = result.data.expiresAt;
+                  remainingAvailableStock = result.data.availableStock;
+                } else {
+                  console.error("Stock reservation failed:", result.error);
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              } else {
+                const guestToken = getGuestToken();
+                if (!guestToken) {
+                  throw new Error("Guest token not initialized");
+                }
+                const result = await addToCart(selectedVariant?.id ?? 0, quantity);
+                if (result && result.data) {
+                  additionalReservationId = result.data.reservationId;
+                  additionalExpiresAt = result.data.expiresAt;
+                  remainingAvailableStock = result.data.availableStock;
+                } else {
+                  console.error("Failed to add to cart for guest user");
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              }
+
+              if (!additionalReservationId) {
+                console.error("No reservation ID available for additional quantity");
+                resolve({ success: false, isExisting: false });
+                return;
+              }
+
+              existingItem.quantity = nextQuantity;
+              existingItem.variantStock = nextQuantity + remainingAvailableStock;
+              existingItem.reservationIds = [
+                ...(existingItem.reservationIds ?? []),
+                ...(existingItem.reservationId ? [existingItem.reservationId] : []),
+              ].filter((value, index, arr) => arr.indexOf(value) === index);
+              existingItem.reservationIds.push(additionalReservationId);
+              existingItem.reservationId = existingItem.reservationIds[0];
+              existingItem.expiresAt = additionalExpiresAt ?? existingItem.expiresAt;
+            } catch (error) {
+              console.error("Failed to reserve stock:", error);
+              resolve({ success: false, isExisting: false });
+              return;
+            }
+
             set({
               items: newItems,
               isOpen: true,
@@ -197,53 +287,57 @@ export const useCartStore = create<CartState>()(
           let newExpiresAt = expiresAt;
 
           if (!reservationId) {
-             try {
-               const accessToken = typeof window !== 'undefined'
-                 ? localStorage.getItem('accessToken')
-                 : null;
+            try {
+              const accessToken =
+                typeof window !== "undefined"
+                  ? localStorage.getItem("accessToken")
+                  : null;
 
-               if (accessToken) {
-                 const result = await stockReservationService.reserveStock(
-                   selectedVariant?.id ?? 0,
-                   quantity,
-                   15
-                 );
-                 if (result.success && result.data) {
-                   newReservationId = result.data.reservationId;
-                   newExpiresAt = result.data.expiresAt;
-                 } else {
-                   console.error("Stock reservation failed:", result.error);
-                   resolve({ success: false, isExisting: false });
-                   return;
-                 }
-               } else {
-                 const guestToken = getGuestToken();
-                 if (!guestToken) {
-                   throw new Error("Guest token not initialized");
-                 }
-                 const result = await addToCart(selectedVariant?.id ?? 0, quantity);
-                 if (result && result.data) {
-                   newReservationId = result.data.reservationId;
-                   newExpiresAt = result.data.expiresAt;
-                 } else {
-                   console.error("Failed to add to cart for guest user");
-                   resolve({ success: false, isExisting: false });
-                   return;
-                 }
-               }
-             } catch (error) {
-               console.error("Failed to reserve stock:", error);
-               resolve({ success: false, isExisting: false });
-               return;
-             }
-           }
+              if (accessToken) {
+                const result = await stockReservationService.reserveStock(
+                  selectedVariant?.id ?? 0,
+                  quantity,
+                  15,
+                );
+                if (result.success && result.data) {
+                  newReservationId = result.data.reservationId;
+                  newExpiresAt = result.data.expiresAt;
+                } else {
+                  console.error("Stock reservation failed:", result.error);
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              } else {
+                const guestToken = getGuestToken();
+                if (!guestToken) {
+                  throw new Error("Guest token not initialized");
+                }
+                const result = await addToCart(
+                  selectedVariant?.id ?? 0,
+                  quantity,
+                );
+                if (result && result.data) {
+                  newReservationId = result.data.reservationId;
+                  newExpiresAt = result.data.expiresAt;
+                } else {
+                  console.error("Failed to add to cart for guest user");
+                  resolve({ success: false, isExisting: false });
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error("Failed to reserve stock:", error);
+              resolve({ success: false, isExisting: false });
+              return;
+            }
+          }
 
-           // Only add to cart if reservation was successful
-           if (!newReservationId) {
-             console.error("No reservation ID available");
-             resolve({ success: false, isExisting: false });
-             return;
-           }
+          // Only add to cart if reservation was successful
+          if (!newReservationId) {
+            console.error("No reservation ID available");
+            resolve({ success: false, isExisting: false });
+            return;
+          }
 
            const newItem: MinimalCartItem = {
              productId: product.id,
@@ -253,20 +347,21 @@ export const useCartStore = create<CartState>()(
              hasDiscount,
              finalPrice,
              variantId: selectedVariant?.id,
-             variantStock: selectedVariant?.stock ?? product.stock ?? 0,
+             variantStock: availableVariantStock,
              quantity,
              selectedSize: size,
              selectedColor: color,
              reservationId: newReservationId,
+             reservationIds: newReservationId ? [newReservationId] : [],
              expiresAt: newExpiresAt,
-           };
+          };
 
-           set({
-             items: [...items, newItem],
-             isOpen: true,
-             lastCartChange: Date.now(),
-           });
-           resolve({ success: true, isExisting: false });
+          set({
+            items: [...items, newItem],
+            isOpen: true,
+            lastCartChange: Date.now(),
+          });
+          resolve({ success: true, isExisting: false });
         });
       },
 
@@ -274,7 +369,7 @@ export const useCartStore = create<CartState>()(
         productId: string | number,
         size: string,
         color: string,
-        skipRelease = false
+        skipRelease = false,
       ): Promise<void> => {
         return new Promise(async (resolve) => {
           const { items } = get();
@@ -282,31 +377,47 @@ export const useCartStore = create<CartState>()(
             (item) =>
               String(item.productId) === String(productId) &&
               item.selectedSize === size &&
-              item.selectedColor === color
+              item.selectedColor === color,
           );
 
           if (!skipRelease && itemToRemove?.reservationId) {
+            const reservationIds =
+              itemToRemove.reservationIds && itemToRemove.reservationIds.length > 0
+                ? itemToRemove.reservationIds
+                : itemToRemove.reservationId
+                  ? [itemToRemove.reservationId]
+                  : [];
+
             if (itemToRemove.expiresAt) {
               const expiresAtTime = new Date(itemToRemove.expiresAt).getTime();
               const now = Date.now();
               if (expiresAtTime < now) {
               } else {
                 try {
-                  const accessToken = typeof window !== 'undefined'
-                    ? localStorage.getItem('accessToken')
-                    : null;
+                  const accessToken =
+                    typeof window !== "undefined"
+                      ? localStorage.getItem("accessToken")
+                      : null;
 
                   if (accessToken) {
-                    await stockReservationService.releaseReservation(
-                      itemToRemove.reservationId
+                    await Promise.all(
+                      reservationIds.map((reservationId) =>
+                        stockReservationService.releaseReservation(reservationId),
+                      ),
                     );
                   } else {
                     const guestToken = getGuestToken();
                     if (guestToken) {
-                      await removeFromCart(itemToRemove.reservationId);
+                      await Promise.all(
+                        reservationIds.map((reservationId) =>
+                          removeFromCart(reservationId),
+                        ),
+                      );
                     } else {
-                      await stockReservationService.releaseReservation(
-                        itemToRemove.reservationId
+                      await Promise.all(
+                        reservationIds.map((reservationId) =>
+                          stockReservationService.releaseReservation(reservationId),
+                        ),
                       );
                     }
                   }
@@ -316,21 +427,30 @@ export const useCartStore = create<CartState>()(
               }
             } else {
               try {
-                const accessToken = typeof window !== 'undefined'
-                  ? localStorage.getItem('accessToken')
-                  : null;
+                const accessToken =
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("accessToken")
+                    : null;
 
                 if (accessToken) {
-                  await stockReservationService.releaseReservation(
-                    itemToRemove.reservationId
+                  await Promise.all(
+                    reservationIds.map((reservationId) =>
+                      stockReservationService.releaseReservation(reservationId),
+                    ),
                   );
                 } else {
                   const guestToken = getGuestToken();
                   if (guestToken) {
-                    await removeFromCart(itemToRemove.reservationId);
+                    await Promise.all(
+                      reservationIds.map((reservationId) =>
+                        removeFromCart(reservationId),
+                      ),
+                    );
                   } else {
-                    await stockReservationService.releaseReservation(
-                      itemToRemove.reservationId
+                    await Promise.all(
+                      reservationIds.map((reservationId) =>
+                        stockReservationService.releaseReservation(reservationId),
+                      ),
                     );
                   }
                 }
@@ -347,7 +467,7 @@ export const useCartStore = create<CartState>()(
                   String(item.productId) === String(productId) &&
                   item.selectedSize === size &&
                   item.selectedColor === color
-                )
+                ),
             ),
             lastCartChange: Date.now(),
           }));
@@ -361,7 +481,7 @@ export const useCartStore = create<CartState>()(
           (item) =>
             String(item.productId) === String(productId) &&
             item.selectedSize === size &&
-            item.selectedColor === color
+            item.selectedColor === color,
         );
 
         if (item?.variantStock !== undefined && item.variantStock > 0) {
@@ -383,7 +503,7 @@ export const useCartStore = create<CartState>()(
             item.selectedSize === size &&
             item.selectedColor === color
               ? { ...item, quantity: Math.max(1, quantity) }
-              : item
+              : item,
           ),
           lastCartChange: Date.now(),
         }));
@@ -395,21 +515,43 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
 
         const releasePromises = items
-          .filter((item) => item.reservationId !== undefined && item.reservationId !== null)
+          .filter((item) =>
+            (item.reservationIds && item.reservationIds.length > 0) ||
+            (item.reservationId !== undefined && item.reservationId !== null),
+          )
           .map(async (item) => {
             try {
-              const accessToken = typeof window !== 'undefined'
-                ? localStorage.getItem('accessToken')
-                : null;
+              const reservationIds =
+                item.reservationIds && item.reservationIds.length > 0
+                  ? item.reservationIds
+                  : item.reservationId
+                    ? [item.reservationId]
+                    : [];
+              const accessToken =
+                typeof window !== "undefined"
+                  ? localStorage.getItem("accessToken")
+                  : null;
 
               if (accessToken) {
-                await stockReservationService.releaseReservation(item.reservationId!);
+                await Promise.all(
+                  reservationIds.map((reservationId) =>
+                    stockReservationService.releaseReservation(reservationId),
+                  ),
+                );
               } else {
                 const guestToken = getGuestToken();
                 if (guestToken) {
-                  await removeFromCart(item.reservationId!);
+                  await Promise.all(
+                    reservationIds.map((reservationId) =>
+                      removeFromCart(reservationId),
+                    ),
+                  );
                 } else {
-                  await stockReservationService.releaseReservation(item.reservationId!);
+                  await Promise.all(
+                    reservationIds.map((reservationId) =>
+                      stockReservationService.releaseReservation(reservationId),
+                    ),
+                  );
                 }
               }
             } catch (error) {
@@ -444,28 +586,28 @@ export const useCartStore = create<CartState>()(
       isItemInCart: (
         productId: string | number,
         size: string,
-        color: string
+        color: string,
       ) => {
         const { items } = get();
         return items.some(
           (item) =>
             String(item.productId) === String(productId) &&
             item.selectedSize === size &&
-            item.selectedColor === color
+            item.selectedColor === color,
         );
       },
 
       getItemQuantity: (
         productId: string | number,
         size: string,
-        color: string
+        color: string,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
             item.selectedSize === size &&
-            item.selectedColor === color
+            item.selectedColor === color,
         );
         return item?.quantity || 0;
       },
@@ -473,14 +615,14 @@ export const useCartStore = create<CartState>()(
       getItemStock: (
         productId: string | number,
         size: string,
-        color: string
+        color: string,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
             item.selectedSize === size &&
-            item.selectedColor === color
+            item.selectedColor === color,
         );
         return item?.variantStock;
       },
@@ -488,14 +630,14 @@ export const useCartStore = create<CartState>()(
       getItemReservation: (
         productId: string | number,
         size: string,
-        color: string
+        color: string,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
             item.selectedSize === size &&
-            item.selectedColor === color
+            item.selectedColor === color,
         );
         return item?.reservationId
           ? { reservationId: item.reservationId, expiresAt: item.expiresAt }
@@ -507,7 +649,7 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'cart-storage',
-    }
-  )
+      name: "cart-storage",
+    },
+  ),
 );

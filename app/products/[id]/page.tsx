@@ -63,6 +63,7 @@ export default function ProductDetailsPage() {
 
   const addToCart = useCartStore((state) => state.addItem);
   const isItemInCart = useCartStore((state) => state.isItemInCart);
+  const getItemQuantity = useCartStore((state) => state.getItemQuantity);
   const lastCartChange = useCartStore((state) => state.lastCartChange);
   const { isInWishlist, toggleItem } = useWishlistStore();
 
@@ -70,6 +71,9 @@ export default function ProductDetailsPage() {
   const [isRefetchingStock, setIsRefetchingStock] = useState(false);
   const prevLastCartChange = useRef<number>(0);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Track in-flight add-to-cart requests per variant to prevent duplicate calls
+  const inFlightAddRef = useRef<Set<string>>(new Set());
 
   // Use the custom hook for variant selection
   const {
@@ -165,17 +169,9 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    setIsAddingToCart(true);
-
-    const normalizedImages: TypeImage[] = Array.isArray(product.images)
-      ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img,
-        )
-      : [];
-
     const size = selectedSize || "One Size";
     const color = selectedColor || "Default";
-    const isAlreadyInCart = isItemInCart(productId, size, color);
+    const existingCartQuantity = getItemQuantity(productId, size, color);
 
     const selectedVariantInAddToCart = findVariantBySizeColor(
       product.variants || [],
@@ -186,95 +182,111 @@ export default function ProductDetailsPage() {
 
     if (!variantId) {
       toast.error("Selected variant is not available");
-      setIsAddingToCart(false);
       return;
     }
+
+    // Fix 2: In-flight deduplication — ignore duplicate clicks for the same variant
+    const variantKey = `${productId}-${variantId}`;
+    if (inFlightAddRef.current.has(variantKey)) {
+      return;
+    }
+    inFlightAddRef.current.add(variantKey);
+
+    setIsAddingToCart(true);
+
+    const normalizedImages: TypeImage[] = Array.isArray(product.images)
+      ? product.images.map((img) =>
+          typeof img === "string" ? { url: img, altText: product.name } : img,
+        )
+      : [];
 
     try {
       const stockCheck =
         await stockReservationService.getAvailableStock(variantId);
       if (stockCheck.success && stockCheck.data) {
-        if (stockCheck.data.availableStock < quantity) {
-          if (stockCheck.data.availableStock === 0) {
+        const maxCartQuantity =
+          existingCartQuantity + stockCheck.data.availableStock;
+        const requestedTotalQuantity = existingCartQuantity + quantity;
+
+        if (requestedTotalQuantity > maxCartQuantity) {
+          if (maxCartQuantity === 0) {
             toast.error(
               "This item is out of stock. Please choose a different option.",
             );
           } else {
             toast.error(
-              `Only ${stockCheck.data.availableStock} available. Please adjust quantity.`,
+              `Only ${maxCartQuantity} total available for this option. Please adjust quantity.`,
             );
           }
-          setIsAddingToCart(false);
           return;
         }
       }
-    } catch (error) {
-      console.error("Failed to check stock:", error);
-      toast.error("Unable to verify stock. Please try again.");
-      setIsAddingToCart(false);
-      return;
-    }
 
-    const result = await addToCart(
-      { ...product, id: productId, images: normalizedImages },
-      size,
-      color,
-      quantity,
-    );
-
-    if (!result.success) {
-      toast.error(
-        "Unable to add item to cart. Please try again or choose different options.",
+      const result = await addToCart(
+        { ...product, id: productId, images: normalizedImages },
+        size,
+        color,
+        quantity,
       );
+
+      if (!result.success) {
+        toast.error(
+          "Unable to add item to cart. Please try again or choose different options.",
+        );
+        return;
+      }
+
+      // Fix 1: Read isAlreadyInCart AFTER the await, using current live state
+      const isAlreadyInCart = isItemInCart(productId, size, color);
+
+      // Build toast with optional "View Cart" action for in-app browsers
+      const toastMessage = result.isExisting
+        ? "Updated quantity in your bag!"
+        : isAlreadyInCart
+          ? `Added ${product.name} to your bag!`
+          : "Added to bag!";
+
+      if (isInAppBrowser()) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
+                t.visible ? "animate-in slide-in-from-bottom" : "animate-out fade-out"
+              }`}
+            >
+              <span className="text-sm font-medium">{toastMessage}</span>
+              <button
+                onClick={() => {
+                  router.push("/checkout");
+                  toast.dismiss(t.id);
+                }}
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                View Cart
+              </button>
+            </div>
+          ),
+          { duration: 4000 }
+        );
+      } else {
+        toast.success(toastMessage);
+      }
+
+      trackAddToCart({
+        item_id: String(variantId),
+        item_name: product.name,
+        price: currentPrice || product.price || product.maxPrice || 0,
+        quantity,
+        item_category: gtmCategory,
+        item_brand: color,
+      });
+    } finally {
+      // Fix 2: Always clear the in-flight flag and loading state
+      inFlightAddRef.current.delete(variantKey);
       setIsAddingToCart(false);
-      return;
+      setIsRefetchingStock(true);
+      refetch().finally(() => setIsRefetchingStock(false));
     }
-
-    // Build toast with optional "View Cart" action for in-app browsers
-    const toastMessage = result.isExisting
-      ? "Updated quantity in your bag!"
-      : isAlreadyInCart
-        ? `Added another ${product.name} to your bag!`
-        : "Added to bag!";
-
-     if (isInAppBrowser()) {
-       toast.custom(
-         (t) => (
-           <div
-             className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
-               t.visible ? "animate-in slide-in-from-bottom" : "animate-out fade-out"
-             }`}
-           >
-             <span className="text-sm font-medium">{toastMessage}</span>
-             <button
-               onClick={() => {
-                 router.push("/checkout");
-                 toast.dismiss(t.id);
-               }}
-               className="text-sm font-semibold text-primary hover:underline"
-             >
-               View Cart
-             </button>
-           </div>
-         ),
-         { duration: 4000 }
-       );
-     } else {
-       toast.success(toastMessage);
-     }
-
-    trackAddToCart({
-      item_id: String(variantId),
-      item_name: product.name,
-      price: currentPrice || product.price || product.maxPrice || 0,
-      quantity,
-      item_category: gtmCategory,
-      item_brand: color,
-    });
-
-    setIsAddingToCart(false);
-    setIsRefetchingStock(true);
-    refetch().finally(() => setIsRefetchingStock(false));
   };
 
   // Share handler
