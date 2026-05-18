@@ -73,6 +73,8 @@ export const ProductGallery = ({
 
   // Calculate background position for zoom effect
   const bgPosition = `${mousePosition.x}% ${mousePosition.y}%`;
+  
+  console.log(images);
 
   return (
     <div className="space-y-4">
@@ -117,6 +119,7 @@ export const ProductGallery = ({
               } cursor-zoom-in`}
               onClick={handleImageClick}
               priority={currentIndex === 0}
+              unoptimized
             />
           </motion.div>
         </AnimatePresence>
