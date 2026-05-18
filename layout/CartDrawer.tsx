@@ -327,6 +327,7 @@ export const CartDrawer = () => {
                             fill
                             sizes="64px"
                             className="object-cover"
+                            unoptimized
                           />
                         </div>
 
@@ -363,11 +364,11 @@ export const CartDrawer = () => {
                                 } else {
                                   toast.error(
                                     result.message ||
-                                      "Failed to fully remove item from your cart.",
+                                    "Failed to fully remove item from your cart.",
                                   );
                                 }
                               }}
-                              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-1 -mt-1 shrink-0"
+                              className="opacity-100 group-hover:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-1 -mt-1 shrink-0"
                               aria-label="Remove item"
                             >
                               <Trash2 size={14} />
