@@ -4,17 +4,20 @@ import { Product, WishlistItem } from '@/types';
 
 interface WishlistState {
   items: WishlistItem[];
+  isHydrated: boolean;
   addItem: (product: Product) => void;
   removeItem: (productId: string | number) => void;
   isInWishlist: (productId: string | number) => boolean;
   toggleItem: (product: Product) => void;
   clearWishlist: () => void;
+  setHydrated: (state: boolean) => void;
 }
 
 export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
+      isHydrated: false,
 
       addItem: (product) => {
         set((state) => {
@@ -47,6 +50,8 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       clearWishlist: () => set({ items: [] }),
+      
+      setHydrated: (state) => set({ isHydrated: state }),
     }),
     {
       name: 'wishlist-storage',
