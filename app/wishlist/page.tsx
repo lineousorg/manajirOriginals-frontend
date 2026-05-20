@@ -193,6 +193,7 @@ const WishlistPage = () => {
                     onError={(e) => {
                       e.currentTarget.src = "/placeholder-product.jpg";
                     }}
+                    unoptimized
                   />
                 </Link>
 
