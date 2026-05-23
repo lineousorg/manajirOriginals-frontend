@@ -3,11 +3,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product } from "@/types";
 import { stockReservationService } from "@/services/stock-reservation.service";
-import {
-  getGuestToken,
-  addToCart,
-  removeFromCart,
-} from "@/lib/cart";
+import { getGuestToken, addToCart, removeFromCart } from "@/lib/cart";
 
 // Minimal cart item interface to reduce localStorage size
 interface MinimalCartItem {
@@ -17,13 +13,11 @@ interface MinimalCartItem {
   productPrice: number;
   hasDiscount?: boolean;
   finalPrice?: number;
-  variantId?: number | string;
+  variantId: number | string;
   variantStock?: number;
   reservationId?: number;
   expiresAt?: string;
   quantity: number;
-  selectedSize: string;
-  selectedColor: string;
 }
 
 interface CartState {
@@ -33,23 +27,20 @@ interface CartState {
   lastCartChange: number;
   addItem: (
     product: Product,
-    size: string,
-    color: string,
-    quantity?: number,
+    variantId: number | string,
+    quantity: number,
     reservationId?: number,
-    expiresAt?: string,
+    expiresAt?: string
   ) => Promise<{ success: boolean; isExisting: boolean }>;
   removeItem: (
     productId: string | number,
-    size: string,
-    color: string,
-    skipRelease?: boolean,
+    variantId: number | string,
+    skipRelease?: boolean
   ) => Promise<{ success: boolean; message?: string }>;
   updateQuantity: (
     productId: string | number,
-    size: string,
-    color: string,
-    quantity: number,
+    variantId: number | string,
+    quantity: number
   ) => { success: boolean; message?: string };
   clearCart: () => Promise<void>;
   resetCart: () => void;
@@ -60,23 +51,19 @@ interface CartState {
   getItemCount: () => number;
   isItemInCart: (
     productId: string | number,
-    size: string,
-    color: string,
+    variantId: number | string
   ) => boolean;
   getItemQuantity: (
     productId: string | number,
-    size: string,
-    color: string,
+    variantId: number | string
   ) => number;
   getItemStock: (
     productId: string | number,
-    size: string,
-    color: string,
+    variantId: number | string
   ) => number | undefined;
   getItemReservation: (
     productId: string | number,
-    size: string,
-    color: string,
+    variantId: number | string
   ) => { reservationId?: number; expiresAt?: string } | undefined;
   setHydrated: (state: boolean) => void;
 }
@@ -91,16 +78,15 @@ export const useCartStore = create<CartState>()(
 
       addItem: (
         product,
-        size,
-        color,
-        quantity = 1,
+        variantId: number | string,
+        quantity: number,
         reservationId,
-        expiresAt,
+        expiresAt
       ): Promise<{ success: boolean; isExisting: boolean }> => {
         return new Promise(async (resolve) => {
           const reserveVariantStock = async (
             variantId: number,
-            reserveQuantity: number,
+            reserveQuantity: number
           ) => {
             const accessToken =
               typeof window !== "undefined"
@@ -111,7 +97,7 @@ export const useCartStore = create<CartState>()(
               return stockReservationService.reserveStock(
                 variantId,
                 reserveQuantity,
-                15,
+                15
               );
             }
 
@@ -155,26 +141,9 @@ export const useCartStore = create<CartState>()(
               : { success: true };
           };
 
-          const hasVariants = (product.variants?.length ?? 0) > 0;
-          const hasSizes = (product.sizes?.length ?? 0) > 0;
-          const hasColorsDefined = (product.colors?.length ?? 0) > 0;
-
-          if (hasVariants && hasSizes && !size) {
-            console.error("Size is required for this product");
-            resolve({ success: false, isExisting: false });
-            return;
-          }
-
-          const hasColorAttributesInVariants =
-            hasVariants &&
-            product.variants?.some((v: any) =>
-              v.attributes?.some(
-                (a: any) => a.attributeValue?.attribute?.name === "Color",
-              ),
-            );
-
-          if ((hasColorsDefined || hasColorAttributesInVariants) && !color) {
-            console.error("Color is required for this product");
+          // Validate that we have a variantId
+          if (!variantId) {
+            console.error("Variant ID is required");
             resolve({ success: false, isExisting: false });
             return;
           }
@@ -191,40 +160,14 @@ export const useCartStore = create<CartState>()(
           let finalPrice: number | undefined;
 
           if (product.variants && product.variants.length > 0) {
-            const normalizedSize = size?.trim();
-            const normalizedColor = color?.trim();
-
-            selectedVariant = product.variants.find((variant) => {
-              const variantSizeAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Size",
-              );
-              const variantColorAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Color",
-              );
-
-              const variantSize =
-                variantSizeAttr?.attributeValue?.value?.trim();
-              const variantColor =
-                variantColorAttr?.attributeValue?.value?.trim();
-
-              const sizeMatch =
-                !normalizedSize ||
-                normalizedSize === "One Size" ||
-                variantSize === normalizedSize;
-              const colorMatch =
-                !normalizedColor ||
-                normalizedColor === "Default" ||
-                variantColor === normalizedColor;
-
-              return sizeMatch && colorMatch;
-            });
+            selectedVariant = product.variants.find(
+              (variant) => String(variant.id) === String(variantId)
+            );
 
             if (!selectedVariant) {
               console.error(
-                "No matching variant found for size:",
-                size,
-                "color:",
-                color,
+                "No matching variant found for variantId:",
+                variantId
               );
               resolve({ success: false, isExisting: false });
               return;
@@ -246,8 +189,7 @@ export const useCartStore = create<CartState>()(
           const existingIndex = items.findIndex(
             (item) =>
               String(item.productId) === String(product.id) &&
-              item.selectedSize === size &&
-              item.selectedColor === color,
+              String(item.variantId) === String(variantId)
           );
 
           if (existingIndex > -1) {
@@ -263,7 +205,7 @@ export const useCartStore = create<CartState>()(
                 "Requested additional quantity exceeds available stock:",
                 quantity,
                 "available:",
-                availableVariantStock,
+                availableVariantStock
               );
               resolve({ success: false, isExisting: false });
               return;
@@ -282,46 +224,48 @@ export const useCartStore = create<CartState>()(
               if (nextQuantity <= availableVariantStock) {
                 replacementResult = await reserveVariantStock(
                   selectedVariant?.id ?? 0,
-                  nextQuantity,
+                  nextQuantity
                 );
                 if (!replacementResult.success || !replacementResult.data) {
                   console.error(
                     "Stock reservation failed:",
-                    replacementResult.error,
+                    replacementResult.error
                   );
                   resolve({ success: false, isExisting: false });
                   return;
                 }
 
-                const releaseResult =
-                  await releaseReservationById(existingReservationId);
+                const releaseResult = await releaseReservationById(
+                  existingReservationId
+                );
                 if (!releaseResult.success) {
                   if (replacementResult.data?.reservationId) {
                     try {
                       await releaseReservationById(
-                        replacementResult.data.reservationId,
+                        replacementResult.data.reservationId
                       );
                     } catch (rollbackError) {
                       console.error(
                         "Failed to rollback replacement reservation:",
-                        rollbackError,
+                        rollbackError
                       );
                     }
                   }
                   console.error(
                     "Failed to release previous reservation:",
-                    releaseResult.error,
+                    releaseResult.error
                   );
                   resolve({ success: false, isExisting: false });
                   return;
                 }
               } else {
-                const releaseResult =
-                  await releaseReservationById(existingReservationId);
+                const releaseResult = await releaseReservationById(
+                  existingReservationId
+                );
                 if (!releaseResult.success) {
                   console.error(
                     "Failed to release previous reservation:",
-                    releaseResult.error,
+                    releaseResult.error
                   );
                   resolve({ success: false, isExisting: false });
                   return;
@@ -329,15 +273,16 @@ export const useCartStore = create<CartState>()(
 
                 replacementResult = await reserveVariantStock(
                   selectedVariant?.id ?? 0,
-                  nextQuantity,
+                  nextQuantity
                 );
                 if (!replacementResult.success || !replacementResult.data) {
                   const restoreResult = await reserveVariantStock(
                     selectedVariant?.id ?? 0,
-                    currentQuantity,
+                    currentQuantity
                   );
                   if (restoreResult.success && restoreResult.data) {
-                    existingItem.reservationId = restoreResult.data.reservationId;
+                    existingItem.reservationId =
+                      restoreResult.data.reservationId;
                     existingItem.expiresAt =
                       restoreResult.data.expiresAt ?? existingItem.expiresAt;
                   } else {
@@ -350,7 +295,7 @@ export const useCartStore = create<CartState>()(
                   }
                   console.error(
                     "Stock reservation failed after replacing reservation:",
-                    replacementResult.error,
+                    replacementResult.error
                   );
                   resolve({ success: false, isExisting: false });
                   return;
@@ -391,7 +336,7 @@ export const useCartStore = create<CartState>()(
                 const result = await stockReservationService.reserveStock(
                   selectedVariant?.id ?? 0,
                   quantity,
-                  15,
+                  15
                 );
                 if (result.success && result.data) {
                   newReservationId = result.data.reservationId;
@@ -408,7 +353,7 @@ export const useCartStore = create<CartState>()(
                 }
                 const result = await addToCart(
                   selectedVariant?.id ?? 0,
-                  quantity,
+                  quantity
                 );
                 if (result && result.data) {
                   newReservationId = result.data.reservationId;
@@ -433,20 +378,18 @@ export const useCartStore = create<CartState>()(
             return;
           }
 
-           const newItem: MinimalCartItem = {
-             productId: product.id,
-             productName: product.name || "Product",
-             productImage,
-             productPrice,
-             hasDiscount,
-             finalPrice,
-             variantId: selectedVariant?.id,
-             variantStock: availableVariantStock,
-             quantity,
-             selectedSize: size,
-             selectedColor: color,
-             reservationId: newReservationId,
-             expiresAt: newExpiresAt,
+          const newItem: MinimalCartItem = {
+            productId: product.id,
+            productName: product.name || "Product",
+            productImage,
+            productPrice,
+            hasDiscount,
+            finalPrice,
+            variantId: variantId,
+            variantStock: availableVariantStock,
+            quantity,
+            reservationId: newReservationId,
+            expiresAt: newExpiresAt,
           };
 
           set({
@@ -460,17 +403,15 @@ export const useCartStore = create<CartState>()(
 
       removeItem: (
         productId: string | number,
-        size: string,
-        color: string,
-        skipRelease = false,
+        variantId: number | string,
+        skipRelease = false
       ): Promise<{ success: boolean; message?: string }> => {
         return new Promise(async (resolve) => {
           const { items } = get();
           const itemToRemove = items.find(
             (item) =>
               String(item.productId) === String(productId) &&
-              item.selectedSize === size &&
-              item.selectedColor === color,
+              String(item.variantId) === String(variantId)
           );
           let releaseFailed = false;
 
@@ -488,7 +429,7 @@ export const useCartStore = create<CartState>()(
 
                   if (accessToken) {
                     await stockReservationService.releaseReservation(
-                      itemToRemove.reservationId,
+                      itemToRemove.reservationId
                     );
                   } else {
                     const guestToken = getGuestToken();
@@ -496,7 +437,7 @@ export const useCartStore = create<CartState>()(
                       await removeFromCart(itemToRemove.reservationId);
                     } else {
                       await stockReservationService.releaseReservation(
-                        itemToRemove.reservationId,
+                        itemToRemove.reservationId
                       );
                     }
                   }
@@ -514,7 +455,7 @@ export const useCartStore = create<CartState>()(
 
                 if (accessToken) {
                   await stockReservationService.releaseReservation(
-                    itemToRemove.reservationId,
+                    itemToRemove.reservationId
                   );
                 } else {
                   const guestToken = getGuestToken();
@@ -522,7 +463,7 @@ export const useCartStore = create<CartState>()(
                     await removeFromCart(itemToRemove.reservationId);
                   } else {
                     await stockReservationService.releaseReservation(
-                      itemToRemove.reservationId,
+                      itemToRemove.reservationId
                     );
                   }
                 }
@@ -538,9 +479,8 @@ export const useCartStore = create<CartState>()(
               (item) =>
                 !(
                   String(item.productId) === String(productId) &&
-                  item.selectedSize === size &&
-                  item.selectedColor === color
-                ),
+                  String(item.variantId) === String(variantId)
+                )
             ),
             lastCartChange: Date.now(),
           }));
@@ -554,18 +494,21 @@ export const useCartStore = create<CartState>()(
               : {
                   success: true,
                   message: "Item removed from your cart.",
-                },
+                }
           );
         });
       },
 
-      updateQuantity: (productId, size, color, quantity) => {
+      updateQuantity: (
+        productId: string | number,
+        variantId: number | string,
+        quantity: number
+      ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            String(item.variantId) === String(variantId)
         );
 
         if (item?.variantStock !== undefined && item.variantStock > 0) {
@@ -584,10 +527,9 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.map((item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color
+            String(item.variantId) === String(variantId)
               ? { ...item, quantity: Math.max(1, quantity) }
-              : item,
+              : item
           ),
           lastCartChange: Date.now(),
         }));
@@ -599,7 +541,10 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
 
         const releasePromises = items
-          .filter((item) => item.reservationId !== undefined && item.reservationId !== null)
+          .filter(
+            (item) =>
+              item.reservationId !== undefined && item.reservationId !== null
+          )
           .map(async (item) => {
             try {
               const accessToken =
@@ -609,7 +554,7 @@ export const useCartStore = create<CartState>()(
 
               if (accessToken) {
                 await stockReservationService.releaseReservation(
-                  item.reservationId!,
+                  item.reservationId!
                 );
               } else {
                 const guestToken = getGuestToken();
@@ -617,7 +562,7 @@ export const useCartStore = create<CartState>()(
                   await removeFromCart(item.reservationId!);
                 } else {
                   await stockReservationService.releaseReservation(
-                    item.reservationId!,
+                    item.reservationId!
                   );
                 }
               }
@@ -654,59 +599,51 @@ export const useCartStore = create<CartState>()(
 
       isItemInCart: (
         productId: string | number,
-        size: string,
-        color: string,
+        variantId: number | string
       ) => {
         const { items } = get();
         return items.some(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            String(item.variantId) === String(variantId)
         );
       },
 
       getItemQuantity: (
         productId: string | number,
-        size: string,
-        color: string,
+        variantId: number | string
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            String(item.variantId) === String(variantId)
         );
         return item?.quantity || 0;
       },
 
       getItemStock: (
         productId: string | number,
-        size: string,
-        color: string,
+        variantId: number | string
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            String(item.variantId) === String(variantId)
         );
         return item?.variantStock;
       },
 
       getItemReservation: (
         productId: string | number,
-        size: string,
-        color: string,
+        variantId: number | string
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            String(item.variantId) === String(variantId)
         );
         return item?.reservationId
           ? { reservationId: item.reservationId, expiresAt: item.expiresAt }
@@ -719,6 +656,6 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "cart-storage",
-    },
-  ),
+    }
+  )
 );

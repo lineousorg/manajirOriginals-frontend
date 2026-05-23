@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, color } from "framer-motion";
 import {
   Heart,
   Truck,
@@ -22,7 +22,12 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { SizeGuide } from "@/components/product/SizeGuide";
 import { Loader, ProductDetailsSkeleton } from "@/components/ui/Loader";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { useCartStore } from "@/store/cart.store";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
@@ -39,7 +44,12 @@ import { isInAppBrowser } from "@/lib/isInAppBrowser";
 import { stockReservationService } from "@/services/stock-reservation.service";
 import { policyData } from "@/lib/policy-data";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
-import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
+import {
+  findVariantByAttributes,
+  getStockForVariant,
+  getValuesForAttribute,
+  getAvailableValuesForAttributeWithFilter,
+} from "@/lib/variant-utils";
 import { trackAddToCart, trackViewItem } from "@/lib/gtm";
 import { sanitizeHtml } from "@/src/utils/sanitizeHtml";
 
@@ -58,7 +68,7 @@ export default function ProductDetailsPage() {
   const { product, loading, refetch } = useProductById(id);
   const { relatedProducts } = useRelatedProducts(
     product?.id,
-    product?.category?.slug,
+    product?.category?.slug
   );
 
   const addToCart = useCartStore((state) => state.addItem);
@@ -77,24 +87,27 @@ export default function ProductDetailsPage() {
 
   // Use the custom hook for variant selection
   const {
-    selectedSize,
-    setSelectedSize,
-    selectedColor,
-    setSelectedColor,
+    selectedAttributes,
+    setSelectedAttribute,
+    clearSelectedAttributes,
+    getSelectedValue,
+    areAllRequiredSelected,
+    getAvailableValuesForAttribute,
+    getCompatibleValuesForAttribute,
+    isValueAvailable,
+    availableAttributes,       // attributes that actually exist in candidate variants
+    candidateVariants,         // variants compatible with current selection
+    quantityByVariant,
+    setQuantityByVariant,
     quantity,
-    setQuantity,
-    quantityBySize,
-    setQuantityBySize,
-    availableColorsForSelectedSize,
     selectedVariant,
     currentPrice,
     originalPrice,
     discountPercentage,
-    stockForSelectedSize,
     selectedVariantAvailableStock,
   } = useVariantSelection({
     variants: product?.variants,
-    sizes: product?.sizes,
+    applicableAttributes: product?.applicableAttributes,
     productPrice: product?.price,
   });
 
@@ -140,7 +153,7 @@ export default function ProductDetailsPage() {
               altText: "No Image",
             },
           ],
-    [product?.images],
+    [product?.images]
   );
 
   const details = product?.details ?? [];
@@ -151,39 +164,27 @@ export default function ProductDetailsPage() {
       .join(" / ") || categories?.raw?.name;
 
   // Stock calculations - using availableStock from API (totalStock - reservedStock)
-   const remainingStock = selectedVariantAvailableStock;
-   const canAddMore = remainingStock > 0;
-   const isStockExceeded = !canAddMore;
+  const remainingStock = selectedVariantAvailableStock;
+  const canAddMore = remainingStock > 0;
+  const isStockExceeded = !canAddMore;
 
   // Add to cart handler
   const handleAddToCart = async () => {
     if (!product) return;
 
-    if ((product.sizes ?? []).length > 0 && !selectedSize) {
-      toast.error("Please select a size");
+    // Check if all required attributes are selected
+    if (!areAllRequiredSelected()) {
+      toast.error("Please select all required options");
       return;
     }
 
-    if (availableColorsForSelectedSize.length > 0 && !selectedColor) {
-      toast.error("Please select a color");
-      return;
-    }
-
-    const size = selectedSize || "One Size";
-    const color = selectedColor || "Default";
-    const existingCartQuantity = getItemQuantity(productId, size, color);
-
-    const selectedVariantInAddToCart = findVariantBySizeColor(
-      product.variants || [],
-      size,
-      color,
-    );
-    const variantId = selectedVariantInAddToCart?.id;
-
+    const variantId = selectedVariant?.id;
     if (!variantId) {
       toast.error("Selected variant is not available");
       return;
     }
+
+    const existingCartQuantity = getItemQuantity(productId, String(variantId));
 
     // Fix 2: In-flight deduplication — ignore duplicate clicks for the same variant
     const variantKey = `${productId}-${variantId}`;
@@ -196,13 +197,14 @@ export default function ProductDetailsPage() {
 
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img,
+          typeof img === "string" ? { url: img, altText: product.name } : img
         )
       : [];
 
     try {
-      const stockCheck =
-        await stockReservationService.getAvailableStock(variantId);
+      const stockCheck = await stockReservationService.getAvailableStock(
+        variantId
+      );
       if (stockCheck.success && stockCheck.data) {
         const maxCartQuantity =
           existingCartQuantity + stockCheck.data.availableStock;
@@ -211,11 +213,11 @@ export default function ProductDetailsPage() {
         if (requestedTotalQuantity > maxCartQuantity) {
           if (maxCartQuantity === 0) {
             toast.error(
-              "This item is out of stock. Please choose a different option.",
+              "This item is out of stock. Please choose a different option."
             );
           } else {
             toast.error(
-              `Only ${maxCartQuantity} total available for this option. Please adjust quantity.`,
+              `Only ${maxCartQuantity} total available for this option. Please adjust quantity.`
             );
           }
           return;
@@ -224,34 +226,35 @@ export default function ProductDetailsPage() {
 
       const result = await addToCart(
         { ...product, id: productId, images: normalizedImages },
-        size,
-        color,
-        quantity,
+        variantId,
+        quantity
       );
 
       if (!result.success) {
         toast.error(
-          "Unable to add item to cart. Please try again or choose different options.",
+          "Unable to add item to cart. Please try again or choose different options."
         );
         return;
       }
 
       // Fix 1: Read isAlreadyInCart AFTER the await, using current live state
-      const isAlreadyInCart = isItemInCart(productId, size, color);
+      const isAlreadyInCart = isItemInCart(productId, variantId);
 
       // Build toast with optional "View Cart" action for in-app browsers
       const toastMessage = result.isExisting
         ? "Updated quantity in your bag!"
         : isAlreadyInCart
-          ? `Added ${product.name} to your bag!`
-          : "Added to bag!";
+        ? `Added ${product.name} to your bag!`
+        : "Added to bag!";
 
       if (isInAppBrowser()) {
         toast.custom(
           (t) => (
             <div
               className={`flex items-center justify-between gap-3 px-4 py-3 bg-background border border-border shadow-lg rounded-lg ${
-                t.visible ? "animate-in slide-in-from-bottom" : "animate-out fade-out"
+                t.visible
+                  ? "animate-in slide-in-from-bottom"
+                  : "animate-out fade-out"
               }`}
             >
               <span className="text-sm font-medium">{toastMessage}</span>
@@ -278,7 +281,6 @@ export default function ProductDetailsPage() {
         price: currentPrice || product.price || product.maxPrice || 0,
         quantity,
         item_category: gtmCategory,
-        item_brand: color,
       });
     } finally {
       // Fix 2: Always clear the in-flight flag and loading state
@@ -309,11 +311,9 @@ export default function ProductDetailsPage() {
 
   // Cart status
   const isInCart = useMemo(() => {
-    if (!product) return false;
-    const size = selectedSize || "One Size";
-    const color = selectedColor || "Default";
-    return isItemInCart(productId, size, color);
-  }, [product, selectedSize, selectedColor, productId, isItemInCart]);
+    if (!product || !selectedVariant) return false;
+    return isItemInCart(productId, String(selectedVariant.id));
+  }, [product, selectedVariant, productId, isItemInCart]);
 
   // Out of stock check - uses availableStock (totalStock - reservedStock) from API
   const isOutOfStock = useMemo(() => {
@@ -324,7 +324,7 @@ export default function ProductDetailsPage() {
       (variant: ProductVariant) => {
         const available = variant.availableStock ?? variant.stock ?? 0;
         return available <= 0;
-      },
+      }
     );
     return allVariantsOutOfStock;
   }, [product?.variants, product?.availableStock]);
@@ -521,167 +521,149 @@ export default function ProductDetailsPage() {
                 className="h-px bg-border/80 w-full origin-left"
               />
             </div>
-
             {/* Variant Selection */}
             <div className="space-y-5 mb-6">
-              {/* Color Selection */}
-              {availableColorsForSelectedSize.length > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={
-                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                  }
-                  transition={{ duration: 0.35, delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                      Color
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {availableColorsForSelectedSize.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
-                          className={cn(
-                            "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer",
-                            selectedColor === color
-                              ? "bg-foreground text-background shadow-md scale-105"
-                              : "bg-muted/40 text-foreground hover:bg-muted border border-border/60",
-                          )}
-                        >
-                          {color}
-                          {selectedColor === color && (
-                            <motion.div
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm"
-                            >
-                              <Check
-                                size={8}
-                                className="text-background"
-                                strokeWidth={3}
-                              />
-                            </motion.div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+              {/* Dynamic Attribute Selection */}
+              {/* Use availableAttributes (from the hook) so attributes that do not exist
+                  in the current candidate variants are hidden entirely, not just disabled.
+                  Scenario: XL variants have no Print attribute → Print section disappears. */}
+              {availableAttributes.length > 0 && (
+                <div className="space-y-5 mb-6">
+                  {availableAttributes.map((attribute) => {
+                    const isRequired = attribute.isRequired;
 
-              {/* Size Selection */}
-              {product.sizes && product.sizes.length > 1 && (
-                 <motion.div
-                   initial={{ opacity: 0, y: 8 }}
-                   animate={
-                     isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                   }
-                   transition={{ duration: 0.35, delay: 0.35 }}
-                   className="space-y-2"
-                 >
-                   <div className="flex items-center gap-3">
-                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                       Size
-                     </span>
-                     <div className="flex flex-wrap gap-2">
-                       {product.sizes.map((size) => {
-                         const stock = getStockForSize(
-                           product.variants || [],
-                           size,
-                         );
-                         const isOutOfStock = stock <= 0;
-                         return (
-                           <TooltipProvider key={size}>
-                             <Tooltip>
-                               <TooltipTrigger asChild>
-                                 <div className="relative">
-                                   <button
-                                     onClick={() => {
-                                       setSelectedSize(size);
-                                       setQuantityBySize((prev) => ({
-                                         ...prev,
-                                         [size]: prev[size] ?? 1,
-                                       }));
-                                     }}
-                                     disabled={isOutOfStock}
-                                     className={cn(
-                                       "w-8 h-8 rounded-md text-xs font-semibold transition-all duration-150 flex items-center justify-center",
-                                       isOutOfStock
-                                         ? "opacity-35 cursor-not-allowed line-through bg-muted/30"
-                                         : "cursor-pointer",
-                                       selectedSize === size
-                                         ? "bg-foreground text-background shadow-sm scale-105"
-                                         : "bg-background text-foreground border border-border/80 hover:border-primary/40 hover:bg-muted/20",
-                                     )}
-                                   >
-                                     {size}
-                                   </button>
-                                 </div>
-                               </TooltipTrigger>
-                               <TooltipContent
-                                 side="top"
-                                 className="bg-background border border-border/80 shadow-lg rounded-lg px-3 py-2 text-xs font-medium"
-                               >
-                                 {isOutOfStock
-                                   ? "Out of stock"
-                                   : `${stock} available`}
-                               </TooltipContent>
-                             </Tooltip>
-                           </TooltipProvider>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 </motion.div>
-               )}
+                    // Use the hook's filtered values — already size-filtered for
+                    // non-size attributes, and globally filtered for Size itself.
+                    const availableValues = getAvailableValuesForAttribute(attribute);
 
-              {/* Quantity */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={
-                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                }
-                transition={{ duration: 0.35, delay: 0.4 }}
-                className="flex items-center gap-3"
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                  Qty
-                </span>
-                <div className="inline-flex items-center bg-muted/30 rounded-lg border border-border/60 h-8">
-                  <button
-                    onClick={() =>
-                      setQuantity(selectedSize, Math.max(quantity - 1, 1))
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    −
-                  </button>
-                  <span className="w-10 text-center font-semibold text-sm tabular-nums">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setQuantity(
-                        selectedSize,
-                        Math.min(quantity + 1, remainingStock),
-                      )
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
-                    disabled={remainingStock <= 0 || quantity >= remainingStock}
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
+                    // Get selected value for this attribute
+                    const selectedValueId = getSelectedValue(
+                      attribute.attributeId
+                    );
+
+                    return (
+                      <motion.div
+                        key={attribute.attributeId}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={
+                          isVisible
+                            ? { opacity: 1, y: 0 }
+                            : { opacity: 0, y: 8 }
+                        }
+                        transition={{ duration: 0.35, delay: 0.3 }}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                            {attribute.name}
+                            {isRequired ? " *" : ""}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableValues.map((value) => {
+                              const isDisabled = !isValueAvailable(
+                                attribute.attributeId,
+                                value.id
+                              );
+                              const isSelected = selectedValueId === value.id;
+
+                              return (
+                                <TooltipProvider key={value.value}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        key={value.id}
+                                        onClick={() =>
+                                          setSelectedAttribute(
+                                            attribute.attributeId,
+                                            value.id
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={cn(
+                                          "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
+                                          isSelected
+                                            ? "bg-foreground text-background shadow-md scale-105"
+                                            : isDisabled
+                                            ? "bg-muted/20 text-muted-foreground/40 border border-border/30 cursor-not-allowed"
+                                            : "bg-muted/40 text-foreground hover:bg-muted border border-border/60 cursor-pointer"
+                                        )}
+                                      >
+                                        {value.value}
+                                        {isSelected && (
+                                          <motion.span
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm"
+                                          >
+                                            <Check
+                                              size={8}
+                                              className="text-background"
+                                              strokeWidth={3}
+                                            />
+                                          </motion.span>
+                                        )}
+                                      </button>
+                                    </TooltipTrigger>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-               </motion.div>
+              )}
+</div>
+            {/* Quantity */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.35, delay: 0.4 }}
+              className="flex items-center gap-3 mb-8"
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                Qty
+              </span>
+              <div className="inline-flex items-center bg-muted/30 rounded-lg border border-border/60 h-8">
+                <button
+                  onClick={() =>
+                    setQuantityByVariant(
+                      selectedVariant?.id ?? 0,
+                      Math.max(quantity - 1, 1)
+                    )
+                  }
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
+                  disabled={quantity <= 1}
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </button>
+                <span className="w-10 text-center font-semibold text-sm tabular-nums">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() =>
+                    setQuantityByVariant(
+                      selectedVariant?.id ?? 0,
+                      Math.min(quantity + 1, selectedVariantAvailableStock)
+                    )
+                  }
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
+                  disabled={
+                    selectedVariantAvailableStock <= 0 ||
+                    quantity >= selectedVariantAvailableStock
+                  }
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
 
               {/* Size Guide */}
               <SizeGuide categorySlug={categories?.raw?.slug} />
-            </div>
+            </motion.div>
 
             {/* Actions */}
             <div className="flex gap-2.5 mb-6">
@@ -703,7 +685,7 @@ export default function ProductDetailsPage() {
                   "p-3 border rounded-lg transition-all duration-150",
                   inWishlist
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border/80 hover:border-foreground bg-background",
+                    : "border-border/80 hover:border-foreground bg-background"
                 )}
                 aria-label={
                   inWishlist ? "Remove from wishlist" : "Add to wishlist"
@@ -767,7 +749,7 @@ export default function ProductDetailsPage() {
                   "pb-3 text-xs md:text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-1.5 whitespace-nowrap",
                   activeTab === tab.id
                     ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <tab.icon size={14} />
@@ -797,7 +779,7 @@ export default function ProductDetailsPage() {
                   {product.productDetailsHtml && (
                     <div className="mb-6">
                       <div
-                        className="product-details font-sans text-left leading-relaxed text-sm [&>*]:mb-1 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2 [&_th]:text-left [&_td]:text-left"
+                        className="product-details font-sans text-left leading-relaxed text-sm *:mb-1 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:p-2 [&_td]:border [&_td]:p-2 [&_th]:text-left [&_td]:text-left"
                         dangerouslySetInnerHTML={{
                           __html: sanitizeHtml(product.productDetailsHtml),
                         }}

@@ -36,6 +36,17 @@ export interface ProductColor {
   value: string;
 }
 
+// ApplicableAttribute - from category configuration (for UI rendering only)
+export interface ApplicableAttribute {
+  attributeId: number;
+  name: string;
+  isRequired: boolean;
+  isVariantSelectable: boolean;
+  valueRestrictionMode: "NONE" | "ALL" | "SELECTED";
+  valueIds: number[];
+  values: { id: number; value: string }[];
+}
+
 export interface TypeImage {
   altText: string;
   url: string;
@@ -105,6 +116,8 @@ export interface ApiProduct {
   updatedAt?: string;
   // New nested pricing object (from updated API endpoints)
   pricing?: ProductPricing;
+  // Applicable attributes from category (for UI rendering)
+  applicableAttributes?: ApplicableAttribute[];
   [key: string]: any;
 }
 

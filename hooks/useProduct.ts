@@ -69,6 +69,8 @@ interface UseProductByIdOptions {
 
 // ─── Helper: normalise API product to a consistent shape ──────────
 export function normalizeProduct(raw: ApiProduct): ApiProduct {
+  // Extract colors and sizes from variants for backward compatibility with ProductCard
+  // Note: The dynamic attribute system uses applicableAttributes from the API
   const colors: ProductColor[] = [];
   const sizes: string[] = [];
 
@@ -109,6 +111,8 @@ export function normalizeProduct(raw: ApiProduct): ApiProduct {
               altText: "No Image",
             },
           ],
+    // Use extracted colors/sizes for backward compatibility with ProductCard
+    // The product details page uses applicableAttributes for dynamic attribute selection
     colors: colors.length > 0 ? colors : raw.colors ?? [],
     sizes: sizes.length > 0 ? sizes : raw.sizes ?? [],
     details: raw.details ?? [],

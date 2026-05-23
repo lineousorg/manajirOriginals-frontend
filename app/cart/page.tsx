@@ -122,56 +122,50 @@ const CartPage = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4 md:space-y-5">
             {items.map((item, index) => (
-              <motion.div
-                key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.06, duration: 0.35 }}
-                className="flex gap-3 md:gap-4 pb-4 md:pb-5 border-b border-border/50 bg-gray-100 p-4 rounded-xl"
-              >
-                {/* Product Image */}
-                <Link
-                  href={`/products/${item.productId}`}
-                  className="w-[72px] h-[90px] md:w-24 md:h-30 shrink-0 overflow-hidden rounded-lg relative bg-muted"
-                >
-                  <Image
-                    src={item.productImage}
-                    alt={item.productName}
-                    fill
-                    sizes="(max-width: 768px) 72px, 96px"
-                    className="object-cover hover:scale-105 transition-transform duration-400"
-                  />
-                </Link>
+               <motion.div
+                 key={`${item.productId}-${item.variantId}`}
+                 initial={{ opacity: 0, y: 12 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: index * 0.06, duration: 0.35 }}
+                 className="flex gap-3 md:gap-4 pb-4 md:pb-5 border-b border-border/50 bg-gray-100 p-4 rounded-xl"
+               >
+                 {/* Product Image */}
+                 <Link
+                   href={`/products/${item.productId}`}
+                   className="w-[72px] h-[90px] md:w-24 md:h-30 shrink-0 overflow-hidden rounded-lg relative bg-muted"
+                 >
+                   <Image
+                     src={item.productImage}
+                     alt={item.productName}
+                     fill
+                     sizes="(max-width: 768px) 72px, 96px"
+                     className="object-cover hover:scale-105 transition-transform duration-400"
+                   />
+                 </Link>
 
-                {/* Product Details */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  <div className="flex justify-between gap-3 text-left">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/products/${item.productId}`}
-                        className="text-sm md:text-[15px] font-medium hover:text-primary transition-colors text-left line-clamp-2 leading-snug"
-                      >
-                        {item.productName}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] md:text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
-                          {item.selectedSize}
-                        </span>
-                        <span className="text-[11px] md:text-xs text-muted-foreground">
-                          ·
-                        </span>
-                        <span className="text-[11px] md:text-xs text-muted-foreground capitalize">
-                          {item.selectedColor}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        const result = await removeItem(
-                          item.productId,
-                          item.selectedSize,
-                          item.selectedColor,
-                        );
+                 {/* Product Details */}
+                 <div className="flex-1 flex flex-col min-w-0">
+                   <div className="flex justify-between gap-3 text-left">
+                     <div className="min-w-0">
+                       <Link
+                         href={`/products/${item.productId}`}
+                         className="text-sm md:text-[15px] font-medium hover:text-primary transition-colors text-left line-clamp-2 leading-snug"
+                       >
+                         {item.productName}
+                       </Link>
+                       <div className="flex items-center gap-2 mt-1">
+                         <span className="text-[11px] md:text-xs px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
+                           Variant: {item.variantId}
+                         </span>
+                       </div>
+                     </div>
+                     <button
+                        onClick={async () => {
+                          if (!item.variantId) return;
+                          const result = await removeItem(
+                            item.productId,
+                            item.variantId,
+                          );
                         if (result.success) {
                           toast.success(result.message || "Item removed from your cart.");
                         } else {

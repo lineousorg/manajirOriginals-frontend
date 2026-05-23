@@ -27,65 +27,106 @@ export const getVariantAttribute = (
 };
 
 /**
- * Find a variant by size and optional color
+ * Find a variant by matching all selected attributes
  */
-export const findVariantBySizeColor = (
+export const findVariantByAttributes = (
   variants: ProductVariant[],
-  size: string,
-  color?: string
+  selectedAttributes: Map<number, number>
 ): ProductVariant | null => {
-  if (!variants || variants.length === 0) return null;
+  if (!variants || variants.length === 0 || selectedAttributes.size === 0) return null;
 
-  return variants.find((variant) => {
-    const sizeMatch = getVariantAttribute(variant, "Size") === size;
-    const colorMatch =
-      !color || getVariantAttribute(variant, "Color") === color;
-    return sizeMatch && colorMatch;
-  }) ?? null;
+  return variants.find(variant => 
+    Array.from(selectedAttributes.entries()).every(([attributeId, valueId]) => 
+      variant.attributes?.some(attr => 
+        attr.attributeValue?.attribute?.id === attributeId && 
+        attr.attributeValue?.id === valueId
+      ) ?? false
+    )
+  ) ?? null;
 };
 
 /**
- * Get all colors available for a specific size
+ * Get all values available for a specific attribute (considering valueRestrictionMode)
+ * Now considers actual variant values, not just applicableAttributes
  */
-export const getColorsForSize = (
+export const getValuesForAttribute = (
   variants: ProductVariant[],
-  size: string
-): string[] => {
-  const colors: string[] = [];
+  attributeId: number,
+  applicableAttributes: { attributeId: number; valueRestrictionMode: "NONE" | "ALL" | "SELECTED"; valueIds: number[]; values: { id: number; value: string }[] }[]
+): { id: number; value: string }[] => {
+  const attribute = applicableAttributes.find(attr => attr.attributeId === attributeId);
+  if (!attribute) return [];
 
-  variants.forEach((variant) => {
-    if (getVariantAttribute(variant, "Size") === size) {
-      const color = getVariantAttribute(variant, "Color");
-      if (color && !colors.includes(color)) {
-        colors.push(color);
+  // Get values that actually exist in variants for this product
+  const variantValues = new Map<number, string>();
+  variants.forEach(variant => {
+    variant.attributes?.forEach(attr => {
+      if (attr.attributeValue?.attribute?.id === attributeId) {
+        variantValues.set(attr.attributeValue.id, attr.attributeValue.value);
       }
-    }
+    });
   });
 
-  return colors;
+  // For SELECTED mode, only return values that are in valueIds AND exist in variants
+  if (attribute.valueRestrictionMode === "SELECTED") {
+    return attribute.values.filter(value =>
+      attribute.valueIds.includes(value.id) && variantValues.has(value.id)
+    );
+  }
+  
+  // For NONE or ALL, return values that exist in variants
+  return Array.from(variantValues.entries()).map(([id, value]) => ({ id, value }));
 };
 
 /**
- * Get available stock for a specific size (sum of availableStock across all colors)
+ * Get available values for a target attribute, filtered by compatibility with
+ * all currently selected attributes EXCEPT the target attribute itself.
+ *
+ * This is the core of dynamic availability: if the user has already selected
+ * Color = Black, the Size list should only show sizes that have a Black variant.
+ *
+ * @param variants         All product variants
+ * @param targetAttributeId  The attribute whose values we are computing
+ * @param selectedAttributes  Currently selected attributeId → valueId map
+ * @param applicableAttributes  UI schema (for SELECTED mode filtering)
+ */
+export const getAvailableValuesForAttributeWithFilter = (
+  variants: ProductVariant[],
+  targetAttributeId: number,
+  selectedAttributes: Map<number, number>,
+  applicableAttributes: { attributeId: number; valueRestrictionMode: "NONE" | "ALL" | "SELECTED"; valueIds: number[]; values: { id: number; value: string }[] }[]
+): { id: number; value: string }[] => {
+  // 1. Filter variants to only those matching ALL other selected attributes
+  const compatibleVariants = variants.filter(variant => {
+    for (const [attrId, valueId] of selectedAttributes.entries()) {
+      if (attrId === targetAttributeId) continue; // skip the attribute we are computing
+
+      const hasMatch = variant.attributes?.some(
+        attr =>
+          attr.attributeValue?.attribute?.id === attrId &&
+          attr.attributeValue?.id === valueId
+      );
+
+      if (!hasMatch) return false;
+    }
+    return true;
+  });
+
+  // 2. Collect the target attribute's values from those compatible variants
+  return getValuesForAttribute(compatibleVariants, targetAttributeId, applicableAttributes);
+};
+
+/**
+ * Get available stock for a specific variant
  * Uses availableStock from API which is totalStock - reservedStock
  */
-export const getStockForSize = (
-  variants: ProductVariant[],
-  size: string
+export const getStockForVariant = (
+  variant: ProductVariant | null | undefined
 ): number => {
-  let totalAvailableStock = 0;
-
-  variants.forEach((variant) => {
-    if (getVariantAttribute(variant, "Size") === size) {
-      // Use availableStock (total - reserved) as per API structure
-      const availableStock = variant.availableStock ?? variant.stock ?? 0;
-      if (availableStock > 0) {
-        totalAvailableStock += availableStock;
-      }
-    }
-  });
-
-  return totalAvailableStock;
+  if (!variant) return 0;
+  
+  // Use availableStock (total - reserved) as per API structure
+  return variant.availableStock ?? variant.stock ?? 0;
 };
 
 /**

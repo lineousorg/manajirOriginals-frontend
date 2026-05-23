@@ -85,11 +85,10 @@ export const CartDrawer = () => {
             }
           }
           removeItem(
-            item.productId,
-            item.selectedSize,
-            item.selectedColor,
-            true,
-          );
+             item.productId,
+             item.variantId,
+             true,
+           );
         }
       }
     }
@@ -105,14 +104,12 @@ export const CartDrawer = () => {
   const checkStockAvailability = async () => {
     const itemsToRemove: Array<{
       productId: string | number;
-      size: string;
-      color: string;
+      variantId: string | number;
       name: string;
     }> = [];
     const itemsToUpdate: Array<{
       productId: string | number;
-      size: string;
-      color: string;
+      variantId: string | number;
       newQuantity: number;
       name: string;
     }> = [];
@@ -137,15 +134,13 @@ export const CartDrawer = () => {
             if (result.data.availableStock === 0) {
               itemsToRemove.push({
                 productId: item.productId,
-                size: item.selectedSize,
-                color: item.selectedColor,
+                variantId: item.variantId,
                 name: item.productName,
               });
             } else {
               itemsToUpdate.push({
                 productId: item.productId,
-                size: item.selectedSize,
-                color: item.selectedColor,
+                variantId: item.variantId,
                 newQuantity: result.data.availableStock,
                 name: item.productName,
               });
@@ -165,7 +160,7 @@ export const CartDrawer = () => {
 
     if (itemsToRemove.length > 0) {
       itemsToRemove.forEach((item) => {
-        removeItem(item.productId, item.size, item.color);
+        removeItem(item.productId, item.variantId);
       });
       toast.error(
         `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`,
@@ -222,8 +217,8 @@ export const CartDrawer = () => {
     item_name: item.productName,
     price: item.finalPrice ?? item.productPrice,
     quantity: item.quantity,
-    item_category: item.selectedSize,
-    item_brand: item.selectedColor,
+    item_category: item.productName,
+    item_brand: String(item.variantId ?? "unknown"),
   }));
 
   const handleCheckout = () => {
@@ -312,7 +307,7 @@ export const CartDrawer = () => {
                   <ul className="space-y-3">
                     {items.map((item, index) => (
                       <motion.li
-                        key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
+                        key={`${item.productId}-${item.variantId}`}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.04, duration: 0.3 }}
@@ -340,22 +335,16 @@ export const CartDrawer = () => {
                               </h4>
                               <div className="flex items-center gap-1.5 mt-1">
                                 <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
-                                  {item.selectedSize}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  ·
-                                </span>
-                                <span className="text-[11px] text-muted-foreground capitalize">
-                                  {item.selectedColor}
+                                  Variant: {item.variantId}
                                 </span>
                               </div>
                             </div>
                             <button
                               onClick={async () => {
+                                if (!item.variantId) return;
                                 const result = await removeItem(
                                   item.productId,
-                                  item.selectedSize,
-                                  item.selectedColor,
+                                  item.variantId,
                                 );
                                 if (result.success) {
                                   toast.success(
