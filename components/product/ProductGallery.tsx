@@ -74,7 +74,7 @@ export const ProductGallery = ({
   // Calculate background position for zoom effect
   const bgPosition = `${mousePosition.x}% ${mousePosition.y}%`;
 
-  console.log(images);
+  // console.log(images);
 
   return (
     <div className="space-y-4">

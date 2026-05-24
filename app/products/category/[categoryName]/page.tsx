@@ -21,7 +21,7 @@ export default function CategoryProductsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const categoryName = params.categoryName as string;
-console.log(categoryName);
+// console.log(categoryName);
   // Get filters from URL params
   const urlMinPrice = searchParams.get("minPrice");
   const urlMaxPrice = searchParams.get("maxPrice");
@@ -45,7 +45,7 @@ console.log(categoryName);
     loading: categoriesLoading,
   } = useCategories();
 
-  console.log(categories);
+  // console.log(categories);
 
   // Find the current category from the category tree
   const currentCategory = useMemo(() => {
@@ -102,8 +102,8 @@ console.log(categoryName);
     fetchOnMount: true,
   });
 
-  console.log(products);
-  console.log(fetchedCategory);
+  // console.log(products);
+  // console.log(fetchedCategory);
 
   // Use fetched category from API or fallback to local category
   const displayCategory = fetchedCategory || currentCategory;
@@ -188,7 +188,7 @@ console.log(categoryName);
     );
   }
 
-  console.log(currentCategory);
+  // console.log(currentCategory);
 
   // Show category not found only after loading is complete and category is still not found
   // if (!currentCategory && !isLoading) {

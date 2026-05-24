@@ -15,27 +15,40 @@ interface UseVariantSelectionProps {
   productPrice?: number;
 }
 
-/**
- * Sentinel attribute id used to identify the "Size" attribute by name.
- * We match on the attribute name "size" (case-insensitive) at runtime
- * rather than hardcoding an id, so this works across all products.
- */
 const SIZE_ATTRIBUTE_NAME = "size";
+
+/**
+ * Ordered size mapping: lowest key = smallest size.
+ * Maps string label to a sortable number so S < M < L < XL < 2XL < 3XL.
+ */
+const SIZE_ORDER: Record<string, number> = {
+  "xs": 0,
+  "s": 1,
+  "m": 2,
+  "l": 3,
+  "xl": 4,
+  "2xl": 5,
+  "xxl": 5,
+  "3xl": 6,
+  "xxxl": 6,
+};
+
+/** Stable sort key derived from a size label string. */
+function getSizeOrderKey(label: string): number {
+  const key = label.trim().toLowerCase();
+  return SIZE_ORDER[key] ?? 999;
+}
 
 export const useVariantSelection = ({
   variants = [],
   applicableAttributes = [],
   productPrice = 0,
 }: UseVariantSelectionProps) => {
-  // Store selected attributes as Map<attributeId, valueId>
   const [selectedAttributes, setSelectedAttributes] = useState<Map<number, number>>(
     new Map()
   );
   const [quantityByVariant, setQuantityByVariant] = useState<Record<number, number>>({});
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  /** Find the Size ApplicableAttribute by name, or undefined if not present. */
   const sizeAttribute = useMemo(
     () =>
       applicableAttributes.find(
@@ -44,20 +57,12 @@ export const useVariantSelection = ({
     [applicableAttributes]
   );
 
-  /** attributeId of the Size attribute, or null if the product has no Size. */
   const sizeAttributeId = sizeAttribute?.attributeId ?? null;
 
-  // ── Size-filtered variant set ─────────────────────────────────────────────
-  //
-  // When a size is selected, every non-size attribute only needs to consider
-  // variants that match that size.  This is the key optimisation that prevents
-  // impossible combinations: Color = Black + Size = S can never appear because
-  // no Black/S variant will survive this filter.
-  //
   const sizeFilteredVariants = useMemo(() => {
-    if (sizeAttributeId === null) return variants; // no Size attribute → no filtering
+    if (sizeAttributeId === null) return variants;
     const selectedSizeId = selectedAttributes.get(sizeAttributeId);
-    if (selectedSizeId === undefined) return variants; // size not yet chosen → show all
+    if (selectedSizeId === undefined) return variants;
     return variants.filter((v) =>
       v.attributes?.some(
         (a) =>
@@ -67,14 +72,6 @@ export const useVariantSelection = ({
     );
   }, [variants, selectedAttributes, sizeAttributeId]);
 
-  // ── Candidate variants ─────────────────────────────────────────────────────
-  //
-  // The set of variants compatible with ALL currently selected attributes.
-  // This is the authoritative set for:
-  //   - pruning stale selections
-  //   - computing which attributes are actually present
-  //   - any future feature that needs the narrowed variant set (gallery, price range, etc.)
-  //
   const candidateVariants = useMemo(() => {
     if (selectedAttributes.size === 0) return variants;
     return variants.filter((variant) =>
@@ -88,16 +85,6 @@ export const useVariantSelection = ({
     );
   }, [variants, selectedAttributes]);
 
-  // ── Stale selection pruning ────────────────────────────────────────────────
-  //
-  // When the user changes Size (or any anchor attribute), previously-selected
-  // values for other attributes may no longer exist in any candidate variant.
-  // This effect removes those stale entries so the internal state never diverges
-  // from what is actually possible.
-  //
-  // Example: user had Size=M + Color=Black + Print=Dragon, then changes to Size=XL.
-  // If no XL variant has Color or Print, both are pruned automatically.
-  //
   useEffect(() => {
     if (selectedAttributes.size === 0) return;
 
@@ -124,17 +111,6 @@ export const useVariantSelection = ({
     });
   }, [candidateVariants]);
 
-  // ── Available attributes (attribute-exists-in-candidates) ──────────────────
-  //
-  // An attribute is "available" only when at least one candidate variant
-  // actually carries it.  This is distinct from "value available" — it
-  // controls whether the entire attribute section is rendered at all.
-  //
-  // Scenario A: XL variants have no Print attribute at all.
-  //   → Print is absent from availableAttributes → section is hidden.
-  // Scenario B: XL variants have Print but not Print=Dragon.
-  //   → Print IS in availableAttributes, but Dragon is disabled.
-  //
   const availableAttributeIds = useMemo(() => {
     const ids = new Set<number>();
     candidateVariants.forEach((variant) => {
@@ -147,49 +123,53 @@ export const useVariantSelection = ({
     return ids;
   }, [candidateVariants]);
 
-  const availableAttributes = useMemo(
-    () =>
-      applicableAttributes.filter(
-        (attr) => attr.isVariantSelectable && availableAttributeIds.has(attr.attributeId)
-      ),
-    [applicableAttributes, availableAttributeIds]
-  );
+  const COLOR_ATTRIBUTE_NAME = "color";
 
-  // Source variants for a given attribute's value list:
-  //   - Size itself always uses the full variant set (size cannot filter itself)
-  //   - Every other attribute uses sizeFilteredVariants so only compatible
-  //     values are shown once a size is locked in.
+  const availableAttributes = useMemo(() => {
+    const matching = applicableAttributes.filter(
+      (attr) => attr.isVariantSelectable && availableAttributeIds.has(attr.attributeId)
+    );
+
+    const size = matching.find(
+      (a) => a.name.toLowerCase() === SIZE_ATTRIBUTE_NAME
+    );
+    const color = matching.find(
+      (a) => a.name.toLowerCase() === COLOR_ATTRIBUTE_NAME
+    );
+    const rest = matching
+      .filter(
+        (a) =>
+          a.name.toLowerCase() !== SIZE_ATTRIBUTE_NAME &&
+          a.name.toLowerCase() !== COLOR_ATTRIBUTE_NAME
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return [size, color, ...rest].filter(Boolean) as ApplicableAttribute[];
+  }, [applicableAttributes, availableAttributeIds]);
+
   const sourceVariantsFor = (attributeId: number): ProductVariant[] => {
     if (attributeId === sizeAttributeId) return variants;
     return sizeFilteredVariants;
   };
 
-  // ── Available values per attribute ────────────────────────────────────────
-
   const getAvailableValuesForAttribute = useMemo(() => {
     return (attribute: ApplicableAttribute) => {
-      return getValuesForAttribute(
-        sourceVariantsFor(attribute.attributeId),
-        attribute.attributeId,
-        applicableAttributes
-      );
+      const srcV = sourceVariantsFor(attribute.attributeId);
+      const values = getValuesForAttribute(srcV, attribute.attributeId, applicableAttributes);
+      if (attribute.name.toLowerCase() === SIZE_ATTRIBUTE_NAME) {
+        return [...values].sort(
+          (a, b) => getSizeOrderKey(a.value) - getSizeOrderKey(b.value)
+        );
+      }
+      return values;
     };
   }, [applicableAttributes, sizeFilteredVariants, variants, sizeAttributeId]);
 
-  // ── Dynamic compatibility filtering ──────────────────────────────────────
-  //
-  // For non-size attributes, further narrow available values by checking that
-  // each candidate value participates in at least one variant that is also
-  // compatible with every OTHER selected attribute (excluding the target).
-  // This is the "proper algorithm" from the feedback, applied selectively.
-  //
   const getCompatibleValuesForAttribute = useMemo(() => {
     return (attribute: ApplicableAttribute) => {
-      // Size is already handled by sizeFilteredVariants above.
       if (attribute.attributeId === sizeAttributeId) {
         return getAvailableValuesForAttribute(attribute);
       }
-      // For all other attributes, apply the full compatibility filter.
       return getAvailableValuesForAttributeWithFilter(
         variants,
         attribute.attributeId,
@@ -197,21 +177,8 @@ export const useVariantSelection = ({
         applicableAttributes
       );
     };
-  }, [
-    variants,
-    selectedAttributes,
-    applicableAttributes,
-    sizeAttributeId,
-    getAvailableValuesForAttribute,
-  ]);
+  }, [variants, selectedAttributes, applicableAttributes, sizeAttributeId, getAvailableValuesForAttribute]);
 
-  // ── Disabled / unavailable values per attribute ────────────────────────────
-  //
-  // A value is "disabled" when it exists in the schema but does NOT appear in
-  // the dynamically-filtered compatible set.  The UI can grey these out rather
-  // than hiding them, giving the user clear feedback about why a value is
-  // unavailable.
-  //
   const disabledValuesByAttribute = useMemo(() => {
     const map = new Map<number, Set<number>>();
     applicableAttributes.forEach((attr) => {
@@ -233,19 +200,13 @@ export const useVariantSelection = ({
     return disabled ? !disabled.has(valueId) : true;
   };
 
-  // ── Selected variant ──────────────────────────────────────────────────────
-
   const selectedVariant = useMemo(() => {
     return findVariantByAttributes(variants, selectedAttributes);
   }, [variants, selectedAttributes]);
 
-  // ── Price ─────────────────────────────────────────────────────────────────
-
   const { currentPrice, originalPrice, discountPercentage } = useMemo(() => {
     return calculatePrice(selectedVariant, productPrice);
   }, [selectedVariant, productPrice]);
-
-  // ── Stock ─────────────────────────────────────────────────────────────────
 
   const selectedVariantAvailableStock = useMemo(() => {
     return getStockForVariant(selectedVariant);
@@ -253,74 +214,102 @@ export const useVariantSelection = ({
 
   const quantity = selectedVariant ? (quantityByVariant[selectedVariant.id] ?? 1) : 1;
 
-  // ── Default selection: size-first, variant-anchored ───────────────────────
+  // ── Default selection: smallest size ───────────────────────────────────────
   //
-  // Instead of picking a default per attribute independently (which can produce
-  // invalid combinations), we find ONE real variant and derive ALL defaults
-  // from it.  Size is set first because it is the natural anchor in clothing
-  // ecommerce — every variant has a size, and picking size first immediately
-  // partitions the variant space.
+  // Finds the smallest available size and selects it on mount.
+  // All other attributes are derived from that same variant so the combination
+  // is guaranteed valid.
   //
   useEffect(() => {
     if (applicableAttributes.length === 0) {
-      if (selectedAttributes.size > 0) {
-        setSelectedAttributes(new Map());
+      if (selectedAttributes.size > 0) setSelectedAttributes(new Map());
+      return;
+    }
+
+    if (applicableAttributes.filter((a) => a.isVariantSelectable).length === 0) {
+      if (selectedAttributes.size > 0) setSelectedAttributes(new Map());
+      return;
+    }
+
+    // Already have a complete selection resolving to a variant — keep it.
+    if (selectedAttributes.size > 0 && selectedVariant !== null) return;
+
+    if (sizeAttributeId === null || !sizeAttribute) {
+      // No Size attribute — pick the first variant as anchor.
+      if (variants.length > 0 && variants[0]) {
+        const defaults = new Map<number, number>();
+        variants[0].attributes?.forEach((a) => {
+          if (a.attributeValue?.attribute?.id && a.attributeValue?.id) {
+            defaults.set(a.attributeValue.attribute.id, a.attributeValue.id);
+          }
+        });
+        if (defaults.size > 0) setSelectedAttributes(defaults);
       }
       return;
     }
 
-    const variantSelectableAttributes = applicableAttributes.filter(
-      (attr) => attr.isVariantSelectable
-    );
+    // Build size value id → sort-order map from the schema.
+    const sizeValueOrderMap = new Map<number, number>();
+    sizeAttribute.values.forEach((sv) => {
+      sizeValueOrderMap.set(sv.id, getSizeOrderKey(sv.value));
+    });
 
-    if (variantSelectableAttributes.length === 0) {
-      if (selectedAttributes.size > 0) {
-        setSelectedAttributes(new Map());
-      }
-      return;
-    }
+    // Pick the in-stock variant with the smallest size.
+    const defaultVariant = variants
+      .filter((v) => getStockForVariant(v) > 0)
+      .sort((a, b) => {
+        const aSizeId = a.attributes?.find(
+          (attr) => attr.attributeValue?.attribute?.id === sizeAttributeId
+        )?.attributeValue?.id;
+        const bSizeId = b.attributes?.find(
+          (attr) => attr.attributeValue?.attribute?.id === sizeAttributeId
+        )?.attributeValue?.id;
+        const aOrder = aSizeId != null ? sizeValueOrderMap.get(aSizeId) ?? 999 : 999;
+        const bOrder = bSizeId != null ? sizeValueOrderMap.get(bSizeId) ?? 999 : 999;
+        return aOrder - bOrder;
+      })[0];
 
-    // If we already have a complete selection that resolves to a variant, keep it.
-    if (selectedAttributes.size > 0 && selectedVariant !== null) {
-      return;
-    }
+    // Fall back: if no in-stock variant, sort all variants by size.
+    const anchorVariant =
+      defaultVariant ??
+      [...variants].sort((a, b) => {
+        const aSizeId = a.attributes?.find(
+          (attr) => attr.attributeValue?.attribute?.id === sizeAttributeId
+        )?.attributeValue?.id;
+        const bSizeId = b.attributes?.find(
+          (attr) => attr.attributeValue?.attribute?.id === sizeAttributeId
+        )?.attributeValue?.id;
+        const aOrder = aSizeId != null ? sizeValueOrderMap.get(aSizeId) ?? 999 : 999;
+        const bOrder = bSizeId != null ? sizeValueOrderMap.get(bSizeId) ?? 999 : 999;
+        return aOrder - bOrder;
+      })[0] ??
+      variants[0];
 
-    // Pick the first in-stock variant as the anchor.
-    const defaultVariant =
-      variants.find((v) => getStockForVariant(v) > 0) ?? variants[0];
-
-    if (!defaultVariant) return;
+    if (!anchorVariant) return;
 
     const defaults = new Map<number, number>();
 
-    // Set Size first (if the product has a Size attribute).
-    if (sizeAttributeId !== null) {
-      const sizeAttr = defaultVariant.attributes?.find(
-        (a) => a.attributeValue?.attributeId === sizeAttributeId
-      );
-      if (sizeAttr?.attributeValue?.id) {
-        defaults.set(sizeAttributeId, sizeAttr.attributeValue.id);
-      }
+    // Set Size first.
+    const sizeAttr = anchorVariant.attributes?.find(
+      (a) => a.attributeValue?.attribute?.id === sizeAttributeId
+    );
+    if (sizeAttr?.attributeValue?.id) {
+      defaults.set(sizeAttributeId, sizeAttr.attributeValue.id);
     }
 
-    // Set all other attributes from the same variant.
-    // Because they all come from one real variant, the combination is guaranteed valid.
-    defaultVariant.attributes?.forEach((attr) => {
-      if (
-        attr.attributeValue?.attributeId &&
-        attr.attributeValue?.id &&
-        attr.attributeValue.attributeId !== sizeAttributeId // size already set above
-      ) {
-        defaults.set(attr.attributeValue.attributeId, attr.attributeValue.id);
+    // Derive all other attributes from the same anchor variant.
+    anchorVariant.attributes?.forEach((av) => {
+      const attrId = av.attributeValue?.attribute?.id;
+      const valueId = av.attributeValue?.id;
+      if (attrId && valueId && attrId !== sizeAttributeId) {
+        defaults.set(attrId, valueId);
       }
     });
 
     if (defaults.size > 0) {
       setSelectedAttributes(defaults);
     }
-  }, [applicableAttributes, variants, selectedAttributes, selectedVariant, sizeAttributeId]);
-
-  // ── Quantity clamping when stock changes ───────────────────────────────────
+  }, [applicableAttributes, variants, selectedAttributes, selectedVariant, sizeAttributeId, sizeAttribute]);
 
   useEffect(() => {
     if (!selectedVariant) return;
@@ -333,40 +322,20 @@ export const useVariantSelection = ({
     });
   }, [selectedVariantAvailableStock, selectedVariant]);
 
-  // ── Selection setter ──────────────────────────────────────────────────────
-
   const setSelectedAttribute = (attributeId: number, valueId: number) => {
-    // Validate that the attributeId exists in applicableAttributes
-    const attributeExists = applicableAttributes.some(
-      (attr) => attr.attributeId === attributeId
-    );
-    if (!attributeExists) {
-      console.warn(`Attempted to set value for non-existent attributeId: ${attributeId}`);
-      return;
-    }
+    const attribute = applicableAttributes.find((a) => a.attributeId === attributeId);
+    if (!attribute) return;
 
-    const attribute = applicableAttributes.find(
-      (attr) => attr.attributeId === attributeId
-    );
-    if (!attribute) {
-      console.warn(`Attribute not found for attributeId: ${attributeId}`);
-      return;
-    }
-
-    // Validate against the dynamically-filtered compatible set, not the raw schema.
     const compatibleValues = getCompatibleValuesForAttribute(attribute);
-    const valueExists = compatibleValues.some((v) => v.id === valueId);
-    if (!valueExists) {
-      console.warn(
-        `Attempted to set valueId: ${valueId} for attributeId: ${attributeId} — not compatible with current selection`
-      );
+    if (!compatibleValues.some((v) => v.id === valueId)) {
+      console.warn(`valueId ${valueId} not compatible with attribute ${attributeId}`);
       return;
     }
 
     setSelectedAttributes((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(attributeId, valueId);
-      return newMap;
+      const next = new Map(prev);
+      next.set(attributeId, valueId);
+      return next;
     });
   };
 
@@ -380,12 +349,9 @@ export const useVariantSelection = ({
   };
 
   const areAllRequiredSelected = (): boolean => {
-    const requiredAttributes = applicableAttributes.filter(
-      (attr) => attr.isRequired && attr.isVariantSelectable
-    );
-    return requiredAttributes.every((attr) =>
-      selectedAttributes.has(attr.attributeId)
-    );
+    return applicableAttributes
+      .filter((a) => a.isRequired && a.isVariantSelectable)
+      .every((a) => selectedAttributes.has(a.attributeId));
   };
 
   return {
@@ -398,8 +364,8 @@ export const useVariantSelection = ({
     getCompatibleValuesForAttribute,
     disabledValuesByAttribute,
     isValueAvailable,
-    availableAttributes,          // attributes that actually exist in candidate variants
-    candidateVariants,            // variants compatible with current selection
+    availableAttributes,
+    candidateVariants,
     quantityByVariant,
     setQuantityByVariant: (variantId: number, qty: number) => {
       setQuantityByVariant((prev) => ({ ...prev, [variantId]: qty }));

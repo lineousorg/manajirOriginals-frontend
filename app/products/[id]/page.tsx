@@ -68,7 +68,7 @@ export default function ProductDetailsPage() {
   const { product, loading, refetch } = useProductById(id);
   const { relatedProducts } = useRelatedProducts(
     product?.id,
-    product?.category?.slug
+    product?.category?.slug,
   );
 
   const addToCart = useCartStore((state) => state.addItem);
@@ -95,8 +95,8 @@ export default function ProductDetailsPage() {
     getAvailableValuesForAttribute,
     getCompatibleValuesForAttribute,
     isValueAvailable,
-    availableAttributes,       // attributes that actually exist in candidate variants
-    candidateVariants,         // variants compatible with current selection
+    availableAttributes, // attributes that actually exist in candidate variants
+    candidateVariants, // variants compatible with current selection
     quantityByVariant,
     setQuantityByVariant,
     quantity,
@@ -153,7 +153,7 @@ export default function ProductDetailsPage() {
               altText: "No Image",
             },
           ],
-    [product?.images]
+    [product?.images],
   );
 
   const details = product?.details ?? [];
@@ -197,14 +197,13 @@ export default function ProductDetailsPage() {
 
     const normalizedImages: TypeImage[] = Array.isArray(product.images)
       ? product.images.map((img) =>
-          typeof img === "string" ? { url: img, altText: product.name } : img
+          typeof img === "string" ? { url: img, altText: product.name } : img,
         )
       : [];
 
     try {
-      const stockCheck = await stockReservationService.getAvailableStock(
-        variantId
-      );
+      const stockCheck =
+        await stockReservationService.getAvailableStock(variantId);
       if (stockCheck.success && stockCheck.data) {
         const maxCartQuantity =
           existingCartQuantity + stockCheck.data.availableStock;
@@ -213,11 +212,11 @@ export default function ProductDetailsPage() {
         if (requestedTotalQuantity > maxCartQuantity) {
           if (maxCartQuantity === 0) {
             toast.error(
-              "This item is out of stock. Please choose a different option."
+              "This item is out of stock. Please choose a different option.",
             );
           } else {
             toast.error(
-              `Only ${maxCartQuantity} total available for this option. Please adjust quantity.`
+              `Only ${maxCartQuantity} total available for this option. Please adjust quantity.`,
             );
           }
           return;
@@ -227,12 +226,12 @@ export default function ProductDetailsPage() {
       const result = await addToCart(
         { ...product, id: productId, images: normalizedImages },
         variantId,
-        quantity
+        quantity,
       );
 
       if (!result.success) {
         toast.error(
-          "Unable to add item to cart. Please try again or choose different options."
+          "Unable to add item to cart. Please try again or choose different options.",
         );
         return;
       }
@@ -244,8 +243,8 @@ export default function ProductDetailsPage() {
       const toastMessage = result.isExisting
         ? "Updated quantity in your bag!"
         : isAlreadyInCart
-        ? `Added ${product.name} to your bag!`
-        : "Added to bag!";
+          ? `Added ${product.name} to your bag!`
+          : "Added to bag!";
 
       if (isInAppBrowser()) {
         toast.custom(
@@ -269,7 +268,7 @@ export default function ProductDetailsPage() {
               </button>
             </div>
           ),
-          { duration: 4000 }
+          { duration: 4000 },
         );
       } else {
         toast.success(toastMessage);
@@ -324,7 +323,7 @@ export default function ProductDetailsPage() {
       (variant: ProductVariant) => {
         const available = variant.availableStock ?? variant.stock ?? 0;
         return available <= 0;
-      }
+      },
     );
     return allVariantsOutOfStock;
   }, [product?.variants, product?.availableStock]);
@@ -534,11 +533,12 @@ export default function ProductDetailsPage() {
 
                     // Use the hook's filtered values — already size-filtered for
                     // non-size attributes, and globally filtered for Size itself.
-                    const availableValues = getAvailableValuesForAttribute(attribute);
+                    const availableValues =
+                      getAvailableValuesForAttribute(attribute);
 
                     // Get selected value for this attribute
                     const selectedValueId = getSelectedValue(
-                      attribute.attributeId
+                      attribute.attributeId,
                     );
 
                     return (
@@ -554,7 +554,7 @@ export default function ProductDetailsPage() {
                         className="space-y-2"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0 text-left">
                             {attribute.name}
                             {isRequired ? " *" : ""}
                           </span>
@@ -562,7 +562,7 @@ export default function ProductDetailsPage() {
                             {availableValues.map((value) => {
                               const isDisabled = !isValueAvailable(
                                 attribute.attributeId,
-                                value.id
+                                value.id,
                               );
                               const isSelected = selectedValueId === value.id;
 
@@ -575,17 +575,17 @@ export default function ProductDetailsPage() {
                                         onClick={() =>
                                           setSelectedAttribute(
                                             attribute.attributeId,
-                                            value.id
+                                            value.id,
                                           )
                                         }
                                         disabled={isDisabled}
                                         className={cn(
-                                          "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150",
+                                          "relative px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150",
                                           isSelected
                                             ? "bg-foreground text-background shadow-md scale-105"
                                             : isDisabled
-                                            ? "bg-muted/20 text-muted-foreground/40 border border-border/30 cursor-not-allowed"
-                                            : "bg-muted/40 text-foreground hover:bg-muted border border-border/60 cursor-pointer"
+                                              ? "bg-muted/20 text-muted-foreground/40 border border-border/30 cursor-not-allowed"
+                                              : "bg-muted/40 text-foreground hover:bg-muted border border-border/60 cursor-pointer",
                                         )}
                                       >
                                         {value.value}
@@ -615,7 +615,7 @@ export default function ProductDetailsPage() {
                   })}
                 </div>
               )}
-</div>
+            </div>
             {/* Quantity */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
@@ -631,7 +631,7 @@ export default function ProductDetailsPage() {
                   onClick={() =>
                     setQuantityByVariant(
                       selectedVariant?.id ?? 0,
-                      Math.max(quantity - 1, 1)
+                      Math.max(quantity - 1, 1),
                     )
                   }
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
@@ -647,7 +647,7 @@ export default function ProductDetailsPage() {
                   onClick={() =>
                     setQuantityByVariant(
                       selectedVariant?.id ?? 0,
-                      Math.min(quantity + 1, selectedVariantAvailableStock)
+                      Math.min(quantity + 1, selectedVariantAvailableStock),
                     )
                   }
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
@@ -685,7 +685,7 @@ export default function ProductDetailsPage() {
                   "p-3 border rounded-lg transition-all duration-150",
                   inWishlist
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border/80 hover:border-foreground bg-background"
+                    : "border-border/80 hover:border-foreground bg-background",
                 )}
                 aria-label={
                   inWishlist ? "Remove from wishlist" : "Add to wishlist"
@@ -749,7 +749,7 @@ export default function ProductDetailsPage() {
                   "pb-3 text-xs md:text-sm font-medium uppercase tracking-wider transition-colors relative flex items-center gap-1.5 whitespace-nowrap",
                   activeTab === tab.id
                     ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <tab.icon size={14} />
