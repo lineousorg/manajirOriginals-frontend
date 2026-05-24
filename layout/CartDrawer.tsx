@@ -86,8 +86,7 @@ export const CartDrawer = () => {
           }
           removeItem(
             item.productId,
-            item.selectedSize,
-            item.selectedColor,
+            item.selectedAttributes,
             true,
           );
         }
@@ -105,14 +104,12 @@ export const CartDrawer = () => {
   const checkStockAvailability = async () => {
     const itemsToRemove: Array<{
       productId: string | number;
-      size: string;
-      color: string;
+      selectedAttributes: Record<string, string>;
       name: string;
     }> = [];
     const itemsToUpdate: Array<{
       productId: string | number;
-      size: string;
-      color: string;
+      selectedAttributes: Record<string, string>;
       newQuantity: number;
       name: string;
     }> = [];
@@ -137,15 +134,13 @@ export const CartDrawer = () => {
             if (result.data.availableStock === 0) {
               itemsToRemove.push({
                 productId: item.productId,
-                size: item.selectedSize,
-                color: item.selectedColor,
+                selectedAttributes: item.selectedAttributes,
                 name: item.productName,
               });
             } else {
               itemsToUpdate.push({
                 productId: item.productId,
-                size: item.selectedSize,
-                color: item.selectedColor,
+                selectedAttributes: item.selectedAttributes,
                 newQuantity: result.data.availableStock,
                 name: item.productName,
               });
@@ -165,7 +160,7 @@ export const CartDrawer = () => {
 
     if (itemsToRemove.length > 0) {
       itemsToRemove.forEach((item) => {
-        removeItem(item.productId, item.size, item.color);
+        removeItem(item.productId, item.selectedAttributes);
       });
       toast.error(
         `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`,
@@ -217,14 +212,21 @@ export const CartDrawer = () => {
       : DELIVERY_CHARGES.OUTSIDE_DHAKA;
   const total = subtotal + shipping;
 
-  const checkoutItems: GTMItem[] = items.map((item) => ({
-    item_id: String(item.variantId ?? item.productId),
-    item_name: item.productName,
-    price: item.finalPrice ?? item.productPrice,
-    quantity: item.quantity,
-    item_category: item.selectedSize,
-    item_brand: item.selectedColor,
-  }));
+   const checkoutItems: GTMItem[] = items.map((item) => {
+     // Extract first two attributes for GTM tracking (maintaining backward compatibility)
+     const attributes = Object.entries(item.selectedAttributes);
+     const itemCategory = attributes.length > 0 ? attributes[0][1] : "";
+     const itemBrand = attributes.length > 1 ? attributes[1][1] : "";
+     
+     return {
+       item_id: String(item.variantId ?? item.productId),
+       item_name: item.productName,
+       price: item.finalPrice ?? item.productPrice,
+       quantity: item.quantity,
+       item_category: itemCategory,
+       item_brand: itemBrand,
+     };
+   });
 
   const handleCheckout = () => {
     closeCart();
@@ -312,7 +314,7 @@ export const CartDrawer = () => {
                   <ul className="space-y-3">
                     {items.map((item, index) => (
                       <motion.li
-                        key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
+                        key={`${item.productId}-${JSON.stringify(item.selectedAttributes)}`}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.04, duration: 0.3 }}
@@ -338,24 +340,24 @@ export const CartDrawer = () => {
                               <h4 className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors text-left">
                                 {item.productName}
                               </h4>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
-                                  {item.selectedSize}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  ·
-                                </span>
-                                <span className="text-[11px] text-muted-foreground capitalize">
-                                  {item.selectedColor}
-                                </span>
-                              </div>
+                               <div className="flex items-center gap-1.5 mt-1">
+                                 {Object.entries(item.selectedAttributes).map(([name, value]) => (
+                                   <>
+                                     <span key={name} className="text-[11px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
+                                       {value}
+                                     </span>
+                                     <span className="text-[11px] text-muted-foreground">
+                                       ·
+                                     </span>
+                                   </>
+                                 ))}
+                               </div>
                             </div>
                             <button
                               onClick={async () => {
                                 const result = await removeItem(
                                   item.productId,
-                                  item.selectedSize,
-                                  item.selectedColor,
+                                  item.selectedAttributes,
                                 );
                                 if (result.success) {
                                   toast.success(

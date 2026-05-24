@@ -1,148 +1,122 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useMemo } from "react";
-import { ProductVariant } from "@/types";
+import { ProductVariant, ApiProduct } from "@/types";
 import {
-  findVariantBySizeColor,
-  getColorsForSize,
-  getStockForSize,
-  calculatePrice,
-} from "@/lib/variant-utils";
+  getActiveCategoryAttributes,
+  getAvailableValuesForAttribute,
+  findVariantByAttributes,
+  getStockForAttributeCombo,
+} from "@/lib/attribute-utils";
+import { calculatePrice } from "@/lib/variant-utils";
 
 interface UseVariantSelectionProps {
   variants?: ProductVariant[];
-  sizes?: string[];
+  product?: ApiProduct;
   productPrice?: number;
 }
 
 export const useVariantSelection = ({
   variants = [],
-  sizes = [],
+  product,
   productPrice = 0,
 }: UseVariantSelectionProps) => {
-  const [selectedSize, setSelectedSize] = useState<string>("");
-  const [selectedColor, setSelectedColor] = useState<string>("");
-  const [quantityBySize, setQuantityBySize] = useState<Record<string, number>>({});
+  // Dynamic state: stores all selected attributes by name
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState<number>(1);
 
-  // Get available colors for selected size
-  const availableColorsForSelectedSize = useMemo(() => {
-    if (!variants || !selectedSize) return [];
-    return getColorsForSize(variants, selectedSize);
-  }, [variants, selectedSize]);
+  // Get active attributes from category
+  const activeAttributes = useMemo(() => {
+    return product ? getActiveCategoryAttributes(product) : [];
+  }, [product]);
 
-  // Get selected variant
-  const selectedVariant = useMemo(
-    () => findVariantBySizeColor(variants, selectedSize, selectedColor),
-    [variants, selectedSize, selectedColor]
-  );
+  // Get required attribute names (for validation)
+  const requiredAttributes = useMemo(() => {
+    return activeAttributes.filter((attr) => attr.isRequired).map((attr) => attr.name);
+  }, [activeAttributes]);
 
-  // Calculate price
-  const { currentPrice, originalPrice, discountPercentage } = useMemo(
-    () => calculatePrice(selectedVariant, productPrice),
-    [selectedVariant, productPrice]
-  );
+  // Get available values for each attribute based on current selections
+  const availableAttributeValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
 
-  // Get stock for selected size
-  const stockForSelectedSize = useMemo(() => {
-    if (!variants || !selectedSize) return 0;
-    return getStockForSize(variants, selectedSize);
-  }, [variants, selectedSize]);
+    activeAttributes.forEach((attr) => {
+      result[attr.name] = getAvailableValuesForAttribute(
+        variants,
+        attr.name,
+        selectedAttributes,
+        attr.name
+      );
+    });
 
-  // Get available stock for selected variant
-  // Use availableStock first (as per API structure: availableStock = totalStock - reservedStock)
-  const selectedVariantAvailableStock =
-    selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
+    return result;
+  }, [variants, activeAttributes, selectedAttributes]);
 
-  // Derived quantity for currently selected size
-  const quantity = selectedSize ? (quantityBySize[selectedSize] ?? 1) : 1;
+  // Find selected variant dynamically
+  const selectedVariant = useMemo(() => {
+    return findVariantByAttributes(variants, selectedAttributes);
+  }, [variants, selectedAttributes]);
+
+  // Price calculation
+  const { currentPrice, originalPrice, discountPercentage } = useMemo(() => {
+    return calculatePrice(selectedVariant, productPrice);
+  }, [selectedVariant, productPrice]);
+
+  // Stock for current selection
+  const selectedVariantStock = useMemo(() => {
+    return selectedVariant?.availableStock ?? selectedVariant?.stock ?? 0;
+  }, [selectedVariant]);
+
+  // Check if all required attributes are selected
+  const hasAllRequiredSelected = useMemo(() => {
+    return requiredAttributes.every((attrName) => !!selectedAttributes[attrName]);
+  }, [requiredAttributes, selectedAttributes]);
 
   // Initialize defaults when product loads
   useEffect(() => {
-    if (sizes.length === 0) {
-      if (selectedSize) {
-        setSelectedSize("");
+    if (!variants.length || !activeAttributes.length) return;
+
+    // Auto-select first available value for each attribute
+    const initialSelections: Record<string, string> = {};
+
+    activeAttributes.forEach((attr) => {
+      const available = getAvailableValuesForAttribute(
+        variants,
+        attr.name,
+        initialSelections,
+        attr.name
+      );
+      if (available.length > 0) {
+        initialSelections[attr.name] = available[0];
       }
-      if (selectedColor) {
-        setSelectedColor("");
-      }
-      return;
-    }
-
-    const selectedSizeExists = selectedSize
-      ? sizes.includes(selectedSize)
-      : false;
-    const selectedSizeHasStock = selectedSizeExists
-      ? getStockForSize(variants, selectedSize) > 0
-      : false;
-
-    if (selectedSizeHasStock) {
-      return;
-    }
-
-    const firstAvailableSize =
-      sizes.find((size) => getStockForSize(variants, size) > 0) ?? "";
-
-    if (selectedSize !== firstAvailableSize) {
-      setSelectedSize(firstAvailableSize);
-    }
-
-    const initialColors = firstAvailableSize
-      ? getColorsForSize(variants, firstAvailableSize)
-      : [];
-    const nextColor = initialColors[0] ?? "";
-
-    if (selectedColor !== nextColor) {
-      setSelectedColor(nextColor);
-    }
-  }, [sizes, variants, selectedSize]);
-
-  // Update color when size changes
-  useEffect(() => {
-    if (!selectedSize || availableColorsForSelectedSize.length === 0) {
-      if (selectedColor) {
-        setSelectedColor("");
-      }
-      return;
-    }
-
-    if (
-      !selectedColor ||
-      !availableColorsForSelectedSize.includes(selectedColor)
-    ) {
-      setSelectedColor(availableColorsForSelectedSize[0]);
-    }
-  }, [selectedSize, availableColorsForSelectedSize, selectedColor]);
-
-  // Sync quantity when stock changes
-  useEffect(() => {
-    if (!selectedSize) return;
-    setQuantityBySize((prev) => {
-      const currentQty = prev[selectedSize] ?? 1;
-      if (selectedVariantAvailableStock === 0) return { ...prev, [selectedSize]: 1 };
-      if (currentQty > selectedVariantAvailableStock)
-        return { ...prev, [selectedSize]: selectedVariantAvailableStock };
-      return prev;
     });
-  }, [selectedVariantAvailableStock, selectedSize]);
 
-  const setQuantity = (size: string, qty: number) => {
-    setQuantityBySize((prev) => ({ ...prev, [size]: qty }));
+    setSelectedAttributes(initialSelections);
+  }, [variants, activeAttributes]);
+
+  const setAttribute = (attributeName: string, value: string) => {
+    setSelectedAttributes((prev) => ({
+      ...prev,
+      [attributeName]: value,
+    }));
+  };
+
+  const resetAttributes = () => {
+    setSelectedAttributes({});
   };
 
   return {
-    selectedSize,
-    setSelectedSize,
-    selectedColor,
-    setSelectedColor,
-    quantity,
-    setQuantity,
-    quantityBySize,
-    setQuantityBySize,
-    availableColorsForSelectedSize,
+    selectedAttributes,
+    setAttribute,
+    resetAttributes,
+    activeAttributes,
+    availableAttributeValues,
     selectedVariant,
     currentPrice,
     originalPrice,
     discountPercentage,
-    stockForSelectedSize,
-    selectedVariantAvailableStock,
+    selectedVariantStock,
+    requiredAttributes,
+    hasAllRequiredSelected,
+    quantity,
+    setQuantity,
   };
 };

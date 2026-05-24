@@ -22,8 +22,8 @@ interface MinimalCartItem {
   reservationId?: number;
   expiresAt?: string;
   quantity: number;
-  selectedSize: string;
-  selectedColor: string;
+  // Changed from selectedSize/selectedColor to dynamic selectedAttributes
+  selectedAttributes: Record<string, string>;
 }
 
 interface CartState {
@@ -33,22 +33,19 @@ interface CartState {
   lastCartChange: number;
   addItem: (
     product: Product,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
     quantity?: number,
     reservationId?: number,
     expiresAt?: string,
   ) => Promise<{ success: boolean; isExisting: boolean }>;
   removeItem: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
     skipRelease?: boolean,
   ) => Promise<{ success: boolean; message?: string }>;
   updateQuantity: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
     quantity: number,
   ) => { success: boolean; message?: string };
   clearCart: () => Promise<void>;
@@ -60,23 +57,19 @@ interface CartState {
   getItemCount: () => number;
   isItemInCart: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
   ) => boolean;
   getItemQuantity: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
   ) => number;
   getItemStock: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
   ) => number | undefined;
   getItemReservation: (
     productId: string | number,
-    size: string,
-    color: string,
+    selectedAttributes: Record<string, string>,
   ) => { reservationId?: number; expiresAt?: string } | undefined;
   setHydrated: (state: boolean) => void;
 }
@@ -91,8 +84,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: (
         product,
-        size,
-        color,
+        selectedAttributes,
         quantity = 1,
         reservationId,
         expiresAt,
@@ -159,6 +151,10 @@ export const useCartStore = create<CartState>()(
           const hasSizes = (product.sizes?.length ?? 0) > 0;
           const hasColorsDefined = (product.colors?.length ?? 0) > 0;
 
+          // Check if size is required (for backward compatibility)
+          const size = selectedAttributes.Size;
+          const color = selectedAttributes.Color;
+
           if (hasVariants && hasSizes && !size) {
             console.error("Size is required for this product");
             resolve({ success: false, isExisting: false });
@@ -191,40 +187,28 @@ export const useCartStore = create<CartState>()(
           let finalPrice: number | undefined;
 
           if (product.variants && product.variants.length > 0) {
-            const normalizedSize = size?.trim();
-            const normalizedColor = color?.trim();
-
+            // Use dynamic attribute matching
             selectedVariant = product.variants.find((variant) => {
-              const variantSizeAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Size",
+              return Object.entries(selectedAttributes).every(
+                ([attrName, attrValue]) => {
+                  const variantAttr = variant.attributes?.find(
+                    (a: any) => a.attributeValue?.attribute?.name === attrName,
+                  );
+                  const variantValue = variantAttr?.attributeValue?.value?.trim();
+                  return (
+                    !attrValue ||
+                    attrValue === "One Size" ||
+                    attrValue === "Default" ||
+                    variantValue === attrValue
+                  );
+                },
               );
-              const variantColorAttr = variant.attributes?.find(
-                (attr) => attr.attributeValue?.attribute?.name === "Color",
-              );
-
-              const variantSize =
-                variantSizeAttr?.attributeValue?.value?.trim();
-              const variantColor =
-                variantColorAttr?.attributeValue?.value?.trim();
-
-              const sizeMatch =
-                !normalizedSize ||
-                normalizedSize === "One Size" ||
-                variantSize === normalizedSize;
-              const colorMatch =
-                !normalizedColor ||
-                normalizedColor === "Default" ||
-                variantColor === normalizedColor;
-
-              return sizeMatch && colorMatch;
             });
 
             if (!selectedVariant) {
               console.error(
-                "No matching variant found for size:",
-                size,
-                "color:",
-                color,
+                "No matching variant found for attributes:",
+                selectedAttributes,
               );
               resolve({ success: false, isExisting: false });
               return;
@@ -246,8 +230,7 @@ export const useCartStore = create<CartState>()(
           const existingIndex = items.findIndex(
             (item) =>
               String(item.productId) === String(product.id) &&
-              item.selectedSize === size &&
-              item.selectedColor === color,
+              JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
           );
 
           if (existingIndex > -1) {
@@ -434,20 +417,19 @@ export const useCartStore = create<CartState>()(
           }
 
            const newItem: MinimalCartItem = {
-             productId: product.id,
-             productName: product.name || "Product",
-             productImage,
-             productPrice,
-             hasDiscount,
-             finalPrice,
-             variantId: selectedVariant?.id,
-             variantStock: availableVariantStock,
-             quantity,
-             selectedSize: size,
-             selectedColor: color,
-             reservationId: newReservationId,
-             expiresAt: newExpiresAt,
-          };
+              productId: product.id,
+              productName: product.name || "Product",
+              productImage,
+              productPrice,
+              hasDiscount,
+              finalPrice,
+              variantId: selectedVariant?.id,
+              variantStock: availableVariantStock,
+              quantity,
+              selectedAttributes,
+              reservationId: newReservationId,
+              expiresAt: newExpiresAt,
+           };
 
           set({
             items: [...items, newItem],
@@ -460,8 +442,7 @@ export const useCartStore = create<CartState>()(
 
       removeItem: (
         productId: string | number,
-        size: string,
-        color: string,
+        selectedAttributes: Record<string, string>,
         skipRelease = false,
       ): Promise<{ success: boolean; message?: string }> => {
         return new Promise(async (resolve) => {
@@ -469,8 +450,7 @@ export const useCartStore = create<CartState>()(
           const itemToRemove = items.find(
             (item) =>
               String(item.productId) === String(productId) &&
-              item.selectedSize === size &&
-              item.selectedColor === color,
+              JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
           );
           let releaseFailed = false;
 
@@ -538,8 +518,7 @@ export const useCartStore = create<CartState>()(
               (item) =>
                 !(
                   String(item.productId) === String(productId) &&
-                  item.selectedSize === size &&
-                  item.selectedColor === color
+                  JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes)
                 ),
             ),
             lastCartChange: Date.now(),
@@ -559,13 +538,16 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      updateQuantity: (productId, size, color, quantity) => {
+      updateQuantity: (
+        productId: string | number,
+        selectedAttributes: Record<string, string>,
+        quantity: number,
+      ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
         );
 
         if (item?.variantStock !== undefined && item.variantStock > 0) {
@@ -584,8 +566,7 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.map((item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes)
               ? { ...item, quantity: Math.max(1, quantity) }
               : item,
           ),
@@ -654,59 +635,51 @@ export const useCartStore = create<CartState>()(
 
       isItemInCart: (
         productId: string | number,
-        size: string,
-        color: string,
+        selectedAttributes: Record<string, string>,
       ) => {
         const { items } = get();
         return items.some(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
         );
       },
 
       getItemQuantity: (
         productId: string | number,
-        size: string,
-        color: string,
+        selectedAttributes: Record<string, string>,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
         );
         return item?.quantity || 0;
       },
 
       getItemStock: (
         productId: string | number,
-        size: string,
-        color: string,
+        selectedAttributes: Record<string, string>,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
         );
         return item?.variantStock;
       },
 
       getItemReservation: (
         productId: string | number,
-        size: string,
-        color: string,
+        selectedAttributes: Record<string, string>,
       ) => {
         const { items } = get();
         const item = items.find(
           (item) =>
             String(item.productId) === String(productId) &&
-            item.selectedSize === size &&
-            item.selectedColor === color,
+            JSON.stringify(item.selectedAttributes) === JSON.stringify(selectedAttributes),
         );
         return item?.reservationId
           ? { reservationId: item.reservationId, expiresAt: item.expiresAt }

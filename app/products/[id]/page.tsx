@@ -39,7 +39,6 @@ import { isInAppBrowser } from "@/lib/isInAppBrowser";
 import { stockReservationService } from "@/services/stock-reservation.service";
 import { policyData } from "@/lib/policy-data";
 import { useVariantSelection } from "@/hooks/useVariantSelection";
-import { findVariantBySizeColor, getStockForSize } from "@/lib/variant-utils";
 import { trackAddToCart, trackViewItem } from "@/lib/gtm";
 import { sanitizeHtml } from "@/src/utils/sanitizeHtml";
 
@@ -55,11 +54,16 @@ export default function ProductDetailsPage() {
     "details" | "shipping" | "returns"
   >("details");
 
-  const { product, loading, refetch } = useProductById(id);
-  const { relatedProducts } = useRelatedProducts(
-    product?.id,
-    product?.category?.slug,
-  );
+   const { product, loading, refetch } = useProductById(id);
+   console.log('Product data:', product);
+   if (product?.category) {
+     console.log('Category data:', product.category);
+     console.log('Category attributes:', product.category.attributes);
+   }
+   const { relatedProducts } = useRelatedProducts(
+     product?.id,
+     product?.category?.slug,
+   );
 
   const addToCart = useCartStore((state) => state.addItem);
   const isItemInCart = useCartStore((state) => state.isItemInCart);
@@ -77,26 +81,29 @@ export default function ProductDetailsPage() {
 
   // Use the custom hook for variant selection
   const {
-    selectedSize,
-    setSelectedSize,
-    selectedColor,
-    setSelectedColor,
-    quantity,
-    setQuantity,
-    quantityBySize,
-    setQuantityBySize,
-    availableColorsForSelectedSize,
+    selectedAttributes,
+    setAttribute,
+    activeAttributes,
+    availableAttributeValues,
     selectedVariant,
     currentPrice,
     originalPrice,
     discountPercentage,
-    stockForSelectedSize,
-    selectedVariantAvailableStock,
+    selectedVariantStock,
+    hasAllRequiredSelected,
+    quantity,
+    setQuantity,
   } = useVariantSelection({
     variants: product?.variants,
-    sizes: product?.sizes,
+    product: product ?? undefined,
     productPrice: product?.price,
   });
+
+  // For backward compatibility with existing UI
+  const selectedSize = selectedAttributes.Size || "";
+  const selectedColor = selectedAttributes.Color || "";
+  const availableColorsForSelectedSize = availableAttributeValues.Color || [];
+  const selectedVariantAvailableStock = selectedVariantStock;
 
   // Page load animation
   useEffect(() => {
@@ -143,6 +150,8 @@ export default function ProductDetailsPage() {
     [product?.images],
   );
 
+  console.log(availableAttributeValues);
+
   const details = product?.details ?? [];
   const categories = product ? getProductCategories(product) : null;
   const gtmCategory =
@@ -159,26 +168,18 @@ export default function ProductDetailsPage() {
   const handleAddToCart = async () => {
     if (!product) return;
 
-    if ((product.sizes ?? []).length > 0 && !selectedSize) {
-      toast.error("Please select a size");
+    // Check if all required attributes are selected
+    if (!hasAllRequiredSelected) {
+      const missingAttr = activeAttributes.find(attr => attr.isRequired && !selectedAttributes[attr.name]);
+      toast.error(`Please select ${missingAttr?.name || "required options"}`);
       return;
     }
 
-    if (availableColorsForSelectedSize.length > 0 && !selectedColor) {
-      toast.error("Please select a color");
-      return;
-    }
+    const size = selectedAttributes.Size || "One Size";
+    const color = selectedAttributes.Color || "Default";
+    const existingCartQuantity = getItemQuantity(productId, selectedAttributes);
 
-    const size = selectedSize || "One Size";
-    const color = selectedColor || "Default";
-    const existingCartQuantity = getItemQuantity(productId, size, color);
-
-    const selectedVariantInAddToCart = findVariantBySizeColor(
-      product.variants || [],
-      size,
-      color,
-    );
-    const variantId = selectedVariantInAddToCart?.id;
+    const variantId = selectedVariant?.id;
 
     if (!variantId) {
       toast.error("Selected variant is not available");
@@ -224,8 +225,7 @@ export default function ProductDetailsPage() {
 
       const result = await addToCart(
         { ...product, id: productId, images: normalizedImages },
-        size,
-        color,
+        selectedAttributes,
         quantity,
       );
 
@@ -237,7 +237,7 @@ export default function ProductDetailsPage() {
       }
 
       // Fix 1: Read isAlreadyInCart AFTER the await, using current live state
-      const isAlreadyInCart = isItemInCart(productId, size, color);
+      const isAlreadyInCart = isItemInCart(productId, selectedAttributes);
 
       // Build toast with optional "View Cart" action for in-app browsers
       const toastMessage = result.isExisting
@@ -280,6 +280,9 @@ export default function ProductDetailsPage() {
         item_category: gtmCategory,
         item_brand: color,
       });
+
+      // Reset quantity to 1 after successful add to cart
+      setQuantity(1);
     } finally {
       // Fix 2: Always clear the in-flight flag and loading state
       inFlightAddRef.current.delete(variantKey);
@@ -310,10 +313,8 @@ export default function ProductDetailsPage() {
   // Cart status
   const isInCart = useMemo(() => {
     if (!product) return false;
-    const size = selectedSize || "One Size";
-    const color = selectedColor || "Default";
-    return isItemInCart(productId, size, color);
-  }, [product, selectedSize, selectedColor, productId, isItemInCart]);
+    return isItemInCart(productId, selectedAttributes);
+  }, [product, selectedAttributes, productId, isItemInCart]);
 
   // Out of stock check - uses availableStock (totalStock - reservedStock) from API
   const isOutOfStock = useMemo(() => {
@@ -524,160 +525,163 @@ export default function ProductDetailsPage() {
 
             {/* Variant Selection */}
             <div className="space-y-5 mb-6">
-              {/* Color Selection */}
-              {availableColorsForSelectedSize.length > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={
-                    isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                  }
-                  transition={{ duration: 0.35, delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                      Color
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {availableColorsForSelectedSize.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
-                          className={cn(
-                            "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer",
-                            selectedColor === color
-                              ? "bg-foreground text-background shadow-md scale-105"
-                              : "bg-muted/40 text-foreground hover:bg-muted border border-border/60",
-                          )}
-                        >
-                          {color}
-                          {selectedColor === color && (
-                            <motion.div
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm"
-                            >
-                              <Check
-                                size={8}
-                                className="text-background"
-                                strokeWidth={3}
-                              />
-                            </motion.div>
-                          )}
-                        </button>
-                      ))}
+              {activeAttributes.map((attr) => {
+                // Special handling for Size attribute to preserve stock checking UI
+                if (attr.name === "Size") {
+                  return (
+                    <motion.div
+                      key={attr.name}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={
+                        isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
+                      }
+                      transition={{ duration: 0.35, delay: 0.35 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                          {attr.name}
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {availableAttributeValues[attr.name]?.map((value) => {
+                            const isOutOfStock = !product?.variants?.some(
+                              (v) =>
+                                v.attributes?.some(
+                                  (a) =>
+                                    a.attributeValue?.attribute?.name === "Size" &&
+                                    a.attributeValue?.value === value &&
+                                    (v.availableStock ?? v.stock ?? 0) > 0,
+                                ),
+                            );
+                            return (
+                              <TooltipProvider key={value}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="relative">
+                                      <button
+                                        onClick={() => setAttribute(attr.name, value)}
+                                        disabled={isOutOfStock}
+                                        className={cn(
+                                          "w-8 h-8 rounded-md text-xs font-semibold transition-all duration-150 flex items-center justify-center",
+                                          isOutOfStock
+                                            ? "opacity-35 cursor-not-allowed line-through bg-muted/30"
+                                            : "cursor-pointer",
+                                          selectedAttributes[attr.name] === value
+                                            ? "bg-foreground text-background shadow-sm scale-105"
+                                            : "bg-background text-foreground border border-border/80 hover:border-primary/40 hover:bg-muted/20",
+                                        )}
+                                      >
+                                        {value}
+                                      </button>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="bg-background border border-border/80 shadow-lg rounded-lg px-3 py-2 text-xs font-medium"
+                                  >
+                                    {isOutOfStock
+                                      ? "Out of stock"
+                                      : "Available"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                }
+                
+                // For all other attributes (including Color), use standard UI
+                return (
+                  <motion.div
+                    key={attr.name}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={
+                      isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
+                    }
+                    transition={{ duration: 0.35, delay: 0.3 }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                        {attr.name}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableAttributeValues[attr.name]?.map((value) => (
+                          <button
+                            key={value}
+                            onClick={() => setAttribute(attr.name, value)}
+                            className={cn(
+                              "relative px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer",
+                              selectedAttributes[attr.name] === value
+                                ? "bg-foreground text-background shadow-md scale-105"
+                                : "bg-muted/40 text-foreground hover:bg-muted border border-border/60",
+                            )}
+                          >
+                            {value}
+                            {selectedAttributes[attr.name] === value && (
+                              <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center shadow-sm"
+                              >
+                                <Check
+                                  size={8}
+                                  className="text-background"
+                                  strokeWidth={3}
+                                />
+                              </motion.div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Size Selection */}
-              {product.sizes && product.sizes.length > 1 && (
-                 <motion.div
-                   initial={{ opacity: 0, y: 8 }}
-                   animate={
-                     isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                   }
-                   transition={{ duration: 0.35, delay: 0.35 }}
-                   className="space-y-2"
-                 >
-                   <div className="flex items-center gap-3">
-                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                       Size
-                     </span>
-                     <div className="flex flex-wrap gap-2">
-                       {product.sizes.map((size) => {
-                         const stock = getStockForSize(
-                           product.variants || [],
-                           size,
-                         );
-                         const isOutOfStock = stock <= 0;
-                         return (
-                           <TooltipProvider key={size}>
-                             <Tooltip>
-                               <TooltipTrigger asChild>
-                                 <div className="relative">
-                                   <button
-                                     onClick={() => {
-                                       setSelectedSize(size);
-                                       setQuantityBySize((prev) => ({
-                                         ...prev,
-                                         [size]: prev[size] ?? 1,
-                                       }));
-                                     }}
-                                     disabled={isOutOfStock}
-                                     className={cn(
-                                       "w-8 h-8 rounded-md text-xs font-semibold transition-all duration-150 flex items-center justify-center",
-                                       isOutOfStock
-                                         ? "opacity-35 cursor-not-allowed line-through bg-muted/30"
-                                         : "cursor-pointer",
-                                       selectedSize === size
-                                         ? "bg-foreground text-background shadow-sm scale-105"
-                                         : "bg-background text-foreground border border-border/80 hover:border-primary/40 hover:bg-muted/20",
-                                     )}
-                                   >
-                                     {size}
-                                   </button>
-                                 </div>
-                               </TooltipTrigger>
-                               <TooltipContent
-                                 side="top"
-                                 className="bg-background border border-border/80 shadow-lg rounded-lg px-3 py-2 text-xs font-medium"
-                               >
-                                 {isOutOfStock
-                                   ? "Out of stock"
-                                   : `${stock} available`}
-                               </TooltipContent>
-                             </Tooltip>
-                           </TooltipProvider>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 </motion.div>
-               )}
+                  </motion.div>
+                );
+              })}
 
               {/* Quantity */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={
-                  isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
-                }
-                transition={{ duration: 0.35, delay: 0.4 }}
-                className="flex items-center gap-3"
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
-                  Qty
-                </span>
-                <div className="inline-flex items-center bg-muted/30 rounded-lg border border-border/60 h-8">
-                  <button
-                    onClick={() =>
-                      setQuantity(selectedSize, Math.max(quantity - 1, 1))
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
-                    disabled={quantity <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    −
-                  </button>
-                  <span className="w-10 text-center font-semibold text-sm tabular-nums">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setQuantity(
-                        selectedSize,
-                        Math.min(quantity + 1, remainingStock),
-                      )
-                    }
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
-                    disabled={remainingStock <= 0 || quantity >= remainingStock}
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
-                </div>
-               </motion.div>
+               <motion.div
+                 initial={{ opacity: 0, y: 8 }}
+                 animate={
+                   isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }
+                 }
+                 transition={{ duration: 0.35, delay: 0.4 }}
+                 className="flex items-center gap-3"
+               >
+                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-16 shrink-0">
+                   Qty
+                 </span>
+                 <div className="inline-flex items-center bg-muted/30 rounded-lg border border-border/60 h-8">
+                   <button
+                     onClick={() =>
+                       setQuantity(Math.max(quantity - 1, 1))
+                     }
+                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
+                     disabled={quantity <= 1}
+                     aria-label="Decrease quantity"
+                   >
+                     −
+                   </button>
+                   <span className="w-10 text-center font-semibold text-sm tabular-nums">
+                     {quantity}
+                   </span>
+                   <button
+                     onClick={() =>
+                       setQuantity(
+                         Math.min(quantity + 1, remainingStock),
+                       )
+                     }
+                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-background transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-sm font-medium"
+                     disabled={remainingStock <= 0 || quantity >= remainingStock}
+                     aria-label="Increase quantity"
+                   >
+                     +
+                   </button>
+                 </div>
+                </motion.div>
 
               {/* Size Guide */}
               <SizeGuide categorySlug={categories?.raw?.slug} />

@@ -57,6 +57,32 @@ export interface ProductPricing {
   discount?: ProductDiscount | null;
 }
 
+// Category attribute types for dynamic product attributes
+export interface CategoryAttributeValue {
+  id: number;
+  value: string;
+  isActive: boolean;
+}
+
+export interface CategoryAttributeSelectedValue {
+  id: number;
+  value: CategoryAttributeValue;
+}
+
+export interface CategoryAttribute {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+export interface CategoryAttributeLink {
+  attributeId: number;
+  attribute: CategoryAttribute;
+  isRequired: boolean;
+  isVariantSelectable: boolean;
+  selectedValues: CategoryAttributeSelectedValue[];
+}
+
 export interface ApiProduct {
   id: number;
   name: string;
@@ -92,6 +118,7 @@ export interface ApiProduct {
       slug: string;
       parentId: number | null;
     }[];
+    attributes?: CategoryAttributeLink[];
   };
   brand?: string;
   colors?: ProductColor[];
