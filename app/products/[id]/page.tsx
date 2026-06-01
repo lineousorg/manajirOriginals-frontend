@@ -289,6 +289,71 @@ export default function ProductDetailsPage() {
     }
   };
 
+  // Buy Now handler
+  const handleBuyNow = async () => {
+    if (!product) return;
+
+    // Validate variant selection (same as addToCart)
+    if ((product.sizes ?? []).length > 0 && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
+
+    if (availableColorsForSelectedSize.length > 0 && !selectedColor) {
+      toast.error("Please select a color");
+      return;
+    }
+
+    const size = selectedSize || "One Size";
+    const color = selectedColor || "Default";
+    const variantId = findVariantBySizeColor(
+      product.variants || [],
+      size,
+      color,
+    )?.id;
+
+    if (!variantId) {
+      toast.error("Selected variant is not available");
+      return;
+    }
+
+    // Check stock availability
+    try {
+      const stockCheck = await stockReservationService.getAvailableStock(variantId);
+      if (stockCheck.success && stockCheck.data) {
+        if (stockCheck.data.availableStock < quantity) {
+          if (stockCheck.data.availableStock === 0) {
+            toast.error("This item is out of stock");
+          } else {
+            toast.error(`Only ${stockCheck.data.availableStock} available`);
+          }
+          return;
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to check stock availability");
+      return;
+    }
+
+    // Store buy now data in sessionStorage
+    const buyNowData = {
+      productId: String(product.id),
+      variantId: String(variantId),
+      size: size,
+      color: color,
+      quantity: quantity,
+      productName: product.name,
+      productImage: product.images?.[0]?.url || "",
+      price: currentPrice || product.price || 0
+    };
+
+    // Store in sessionStorage
+    sessionStorage.setItem('buyNowData', JSON.stringify(buyNowData));
+
+    // Navigate to checkout
+    router.push("/checkout");
+  };
+
   // Share handler
   const handleShare = async () => {
     if (navigator.share) {
@@ -685,15 +750,37 @@ export default function ProductDetailsPage() {
 
             {/* Actions */}
             <div className="flex gap-2.5 mb-6">
-              <AddToCartButton
-                isAdding={isAddingToCart}
-                isOutOfStock={isOutOfStock}
-                isStockExceeded={isStockExceeded}
-                isInCart={isInCart}
-                quantity={quantity}
-                totalPrice={currentPrice * quantity}
-                onAddToCart={handleAddToCart}
-              />
+              <div className="flex gap-4 flex-1">
+                <AddToCartButton
+                  isAdding={isAddingToCart}
+                  isOutOfStock={isOutOfStock}
+                  isStockExceeded={isStockExceeded}
+                  isInCart={isInCart}
+                  quantity={quantity}
+                  totalPrice={currentPrice * quantity}
+                  onAddToCart={handleAddToCart}
+                />
+                {/* BUY NOW Button */}
+                <motion.button
+                  onClick={handleBuyNow}
+                  disabled={isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0 || !selectedVariant}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 btn-secondary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg"
+                >
+                  <AnimatePresence mode="wait">
+                    {isAddingToCart ? (
+                      <motion.span key="buying" className="flex items-center justify-center gap-2">
+                        <Loader size="sm" />
+                        Processing...
+                      </motion.span>
+                    ) : (
+                      <motion.span key="buy" className="flex items-center justify-center gap-2">
+                        Buy Now — ৳{(currentPrice * quantity).toLocaleString()}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              </div>
               <motion.button
                 onClick={() => {
                   toggleItem({ ...product, id: productId, images } as any);

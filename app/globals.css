@@ -216,6 +216,16 @@
     @apply inline-flex items-center justify-center px-8 py-3 text-sm font-medium tracking-wide uppercase transition-all duration-300 border border-foreground text-foreground hover:bg-foreground hover:text-background;
   }
 
+  .btn-secondary-fashion {
+    @apply inline-flex items-center justify-center px-8 py-3 text-sm font-medium tracking-wide uppercase transition-all duration-300 bg-primary text-primary-foreground hover:bg-primary/90;
+    box-shadow: var(--button-shadow);
+  }
+
+  .btn-secondary-fashion:hover {
+    box-shadow: 0 6px 20px 0 hsl(40 20% 55% / 0.25);
+    @apply -translate-y-0.5;
+  }
+
   .input-fashion {
     @apply w-full px-4 py-3 border border-border bg-background text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
   }

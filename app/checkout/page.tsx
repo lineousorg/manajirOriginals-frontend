@@ -37,6 +37,27 @@ const CheckoutPageContent = () => {
   const { post, loading } = useApi();
   const isMobile = useIsMobile();
 
+  // Buy Now state
+  const [isBuyNow, setIsBuyNow] = useState(false);
+  const [buyNowItem, setBuyNowItem] = useState<any>(null);
+
+  // Check for buy now data on mount
+  useEffect(() => {
+    const buyNowData = sessionStorage.getItem('buyNowData');
+    if (buyNowData) {
+      try {
+        const parsed = JSON.parse(buyNowData);
+        setIsBuyNow(true);
+        setBuyNowItem(parsed);
+        // Clear from sessionStorage after reading
+        sessionStorage.removeItem('buyNowData');
+      } catch (error) {
+        console.error('Failed to parse buy now data:', error);
+        sessionStorage.removeItem('buyNowData');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     closeCart();
   }, [closeCart]);
@@ -48,13 +69,13 @@ const CheckoutPageContent = () => {
     "CASH_ON_DELIVERY" | "BANK_TRANSFER"
   >("CASH_ON_DELIVERY");
   const [formData, setFormData] = useState({
-    email: user?.email || "",
-    fullName: "",
-    phone: "",
-    address: "",
-    city: "",
+    email: user?.email || (isBuyNow && buyNowItem ? "" : ""),
+    fullName: isBuyNow && buyNowItem ? "" : "",
+    phone: isBuyNow && buyNowItem ? "" : "",
+    address: isBuyNow && buyNowItem ? "" : "",
+    city: isBuyNow && buyNowItem ? "" : "",
     country: "",
-    note: "",
+    note: isBuyNow && buyNowItem ? "" : "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,7 +87,11 @@ const CheckoutPageContent = () => {
   const hasTrackedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const subtotal = getTotal();
+  // Calculate subtotal and total based on buy now or cart
+  const displayItems = isBuyNow && buyNowItem ? [buyNowItem] : items;
+  const subtotal = isBuyNow && buyNowItem
+    ? buyNowItem.price * buyNowItem.quantity
+    : getTotal();
   const shipping =
     deliveryLocation === "inside_dhaka"
       ? DELIVERY_CHARGES.INSIDE_DHAKA
@@ -83,21 +108,14 @@ const CheckoutPageContent = () => {
       : item.productPrice;
   };
 
-  const purchaseItems: GTMItem[] = items.map((item) => ({
+  const purchaseItems: GTMItem[] = displayItems.map((item) => ({
     item_id: String(item.variantId ?? item.productId),
     item_name: item.productName,
-    price: getItemPrice(item),
+    price: isBuyNow && buyNowItem ? buyNowItem.price : getItemPrice(item),
     quantity: item.quantity,
     item_category: "",
     item_brand: "",
   }));
-
-  useEffect(() => {
-    if (user?.email && !formData.email) {
-      setFormData((prev) => ({ ...prev, email: user.email }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email]);
 
   const resetInactivityTimer = () => {
     if (hasTrackedRef.current) return;
@@ -213,7 +231,8 @@ const CheckoutPageContent = () => {
       return;
     }
 
-    const orderItems = items.map((item) => ({
+    // Use displayItems for both buy now and cart
+    const orderItems = displayItems.map((item) => ({
       variantId: Number(item.variantId ?? item.productId),
       quantity: item.quantity,
       ...(item.reservationId && { reservationId: Number(item.reservationId) }),
@@ -316,7 +335,7 @@ const CheckoutPageContent = () => {
     return <CheckoutSkeleton />;
   }
 
-  if (items.length === 0 && !orderNumber) {
+  if ((!isBuyNow || !buyNowItem) && items.length === 0 && !orderNumber) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20">
         <EmptyState
@@ -788,8 +807,8 @@ const CheckoutPageContent = () => {
                             Order Summary
                           </h2>
                           <p className="text-xs text-muted-foreground">
-                            {items.length} item{items.length !== 1 ? "s" : ""}
-                          </p>
+                             {displayItems.length} item{displayItems.length !== 1 ? "s" : ""}
+                           </p>
                         </div>
                       </div>
                       <div
@@ -805,7 +824,7 @@ const CheckoutPageContent = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <OrderSummaryPanel
-                      items={items}
+                      items={displayItems}
                       subtotal={subtotal}
                       shipping={shipping}
                       total={total}
@@ -819,7 +838,7 @@ const CheckoutPageContent = () => {
             ) : (
               <div className="lg:sticky lg:top-24 space-y-6">
                 <OrderSummaryPanel
-                  items={items}
+                  items={displayItems}
                   subtotal={subtotal}
                   shipping={shipping}
                   total={total}
