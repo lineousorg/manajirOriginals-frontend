@@ -3,12 +3,13 @@
 import { useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { Heart, ShoppingBag, Eye, ArrowUpRight, Sparkles } from "lucide-react";
+import { Heart, ShoppingBag, ArrowUpRight } from "lucide-react";
 import { ApiProduct, ProductVariant } from "@/types";
 import { useWishlistStore } from "@/store/wishlist.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useCartStore } from "@/store/cart.store";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface ProductCardProps {
   product: ApiProduct;
@@ -38,8 +39,6 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
     product.pricing?.discount?.value ?? product.discountAmount ?? 0;
   const discountType =
     product.pricing?.discount?.type ?? product.discountType ?? null;
-  const savedAmount = product.pricing?.discount?.savedAmount ?? 0;
-
   // ─── Stock Calculation ───
   const cartItems = useCartStore((state) => state.items);
 
@@ -66,6 +65,7 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
   const hasAvailableVariants = availableStockCount > 0;
   const isLowStock = hasAvailableVariants && availableStockCount < 10;
+  const isUnavailable = product.isActive === false;
   const isOutOfStock = !hasAvailableVariants;
 
   // ─── Color Handling ───
@@ -96,8 +96,13 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   );
 
   const handleProductClick = useCallback(() => {
+    if (isUnavailable) {
+      toast.error("This product isn't available at this moment");
+      return;
+    }
+
     router.push(`/products/${product.id}`);
-  }, [router, product.id]);
+  }, [isUnavailable, router, product.id]);
 
   // ─── Animation Variants ───
   const cardVariants: Variants = {
@@ -176,10 +181,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer
+      className={`group relative bg-white rounded-2xl overflow-hidden
                  shadow-[0_2px_8px_rgba(0,0,0,0.04)] 
                  hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]
-                 transition-shadow duration-500 ease-out"
+                 transition-shadow duration-500 ease-out ${
+                   isUnavailable ? "cursor-not-allowed" : "cursor-pointer"
+                 }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -346,11 +353,11 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         >
           <div className="flex gap-2">
             {/* Add to Cart / Shop Now Button */}
-            {!isOutOfStock ? (
+            {!isOutOfStock && !isUnavailable ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/products/${product.id}`);
+                  handleProductClick();
                 }}
                 className="flex items-center justify-center gap-2 
                            bg-neutral-900 text-white 
@@ -360,6 +367,20 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               >
                 <ShoppingBag size={16} />
                 Shop Now
+              </button>
+            ) : isUnavailable ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleProductClick();
+                }}
+                className="flex items-center justify-center gap-2 
+                           bg-neutral-300 text-neutral-500 
+                           px-5 py-3 rounded-xl text-sm font-medium
+                           cursor-not-allowed"
+              >
+                <ShoppingBag size={16} />
+                Unavailable
               </button>
             ) : (
               <button
@@ -456,7 +477,11 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
           {/* Stock Status */}
           <div className="flex items-center gap-1.5">
-            {isOutOfStock ? (
+            {isUnavailable ? (
+              <span className="text-[11px] text-neutral-400 font-medium">
+                Unavailable
+              </span>
+            ) : isOutOfStock ? (
               <span className="text-[11px] text-neutral-400 font-medium">
                 Out of stock
               </span>

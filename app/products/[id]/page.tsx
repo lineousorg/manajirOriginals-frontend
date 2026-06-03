@@ -62,6 +62,7 @@ export default function ProductDetailsPage() {
   );
 
   const addToCart = useCartStore((state) => state.addItem);
+  const closeCart = useCartStore((state) => state.closeCart);
   const isItemInCart = useCartStore((state) => state.isItemInCart);
   const getItemQuantity = useCartStore((state) => state.getItemQuantity);
   const lastCartChange = useCartStore((state) => state.lastCartChange);
@@ -317,40 +318,47 @@ export default function ProductDetailsPage() {
       return;
     }
 
-    // Check stock availability
+    // Check stock first
     try {
       const stockCheck = await stockReservationService.getAvailableStock(variantId);
-      if (stockCheck.success && stockCheck.data) {
-        if (stockCheck.data.availableStock < quantity) {
-          if (stockCheck.data.availableStock === 0) {
-            toast.error("This item is out of stock");
-          } else {
-            toast.error(`Only ${stockCheck.data.availableStock} available`);
-          }
-          return;
-        }
+      if (!stockCheck.success || !stockCheck.data) {
+        toast.error("Failed to check stock availability");
+        return;
       }
-    } catch (error) {
+      if (stockCheck.data.availableStock < quantity) {
+        toast.error(
+          stockCheck.data.availableStock === 0
+            ? "This item is out of stock"
+            : `Only ${stockCheck.data.availableStock} available`,
+        );
+        return;
+      }
+    } catch {
       toast.error("Failed to check stock availability");
       return;
     }
 
-    // Store buy now data in sessionStorage
-    const buyNowData = {
-      productId: String(product.id),
-      variantId: String(variantId),
-      size: size,
-      color: color,
-      quantity: quantity,
-      productName: product.name,
-      productImage: product.images?.[0]?.url || "",
-      price: currentPrice || product.price || 0
-    };
+    const normalizedImages: TypeImage[] = Array.isArray(product.images)
+      ? product.images.map((img) =>
+          typeof img === "string" ? { url: img, altText: product.name } : img,
+        )
+      : [];
 
-    // Store in sessionStorage
-    sessionStorage.setItem('buyNowData', JSON.stringify(buyNowData));
+    // Use the same addToCart flow - checkout page will handle the rest
+    const result = await addToCart(
+      { ...product, id: productId, images: normalizedImages },
+      size,
+      color,
+      quantity,
+    );
 
-    // Navigate to checkout
+    if (!result.success) {
+      toast.error("Unable to process. Please try again.");
+      return;
+    }
+
+    // Close cart drawer before navigating to checkout
+    closeCart();
     router.push("/checkout");
   };
 
@@ -775,7 +783,7 @@ export default function ProductDetailsPage() {
                       </motion.span>
                     ) : (
                       <motion.span key="buy" className="flex items-center justify-center gap-2">
-                        Buy Now — ৳{(currentPrice * quantity).toLocaleString()}
+                        Buy Now
                       </motion.span>
                     )}
                   </AnimatePresence>
