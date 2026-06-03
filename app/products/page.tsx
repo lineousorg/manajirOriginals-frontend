@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useProducts, PaginationInfo } from "@/hooks/useProduct";
+import { useProducts } from "@/hooks/useProduct";
 import { ProductCard } from "@/components/product/ProductCard";
+import { CategoryTabs } from "@/components/product/CategoryTabs";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/pagination-new";
 
@@ -33,8 +34,6 @@ export default function ProductsPage() {
     return `Showing ${start}-${end} of ${pagination.total} products`;
   };
 
-  const isLoading = loading || isPaginating;
-
   return (
     <div className="container-fashion py-8 min-h-screen pt-24 lg:pt-40">
       <div className="mb-8">
@@ -43,6 +42,8 @@ export default function ProductsPage() {
           Discover our complete collection
         </p>
       </div>
+
+      <CategoryTabs />
 
       {loading && products.length === 0 ? (
         <ProductGridSkeleton count={12} />

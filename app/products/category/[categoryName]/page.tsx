@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   CategoryProductsFilters,
 } from "@/hooks/useProduct";
 import { ProductCard } from "@/components/product/ProductCard";
+import { CategoryTabs } from "@/components/product/CategoryTabs";
 import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { Pagination } from "@/components/ui/pagination-new";
 import {
@@ -21,7 +22,7 @@ export default function CategoryProductsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const categoryName = params.categoryName as string;
-console.log(categoryName);
+
   // Get filters from URL params
   const urlMinPrice = searchParams.get("minPrice");
   const urlMaxPrice = searchParams.get("maxPrice");
@@ -44,8 +45,6 @@ console.log(categoryName);
     categoryTree,
     loading: categoriesLoading,
   } = useCategories();
-
-  console.log(categories);
 
   // Find the current category from the category tree
   const currentCategory = useMemo(() => {
@@ -91,7 +90,6 @@ console.log(categoryName);
     category: fetchedCategory,
     products,
     pagination,
-    availableFilters,
     loading: productsLoading,
     refetch,
   } = useCategoryProducts({
@@ -102,14 +100,11 @@ console.log(categoryName);
     fetchOnMount: true,
   });
 
-  console.log(products);
-  console.log(fetchedCategory);
-
   // Use fetched category from API or fallback to local category
   const displayCategory = fetchedCategory || currentCategory;
 
   // Pagination loading state
-  const [isPaginating, setIsPaginating] = useState(false);
+  const [, setIsPaginating] = useState(false);
   const [pendingPage, setPendingPage] = useState<number | null>(null);
 
   // Handle page change
@@ -127,21 +122,8 @@ console.log(categoryName);
   // Combined loading state - show loader while categories OR products are loading
   const isLoading = categoriesLoading || productsLoading;
 
-  // Use available filters from API response
-  const availableSizes = availableFilters?.sizes || [];
-  const availableColors = availableFilters?.colors || [];
-  const priceRange: [number, number] = availableFilters?.priceRange
-    ? [availableFilters.priceRange.min, availableFilters.priceRange.max]
-    : [0, 10000];
-
   // Products are already filtered server-side, no need for client-side filtering
   const filteredProducts = products;
-  // console.log(products);
-
-  // Handle filter changes - update URL params to trigger API refetch
-  const handleFilterChange = useCallback((newFilters: ProductFiltersState) => {
-    setFilters(newFilters);
-  }, []);
 
   // Generate breadcrumb
   const breadcrumb = useMemo(() => {
@@ -187,8 +169,6 @@ console.log(categoryName);
       </div>
     );
   }
-
-  console.log(currentCategory);
 
   // Show category not found only after loading is complete and category is still not found
   // if (!currentCategory && !isLoading) {
@@ -269,6 +249,8 @@ console.log(categoryName);
           )}
         </p>
       </div>
+
+      <CategoryTabs activeSlug={categoryName} />
 
       {/* Main Content */}
       <div className="flex flex-col md:flex-row gap-8">
