@@ -773,7 +773,7 @@ export default function ProductDetailsPage() {
                   onClick={handleBuyNow}
                   disabled={isAddingToCart || isOutOfStock || isStockExceeded || quantity <= 0 || !selectedVariant}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 btn-secondary-fashion h-14 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg"
+                  className="flex-1 border-2 border-primary h-14 text-primary font-medium disabled:opacity-70 disabled:cursor-not-allowed relative overflow-hidden rounded-lg"
                 >
                   <AnimatePresence mode="wait">
                     {isAddingToCart ? (
