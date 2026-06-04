@@ -123,7 +123,7 @@ export const Header = () => {
               : "#631515",
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 right-0 z-9999 backdrop-blur-md border-b transition-colors duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-999 backdrop-blur-md border-b transition-colors duration-500 ${
           isScrolled ? "border-white/10" : "border-transparent"
         }`}
       >

@@ -244,7 +244,7 @@ export const CartDrawer = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeCart}
-              className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/40 z-100 backdrop-blur-sm"
             />
 
             <motion.div
@@ -359,12 +359,13 @@ export const CartDrawer = () => {
                                 );
                                 if (result.success) {
                                   toast.success(
-                                    result.message || "Item removed from your cart.",
+                                    result.message ||
+                                      "Item removed from your cart.",
                                   );
                                 } else {
                                   toast.error(
                                     result.message ||
-                                    "Failed to fully remove item from your cart.",
+                                      "Failed to fully remove item from your cart.",
                                   );
                                 }
                               }}

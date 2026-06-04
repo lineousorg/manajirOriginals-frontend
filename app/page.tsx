@@ -1,4 +1,3 @@
- 
 "use client";
 
 import Link from "next/link";
@@ -9,6 +8,7 @@ import { ProductGridSkeleton } from "@/components/ui/Loader";
 import { ProductCard } from "@/components/product/ProductCard";
 import { useProducts, useCategories } from "@/hooks/useProduct";
 import Banner from "@/components/sections/Banner";
+import BrandStorySection from "@/components/sections/BrandStorySection";
 
 // Animation variants for scroll fade-in
 const fadeInUp = {
@@ -53,7 +53,7 @@ export default function Home() {
       <Banner />
 
       {/* New Arrivals */}
-      <section className="py-20 bg-white rounded-t-[30px] -mt-7 z-999 relative">
+      <section className="py-20 bg-white rounded-t-[30px] -mt-7 z-99 relative">
         <div className="container-fashion">
           <motion.div
             initial="hidden"
@@ -97,7 +97,7 @@ export default function Home() {
 
       {/* Categories */}
       {categories.length > 0 && (
-        <section className="py-20 bg-[#f7f5f0] relative z-999">
+        <section className="py-20 bg-[#f7f5f0] relative z-99">
           <div className="container-fashion">
             <motion.div
               initial="hidden"
@@ -136,12 +136,16 @@ export default function Home() {
                   <motion.div
                     key={category.id}
                     variants={fadeInUp}
-                    className={isFeatureTile ? "md:col-span-2 md:row-span-2" : ""}
+                    className={
+                      isFeatureTile ? "md:col-span-2 md:row-span-2" : ""
+                    }
                   >
                     <Link
                       href={`/products/category/${category.slug}`}
                       className={`group relative block overflow-hidden rounded-[8px] bg-neutral-200 ${
-                        isFeatureTile ? "min-h-[420px] md:min-h-full" : "min-h-[220px]"
+                        isFeatureTile
+                          ? "min-h-[420px] md:min-h-full"
+                          : "min-h-[220px]"
                       }`}
                     >
                       {categoryImage ? (
@@ -190,48 +194,11 @@ export default function Home() {
         </section>
       )}
 
-      {/* Banner */}
-      {/* <section className="py-20 z-999 relative bg-white">
-        <div className="container-fashion">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ margin: "-100px" }}
-            variants={fadeInScale}
-            className="relative h-48 md:h-80 lg:h-100 xl:h-125 rounded-2xl overflow-hidden"
-          >
-            <Image
-              src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80"
-              alt="Sustainable Fashion"
-              fill
-              sizes="100vw"
-              className="object-cover"
-              priority
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-center">
-              <div className="max-w-xl px-6 text-background">
-                <p className="text-label text-background/80 mb-4">
-                  Our Commitment
-                </p>
-                <h2 className="heading-section mb-4 text-background">
-                  Sustainable Fashion
-                </h2>
-                <p className="text-background/80 mb-8">
-                  Every piece is crafted with intention, using responsibly
-                  sourced materials and ethical manufacturing practices.
-                </p>
-                <button className="btn-outline-fashion border-background text-background hover:bg-background hover:text-foreground">
-                  Learn More
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section> */}
+      {/* <BrandStorySection /> */}
 
       {/* Best Sellers */}
       {bestSellers.length > 0 && (
-        <section className="py-20 z-999 relative bg-white">
+        <section className="py-20 z-99 relative bg-white">
           <div className="container-fashion">
             <motion.div
               initial="hidden"
