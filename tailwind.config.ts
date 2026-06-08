@@ -1,9 +1,11 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from "tailwindcss";
+import typography from "@tailwindcss/typography";
+
+const config: Config = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -59,9 +61,18 @@ module.exports = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "sans-serif"],
-        serif: ["var(--font-serif)", "serif"],
+        // serif: ["var(--font-serif)", "serif"],
+      },
+      height: {
+        "125": "31.25rem",
+        "100": "25rem",
+        "80": "20rem",
+        "70": "17.5rem",
+        "60": "15rem",
       },
     },
   },
-  plugins: [],
-}
+  plugins: [typography()],
+};
+
+export default config;

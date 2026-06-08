@@ -2,28 +2,25 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import banner1 from "../../public/Banner images/banner1.jpeg"
-import banner2 from "../../public/Banner images/banner2.jpeg"
-import banner3 from "../../public/Banner images/banner3.jpeg"
+import banner1 from "../../public/Banner images/banner1.jpeg";
+import banner2 from "../../public/Banner images/banner2.jpeg";
+import banner3 from "../../public/Banner images/banner3.jpeg";
 import Image from "next/image";
 
 const slides = [
   {
     id: 1,
-    image:
-      banner1,
+    image: banner1,
     alt: "Fashion Editorial 1",
   },
   {
     id: 2,
-    image:
-      banner2,
+    image: banner2,
     alt: "Fashion Editorial 2",
   },
   {
     id: 3,
-    image:
-      banner3,
+    image: banner3,
     alt: "Fashion Editorial 3",
   },
 ];
@@ -41,7 +38,7 @@ const Banner = () => {
   }, [isHovering]);
 
   return (
-    <section className="sticky top-0 z-40 min-h-[90dvh] w-full bg-linear-to-b from-[#631515] via-[#521414] to-[#240a0a] overflow-hidden flex items-center pt-0 lg:pt-10">
+    <section className="lg:sticky lg:top-0 lg:z-40 min-h-[90dvh] w-full bg-linear-to-b from-[#631515] via-[#521414] to-[#240a0a] overflow-hidden flex items-center pt-0 lg:pt-10">
       {/* Animated Background Grid */}
       {/* <div className="absolute inset-0 opacity-[0.03]">
         <div
@@ -160,7 +157,7 @@ const Banner = () => {
             >
               <Link
                 href="/products"
-                className="group relative px-8 py-4 bg-white text-black text-sm font-medium tracking-wider overflow-hidden rounded-none hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-500"
+                className="group relative px-8 py-4 bg-white text-black text-sm font-medium tracking-wider overflow-hidden hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all duration-500 rounded-xl"
               >
                 <span className="relative z-10 flex items-center gap-3">
                   EXPLORE COLLECTION
@@ -240,6 +237,7 @@ const Banner = () => {
                 >
                   {slides.map((image, index) => (
                     <Image
+                      key={index}
                       src={slides[currentSlide].image}
                       alt={slides[currentSlide].alt}
                       fill

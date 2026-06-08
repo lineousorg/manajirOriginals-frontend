@@ -531,9 +531,13 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean;
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
+  // Use a fixed deterministic width to avoid hydration mismatch
+  // Server and client will render the same width
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
+    if (typeof window === 'undefined') {
+      return '70%'; // Server-side default
+    }
+    return '60%'; // Fixed deterministic value for client-side skeleton
   }, []);
 
   return (

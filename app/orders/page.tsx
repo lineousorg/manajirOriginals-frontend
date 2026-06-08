@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Package,
@@ -28,6 +29,8 @@ import { TypeImage } from "@/types";
 // API Response type
 interface ApiOrderResponse {
   id: number;
+  orderNumber: string;
+  invoiceNumber: string;
   userId: number;
   status: string;
   paymentMethod: string;
@@ -76,6 +79,8 @@ interface OrderItem {
 // Detailed Order type
 interface ApiOrderDetailResponse {
   id: number;
+  orderNumber: string;
+  invoiceNumber: string;
   userId: number;
   status: string;
   paymentMethod: string;
@@ -87,6 +92,9 @@ interface ApiOrderDetailResponse {
   };
   createdAt: string;
   updatedAt: string;
+  addressId: number;
+  deliveryType: string;
+  deliveryCharge: string;
 }
 
 // Map API uppercase status to lowercase for display
@@ -175,9 +183,16 @@ const OrdersPage = () => {
   const fetchOrderDetails = async (orderId: number) => {
     setIsLoadingDetails(true);
     try {
-      const response = await get<{ data: ApiOrderDetailResponse }>(
+      // Define the full API response type
+      type OrderDetailApiResponse = {
+        message: string;
+        status: string;
+        data: ApiOrderDetailResponse;
+      };
+      
+      const response = await get<OrderDetailApiResponse>(
         `/orders/${orderId}`,
-      );
+      ) as OrderDetailApiResponse;
       setOrderDetails(response.data);
     } catch (err) {
       console.error("Error fetching order details:", err);
@@ -198,14 +213,34 @@ const OrdersPage = () => {
     const loadOrders = async () => {
       setIsOrdersLoading(true);
       try {
-        const response = await get<{ data: ApiOrderResponse[] }>("/orders");
-        const allOrders = response.data || [];
+        // Define the full API response type
+        type OrdersApiResponse = {
+          message: string;
+          status: string;
+          data: ApiOrderResponse[];
+        };
+        
+        // Use explicit typing to handle the API response correctly
+        const response = await get<OrdersApiResponse>("/orders") as OrdersApiResponse | ApiOrderResponse[];
+        
+        // Handle different response formats
+        let allOrders: ApiOrderResponse[] = [];
+        const responseObj = response as OrdersApiResponse;
+        
+        if (Array.isArray(response)) {
+          allOrders = response;
+        } else if (responseObj?.data && Array.isArray(responseObj.data)) {
+          allOrders = responseObj.data;
+        } else if (responseObj?.data && Array.isArray(responseObj.data)) {
+          allOrders = responseObj.data;
+        }
 
         // Filter orders for the logged-in user
         if (user?.id) {
           const userId = Number(user.id);
+          // Check both order.userId (old format) and order.user.id (new format)
           const filteredOrders = allOrders.filter(
-            (order) => order.userId === userId,
+            (order) => order.userId === userId || order.user?.id === userId,
           );
           setOrders(filteredOrders);
         } else {
@@ -267,8 +302,6 @@ const OrdersPage = () => {
     );
   }
 
-  console.log(orderDetails);
-
   return (
     <div className="container-fashion py-8 md:py-12  min-h-screen">
       <h1 className="heading-section mb-8 pt-40">Order History</h1>
@@ -290,7 +323,7 @@ const OrdersPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-mono text-sm">#{order.id}</span>
+                    <span className="font-mono text-sm">#{order.orderNumber}</span>
                     <span
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status?.bg || "bg-gray-100"} ${status?.color || "text-gray-600"}`}
                     >
@@ -372,7 +405,7 @@ const OrdersPage = () => {
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <div>
                   <p className="text-label mb-1">Order ID</p>
-                  <p className="text-sm text-muted-foreground">#{order.id}</p>
+                  <p className="text-sm text-muted-foreground">#{order.orderNumber}</p>
                 </div>
                 <button
                   onClick={() => handleViewDetails(order.id)}
@@ -407,7 +440,7 @@ const OrdersPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg">
                 <div>
                   <p className="text-sm text-muted-foreground">Order ID</p>
-                  <p className="font-mono font-medium">#{orderDetails.id}</p>
+                  <p className="font-mono font-medium">#{orderDetails.orderNumber}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
@@ -465,13 +498,18 @@ const OrdersPage = () => {
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <img
-                              src={item?.variant?.images?.[0]?.url}
-                              alt={item.variant.images?.[0]?.altText}
-                              className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
-                            />
-                            <Package className="h-6 w-6 text-muted-foreground" />
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center relative overflow-hidden">
+                            {item?.variant?.images?.[0]?.url ? (
+                              <Image
+                                src={item.variant.images[0].url}
+                                alt={item.variant.images[0].altText || "Product image"}
+                                fill
+                                sizes="48px"
+                                className="object-contain"
+                              />
+                            ) : (
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            )}
                           </div>
                           <div className="space-y-1">
                             <p className="font-medium">

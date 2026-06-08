@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, X } from "lucide-react";
 import { TypeImage } from "@/types";
 
 interface ProductGalleryProps {
@@ -15,7 +16,11 @@ export const ProductGallery = ({
   productName,
 }: ProductGalleryProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isZoomed, setIsZoomed] = useState(false);
+  const [isZoomActive, setIsZoomActive] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [zoomLevel, setZoomLevel] = useState(2); // 2x zoom by default
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -25,25 +30,97 @@ export const ProductGallery = ({
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
-  // console.log(images);
+  // Handle mouse move for lens position
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      setMousePosition({ x, y });
+    },
+    []
+  );
+
+  // Handle mouse enter/leave
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setIsZoomActive(false);
+  };
+
+  // Handle click for full zoom mode
+  const handleImageClick = () => {
+    setIsZoomActive((prev) => !prev);
+  };
+
+  // Close zoom with escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isZoomActive) {
+        setIsZoomActive(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isZoomActive]);
+
+  // Calculate background position for zoom effect
+  const bgPosition = `${mousePosition.x}% ${mousePosition.y}%`;
+
+  console.log(images);
 
   return (
     <div className="space-y-4">
-      {/* Main Image */}
-      <div className="relative h-[50dvh] md:h-[70dvh] overflow-hidden rounded-lg bg-muted group">
+      {/* Main Image with Zoom */}
+      <div
+        ref={containerRef}
+        className="relative h-[50vh] md:h-[70vh] lg:h-[80vh] max-h-150 overflow-hidden rounded-lg bg-muted group"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
+      >
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={currentIndex}
-            src={images[currentIndex].url}
-            alt={`${productName} - ${images[currentIndex].altText}`}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`w-full h-full object-cover cursor-zoom-in transition-transform duration-500 ${
-              isZoomed ? "scale-150" : ""
-            }`}
-            onClick={() => setIsZoomed(!isZoomed)}
-          />
+            className="absolute inset-0 z-10"
+          >
+            {/* Zoomed Image (shown when hovering or in active zoom mode) */}
+            {isHovering && (
+              <div
+                className="absolute inset-0 z-20 overflow-hidden rounded-lg pointer-events-none"
+                style={{
+                  backgroundImage: `url(${images[currentIndex].url})`,
+                  backgroundSize: `${zoomLevel * 100}%`,
+                  backgroundPosition: bgPosition,
+                  backgroundRepeat: "no-repeat",
+                }}
+              />
+            )}
+
+            {/* Main Image */}
+            <Image
+              src={images[currentIndex].url}
+              alt={`${productName} - ${images[currentIndex].altText}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className={`object-cover object-top transition-all duration-200 ${isHovering ? "opacity-0" : "opacity-100"
+                } cursor-zoom-in`}
+              onClick={handleImageClick}
+              priority={currentIndex === 0}
+              unoptimized
+            />
+          </motion.div>
         </AnimatePresence>
 
         {/* Navigation Arrows */}
@@ -51,14 +128,14 @@ export const ProductGallery = ({
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background z-30"
               aria-label="Previous image"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background z-30"
               aria-label="Next image"
             >
               <ChevronRight size={20} />
@@ -67,22 +144,21 @@ export const ProductGallery = ({
         )}
 
         {/* Zoom Indicator */}
-        <div className="absolute bottom-4 right-4 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-4 right-4 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-30">
           <ZoomIn size={18} />
         </div>
 
         {/* Image Indicators */}
         {images.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
             {images.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex
+                className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
                     ? "bg-foreground w-6"
                     : "bg-foreground/40 hover:bg-foreground/60"
-                }`}
+                  }`}
                 aria-label={`Go to image ${index + 1}`}
               />
             ))}
@@ -96,16 +172,19 @@ export const ProductGallery = ({
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`aspect-3/4 overflow-hidden rounded-md transition-all ${
-              index === currentIndex
+            className={`aspect-square rounded-md transition-all ${index === currentIndex
                 ? "ring-2 ring-foreground"
                 : "opacity-60 hover:opacity-100"
-            }`}
+              }`}
           >
-            <img
+            <Image
               src={images[index].url}
               alt={`${productName} thumbnail ${index + 1}`}
-              className="w-full h-full object-cover"
+              width={250}
+              height={250}
+              sizes="(max-width: 768px) 20vw, 10vw"
+              className="object-cover"
+              unoptimized
             />
           </button>
         ))}

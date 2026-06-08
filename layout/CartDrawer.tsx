@@ -1,43 +1,237 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
+import { X, ShoppingBag, Trash2, Clock } from "lucide-react";
 
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
-import { SignupModal } from "@/components/auth/SignupModal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
+import { stockReservationService } from "@/services/stock-reservation.service";
+import { getGuestToken, removeFromCart } from "@/lib/cart";
+import { GTMItem, trackBeginCheckout } from "@/lib/gtm";
+import { DELIVERY_CHARGES } from "@/lib/constants";
+import { isInAppBrowser } from "@/lib/isInAppBrowser";
 
 export const CartDrawer = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, getTotal } =
+  const { items, isOpen, closeCart, removeItem, getTotal, isHydrated } =
     useCartStore();
   const { isAuthenticated } = useAuthStore();
-  const [showSignupModal, setShowSignupModal] = useState(false);
+  const router = useRouter();
+  const [variantStockMap, setVariantStockMap] = useState<
+    Record<string | number, number>
+  >({});
+  const [, setTick] = useState(0);
+  const [deliveryLocation, setDeliveryLocation] = useState<
+    "inside_dhaka" | "outside_dhaka"
+  >("inside_dhaka");
 
-  // Reset signup modal when cart closes
+  // Update countdown every second
   useEffect(() => {
-    if (!isOpen) {
-      // Small delay to allow animation to complete
-      const timer = setTimeout(() => {
-        setShowSignupModal(false);
-      }, 300);
-      return () => clearTimeout(timer);
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Function to check and release expired reservations
+  const checkExpiredReservations = async () => {
+    const now = new Date();
+    let hasExpiredItems = false;
+
+    for (const item of items) {
+      if (item.expiresAt && item.reservationId) {
+        const expiresAt = new Date(item.expiresAt);
+        if (expiresAt < now) {
+          hasExpiredItems = true;
+          try {
+            const accessToken =
+              typeof window !== "undefined"
+                ? localStorage.getItem("accessToken")
+                : null;
+
+            if (accessToken) {
+              await stockReservationService.releaseReservation(
+                item.reservationId,
+              );
+            } else {
+              const guestToken = getGuestToken();
+              if (guestToken) {
+                await removeFromCart(item.reservationId);
+              } else {
+                await stockReservationService.releaseReservation(
+                  item.reservationId,
+                );
+              }
+            }
+          } catch (error) {
+            const errorObj = error as {
+              response?: { data?: { message?: string } };
+            };
+            const errorMessage = errorObj?.response?.data?.message || "";
+            if (
+              errorMessage.includes("not found") ||
+              errorMessage.includes("already released") ||
+              errorMessage.includes("expired")
+            ) {
+              console.log(
+                "Reservation already expired on backend, removing from cart:",
+                item.reservationId,
+              );
+            } else {
+              console.error("Failed to release expired reservation:", error);
+            }
+          }
+          removeItem(
+            item.productId,
+            item.selectedSize,
+            item.selectedColor,
+            true,
+          );
+        }
+      }
     }
+
+    if (hasExpiredItems) {
+      toast.error(
+        "Some items in your cart have expired and were removed. Please add them again.",
+      );
+    }
+  };
+
+  // Function to check stock availability
+  const checkStockAvailability = async () => {
+    const itemsToRemove: Array<{
+      productId: string | number;
+      size: string;
+      color: string;
+      name: string;
+    }> = [];
+    const itemsToUpdate: Array<{
+      productId: string | number;
+      size: string;
+      color: string;
+      newQuantity: number;
+      name: string;
+    }> = [];
+    const newStockMap: Record<string | number, number> = {};
+
+    for (const item of items) {
+      if (!item.variantId) continue;
+
+      if (item.reservationId) {
+        newStockMap[item.variantId] = item.quantity;
+        continue;
+      }
+
+      try {
+        const result = await stockReservationService.getAvailableStock(
+          Number(item.variantId),
+        );
+        if (result.success && result.data) {
+          newStockMap[item.variantId] = result.data.availableStock;
+
+          if (result.data.availableStock < item.quantity) {
+            if (result.data.availableStock === 0) {
+              itemsToRemove.push({
+                productId: item.productId,
+                size: item.selectedSize,
+                color: item.selectedColor,
+                name: item.productName,
+              });
+            } else {
+              itemsToUpdate.push({
+                productId: item.productId,
+                size: item.selectedSize,
+                color: item.selectedColor,
+                newQuantity: result.data.availableStock,
+                name: item.productName,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Failed to check stock for item:",
+          item.productName,
+          error,
+        );
+      }
+    }
+
+    setVariantStockMap(newStockMap);
+
+    if (itemsToRemove.length > 0) {
+      itemsToRemove.forEach((item) => {
+        removeItem(item.productId, item.size, item.color);
+      });
+      toast.error(
+        `${itemsToRemove.length} item(s) in your cart are no longer available. Please review your cart.`,
+      );
+    }
+  };
+
+  const getTimeRemaining = (expiresAt: string): string => {
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now.getTime();
+
+    if (diff <= 0) return "Expired";
+
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  };
+
+  // Check for expired reservations and stock availability when cart opens
+  useEffect(() => {
+    if (!isOpen || !items.length) return;
+    const checkCart = async () => {
+      setVariantStockMap({});
+      await checkExpiredReservations();
+      await checkStockAvailability();
+    };
+    checkCart();
   }, [isOpen]);
 
+  if (!isHydrated) {
+    return null;
+  }
+
+  // In-app browsers (Facebook, Instagram, Messenger) cannot render the drawer
+  // reliably due to WebView limitations. Hide the drawer in those environments.
+  if (isInAppBrowser()) {
+    return null;
+  }
+
+  const subtotal = getTotal();
+  const shipping =
+    deliveryLocation === "inside_dhaka"
+      ? DELIVERY_CHARGES.INSIDE_DHAKA
+      : DELIVERY_CHARGES.OUTSIDE_DHAKA;
+  const total = subtotal + shipping;
+
+  const checkoutItems: GTMItem[] = items.map((item) => ({
+    item_id: String(item.variantId ?? item.productId),
+    item_name: item.productName,
+    price: item.finalPrice ?? item.productPrice,
+    quantity: item.quantity,
+    item_category: item.selectedSize,
+    item_brand: item.selectedColor,
+  }));
+
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      // Close cart and show signup modal
-      closeCart();
-      // Use setTimeout to ensure cart closes first, then show modal
-      setTimeout(() => {
-        setShowSignupModal(true);
-      }, 350);
-    } else {
-      // User is logged in, proceed to checkout
-      window.location.href = "/checkout";
-    }
+    closeCart();
+    trackBeginCheckout(checkoutItems, total);
+    setTimeout(() => {
+      router.push("/checkout");
+    }, 350);
   };
 
   return (
@@ -45,145 +239,184 @@ export const CartDrawer = () => {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeCart}
-              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/40 z-100 backdrop-blur-sm"
             />
 
-            {/* Drawer */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-9999 shadow-2xl flex flex-col"
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="fixed right-0 top-0 h-full w-full max-w-sm bg-background z-[9999] shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <ShoppingBag className="w-5 h-5 text-primary" />
-                  <h2 className="font-serif text-lg sm:text-xl text-gray-800">
-                    Your Bag
-                  </h2>
-                  <span className="text-sm text-gray-700">
-                    ({items?.length} {items?.length === 1 ? "item" : "items"})
-                  </span>
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/40 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ShoppingBag
+                      className="w-4 h-4 text-primary"
+                      strokeWidth={2}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-serif text-lg font-medium">Your Bag</h2>
+                    <span className="text-[11px] text-muted-foreground">
+                      ({items?.length})
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={closeCart}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
                   aria-label="Close cart"
                 >
-                  <X size={20} className="text-gray-800" />
+                  <X size={16} strokeWidth={2} />
                 </button>
               </div>
 
-              {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {/* Items List */}
+              <div className="flex-1 overflow-y-auto px-4 py-4">
                 {items.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                    <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-                      <ShoppingBag size={32} className="text-gray-700" />
-                    </div>
-                    <h3 className="font-serif text-xl text-gray-800 mb-2">
+                  <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                    <motion.div
+                      initial={{ scale: 0.85, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                      className="w-20 h-20 rounded-full bg-muted/40 flex items-center justify-center mb-5"
+                    >
+                      <ShoppingBag
+                        size={32}
+                        className="text-muted-foreground/50"
+                        strokeWidth={1.5}
+                      />
+                    </motion.div>
+                    <h3 className="font-serif text-lg mb-1.5">
                       Your bag is empty
                     </h3>
-                    <p className="text-sm text-gray-700 mb-6 max-w-xs">
-                      Looks like you haven&apos;t added any items to your bag
-                      yet.
+                    <p className="text-sm text-muted-foreground mb-6 max-w-[220px]">
+                      Discover our latest collection and add something beautiful
                     </p>
                     <button
                       onClick={closeCart}
-                      className="btn-primary-fashion rounded-full"
+                      className="btn-primary-fashion rounded-full px-7 py-2.5 text-sm"
                     >
-                      Continue Shopping
+                      Start Shopping
                     </button>
                   </div>
                 ) : (
-                  <ul className="space-y-6">
-                    {items.map((item) => (
+                  <ul className="space-y-3">
+                    {items.map((item, index) => (
                       <motion.li
-                        key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                        initial={{ opacity: 0, y: 20 }}
+                        key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -100 }}
-                        className="flex gap-4 bg-card/50 p-3 rounded-xl"
+                        transition={{ delay: index * 0.04, duration: 0.3 }}
+                        exit={{ opacity: 0, x: -80 }}
+                        className="flex gap-3 group"
                       >
-                        <img
-                          src={item?.product?.images?.[0]?.url}
-                          alt={item.product.name}
-                          className="w-20 h-24 sm:w-24 sm:h-32 object-cover rounded-lg shrink-0"
-                        />
-                        <div className="flex-1 flex flex-col min-w-0">
+                        {/* Product Image */}
+                        <div className="w-16 h-20 relative rounded-lg overflow-hidden bg-muted shrink-0 ring-1 ring-border/40">
+                          <Image
+                            src={item.productImage}
+                            alt={item.productName}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="flex-1 flex flex-col min-w-0 py-0.5">
                           <div className="flex justify-between items-start gap-2">
-                            <div className="min-w-0">
-                              <p className="text-label">{item.product.brand}</p>
-                              <h4 className="font-medium text-sm sm:text-base text-gray-800 mt-0.5 line-clamp-2">
-                                {item.product.name}
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-medium text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors text-left">
+                                {item.productName}
                               </h4>
-                              <p className="text-xs sm:text-sm text-gray-700 mt-1">
-                                {item.selectedSize} · {item.selectedColor}
-                              </p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="text-[11px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground font-medium">
+                                  {item.selectedSize}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  ·
+                                </span>
+                                <span className="text-[11px] text-muted-foreground capitalize">
+                                  {item.selectedColor}
+                                </span>
+                              </div>
                             </div>
                             <button
-                              onClick={() =>
-                                removeItem(
-                                  String(item.product.id),
+                              onClick={async () => {
+                                const result = await removeItem(
+                                  item.productId,
                                   item.selectedSize,
-                                  item.selectedColor
-                                )
-                              }
-                              className="p-1.5 hover:bg-muted rounded-full transition-colors text-gray-700 hover:text-destructive shrink-0"
+                                  item.selectedColor,
+                                );
+                                if (result.success) {
+                                  toast.success(
+                                    result.message ||
+                                      "Item removed from your cart.",
+                                  );
+                                } else {
+                                  toast.error(
+                                    result.message ||
+                                      "Failed to fully remove item from your cart.",
+                                  );
+                                }
+                              }}
+                              className="opacity-100 group-hover:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-full transition-all -mr-1 -mt-1 shrink-0"
                               aria-label="Remove item"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
-                          <div className="mt-auto pt-2 flex items-center justify-between">
-                            <div className="flex items-center border border-border rounded-full text-gray-400">
-                              <button
-                                onClick={() => {
-                                  updateQuantity(
-                                    String(item.product.id),
-                                    item.selectedSize,
-                                    item.selectedColor,
-                                    item.quantity - 1
-                                  );
-                                }}
-                                disabled={item.quantity <= 1}
-                                className="p-2 hover:bg-muted transition-colors disabled:opacity-50 rounded-l-full"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus size={14} />
-                              </button>
-                              <span className="px-3 text-sm text-gray-500 font-medium min-w-8 text-center">
-                                {item.quantity}
+
+                          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                            {item.reservationId && item.expiresAt && (
+                              <div className="flex items-center gap-1 text-[11px] text-orange-600 dark:text-orange-400">
+                                <Clock size={11} />
+                                <span className="tabular-nums">
+                                  {getTimeRemaining(item.expiresAt)}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              <span className="text-xs text-muted-foreground">
+                                ×{item.quantity}
                               </span>
-                              <button
-                                onClick={() => {
-                                  updateQuantity(
-                                    String(item.product.id),
-                                    item.selectedSize,
-                                    item.selectedColor,
-                                    item.quantity + 1
-                                  );
-                                }}
-                                className="p-2 hover:bg-muted transition-colors rounded-r-full text-gray-400"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus size={14} />
-                              </button>
                             </div>
-                            <p className="font-medium text-gray-800">
-                              ৳{" "}
-                              {(
-                                item.product.variants[0]?.price * item.quantity
-                              ).toFixed(2)}
-                            </p>
+
+                            <div className="flex items-center gap-1.5">
+                              {item.hasDiscount && item.finalPrice ? (
+                                <>
+                                  <span className="text-xs text-muted-foreground line-through decoration-2">
+                                    ৳
+                                    {(
+                                      item.productPrice * item.quantity
+                                    ).toLocaleString()}
+                                  </span>
+                                  <span className="font-semibold text-sm">
+                                    ৳
+                                    {(
+                                      item.finalPrice * item.quantity
+                                    ).toLocaleString()}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="font-semibold text-sm">
+                                  ৳
+                                  {(
+                                    item.productPrice * item.quantity
+                                  ).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </motion.li>
@@ -194,48 +427,49 @@ export const CartDrawer = () => {
 
               {/* Footer */}
               {items.length > 0 && (
-                <div className="border-t border-border p-4 sm:p-6 space-y-4 bg-card/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Subtotal</span>
-                    <span className="text-xl font-medium text-gray-800">
-                      ৳ {getTotal().toFixed(2)}
+                <div className="border-t border-border/40 bg-muted/10 px-4 py-4 space-y-3 shrink-0">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-muted-foreground">
+                      Subtotal
+                    </span>
+                    <span className="text-xl font-semibold tracking-tight">
+                      ৳{getTotal().toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-700 text-center">
-                    Shipping and taxes calculated at checkout
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      href="/cart"
-                      onClick={closeCart}
-                      className="btn-outline-fashion rounded-full text-center text-xs sm:text-sm"
-                    >
-                      View Bag
-                    </Link>
+
+                  <div className="flex flex-col gap-2">
                     <button
                       onClick={handleCheckout}
-                      className="btn-primary-fashion rounded-full text-center text-xs sm:text-sm"
+                      className="w-full btn-primary-fashion rounded-xl py-3 text-sm font-medium cursor-pointer"
                     >
                       Checkout
                     </button>
+                    <button
+                      onClick={closeCart}
+                      className="w-full text-center py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-xl hover:bg-muted/50"
+                    >
+                      Continue Shopping
+                    </button>
                   </div>
-                  <button
-                    onClick={closeCart}
-                    className="w-full text-center text-sm text-gray-700 hover:text-gray-800 transition-colors py-2"
-                  >
-                    Continue Shopping
-                  </button>
+
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Shipping & taxes calculated at checkout
+                  </p>
                 </div>
               )}
             </motion.div>
           </>
         )}
       </AnimatePresence>
-
-      {/* Signup Modal - rendered independently */}
-      <SignupModal
-        isOpen={showSignupModal}
-        onClose={() => setShowSignupModal(false)}
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
       />
     </>
   );

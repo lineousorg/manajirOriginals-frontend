@@ -1,17 +1,60 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+export interface ProductVariant {
+  id: number;
+  sku: string;
+  price: number;
+  stock: number;
+  availableStock?: number;
+  reservedStock?: number;
+  productId: number;
+  createdAt: string;
+  updatedAt: string;
+  hasDiscount?: boolean;
+  discountType?: string;
+  discountValue?: string;
+  discountAmount?: number;
+  discountStart?: string;
+  discountEnd?: string;
+  finalPrice?: number;
+  attributes?: {
+    attributeValueId: number;
+    attributeValue?: {
+      id: number;
+      value: string;
+      attributeId: number;
+      attribute?: {
+        id: number;
+        name: string;
+      };
+    };
+  }[];
+}
+
 export interface ProductColor {
   name: string;
   value: string;
 }
-// export interface ImageType {
-//   altText: string;
-//   url: string;
-// }
 
 export interface TypeImage {
   altText: string;
   url: string;
+}
+
+// New pricing structures for updated API responses
+export interface ProductDiscount {
+  type: "FIXED" | "PERCENTAGE" | null;
+  value: number;        // raw discount input (e.g., 700 or 35)
+  savedAmount: number;  // computed savings amount (e.g., 700)
+}
+
+export interface ProductPricing {
+  minPrice: number;
+  maxPrice: number;
+  finalMinPrice: number;
+  finalMaxPrice: number;
+  hasDiscount: boolean;
+  discount?: ProductDiscount | null;
 }
 
 export interface ApiProduct {
@@ -19,8 +62,16 @@ export interface ApiProduct {
   name: string;
   description?: string;
   price: number;
+  maxPrice?: number;
+  minPrice?: number;
   originalPrice?: number;
+  minFinalPrice?: number;
+  hasDiscount?: boolean;
+  discountAmount?: number;
   stock?: number;
+  availableStock?: number;
+  reservedStock?: number;
+  totalStock?: number;
   sku?: string;
   images?: TypeImage[];
   categoryId?: number;
@@ -45,10 +96,15 @@ export interface ApiProduct {
   brand?: string;
   colors?: ProductColor[];
   sizes?: string[];
+  variants?: ProductVariant[];
+  productDetailsHtml?: string;
   isNew?: boolean;
   isSale?: boolean;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // New nested pricing object (from updated API endpoints)
+  pricing?: ProductPricing;
   [key: string]: any;
 }
 
@@ -66,6 +122,7 @@ export interface Product {
   categoryId?: number | string;
   colors?: ProductColor[];
   sizes?: string[];
+  variants?: ProductVariant[];
   description?: string;
   isNew?: boolean;
   isSale?: boolean;
@@ -120,13 +177,25 @@ export interface Order {
   trackingNumber?: string;
 }
 
+export interface CategoryImage {
+  id: number;
+  url: string;
+  altText: string;
+  position: number;
+  type: string;
+  productId: number;
+  variantId: number;
+  categoryId: number;
+}
+
 export interface Category {
   id: string | number;
-  image?: string;
+  images?: CategoryImage[];
   productCount?: number;
   name: string;
   slug: string;
   parentId: string | number | null;
+  isActive?: boolean;
   children?: Category[];
   createdAt?: string;
   updatedAt?: string;
@@ -141,4 +210,22 @@ export interface FilterState {
   sizes: string[];
   colors: string[];
   sortBy: "newest" | "price-asc" | "price-desc" | "popular";
+}
+
+export interface GoogleRecaptcha {
+  render: (
+    element: string | HTMLElement,
+    options: {
+      sitekey: string;
+      theme?: "light" | "dark";
+      size?: "normal" | "compact" | "invisible";
+      callback: (token: string) => void;
+      "expired-callback": () => void;
+      "error-callback": () => void;
+    }
+  ) => number;
+  reset: (widgetId?: number | string) => void;
+  getResponse: (widgetId?: number | string) => string;
+  execute: (widgetId?: number | string) => void;
+  ready: (callback: () => void) => void;
 }

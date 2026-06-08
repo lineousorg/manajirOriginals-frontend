@@ -3,6 +3,8 @@ import { apiClient } from "@/hooks/useApi";
 // API Response type
 export interface ApiOrderResponse {
   id: number;
+  orderNumber: string;
+  invoiceNumber: string;
   userId: number;
   status: string;
   paymentMethod: string;

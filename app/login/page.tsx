@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { SignupModal } from "@/components/auth/SignupModal";
 import { userService } from "@/services/user.service";
+import Link from "next/link";
+import { trackLogin } from "@/lib/gtm";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -27,7 +29,8 @@ const LoginPage = () => {
         email: session.user.email!,
         name: session.user.name!,
         avatar: session.user.image!,
-      });
+      }, session.accessToken || "");
+      trackLogin("google");
       router.push("/");
     }
   }, [session, login, router]);
@@ -40,16 +43,20 @@ const LoginPage = () => {
     try {
       const data = await userService.login(formData.email, formData.password);
 
-      login({
-        id: String(data.user.id),
-        email: data.user.email,
-        name: data.user.email.split('@')[0], // Use email prefix as name since API doesn't return name
-      });
+      login(
+        {
+          id: String(data.user.id),
+          email: data.user.email,
+          name: data.user.email.split("@")[0], // Use email prefix as name since API doesn't return name
+        },
+        data.accessToken
+      );
 
+      trackLogin("email");
       router.push("/");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Login failed. Please try again.",
+        err instanceof Error ? err.message : "Login failed. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -57,7 +64,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4 relative">
+      <Link href={"/"} className="absolute top-6 left-8">
+        <img src="/logo.png" alt="Logo" className="w-20 py-5" title="Home" />
+      </Link>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
