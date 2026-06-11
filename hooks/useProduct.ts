@@ -517,10 +517,20 @@ export function useCategories() {
     setCategories: setGlobalCategories,
     isLoading: globalLoading,
     setLoading: setGlobalLoading,
+    hasAttemptedFetch: globalHasAttemptedFetch,
+    setHasAttemptedFetch: setGlobalHasAttemptedFetch,
+    fetchError: globalFetchError,
+    setFetchError: setGlobalFetchError,
   } = useCategoryStore();
 
   // Use global store categories if available
   useEffect(() => {
+    // If we've already attempted to fetch globally, don't fetch again (prevents infinite loop)
+    // This handles both: success with empty array AND error cases
+    if (globalHasAttemptedFetch) {
+      return;
+    }
+
     // If already loaded in global store with data, use it
     if (globalCategories && globalCategories.length > 0) {
       setCategories(globalCategories);
@@ -534,6 +544,7 @@ export function useCategories() {
 
     // Start loading
     setGlobalLoading(true);
+    setGlobalHasAttemptedFetch(true); // Mark as attempted BEFORE fetching
 
     const fetchCategories = async () => {
       try {
@@ -543,8 +554,11 @@ export function useCategories() {
         const fetchedCategories = response.data || [];
         setCategories(fetchedCategories);
         setGlobalCategories(fetchedCategories);
+        setGlobalFetchError(false);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
+        setGlobalCategories([]);
+        setGlobalFetchError(true);
       } finally {
         setGlobalLoading(false);
       }
@@ -554,9 +568,12 @@ export function useCategories() {
   }, [
     globalCategories,
     globalLoading,
+    globalHasAttemptedFetch,
     get,
     setGlobalCategories,
     setGlobalLoading,
+    setGlobalHasAttemptedFetch,
+    setGlobalFetchError,
   ]);
 
   // Build tree: parent categories with children nested
@@ -579,7 +596,7 @@ export function useCategories() {
 
   const isInitialCategoryLoad =
     globalLoading &&
-    globalCategories.length === 0 &&
+    !globalHasAttemptedFetch &&
     categories.length === 0;
 
   return {
