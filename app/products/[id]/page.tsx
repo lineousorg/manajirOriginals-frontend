@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
-import { SizeGuide } from "@/components/product/SizeGuide";
+import { ProductSizeChart } from "@/components/product/ProductSizeChart";
 import { Loader, ProductDetailsSkeleton } from "@/components/ui/Loader";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -752,8 +752,13 @@ export default function ProductDetailsPage() {
                 </div>
                </motion.div>
 
-              {/* Size Guide */}
-              <SizeGuide categorySlug={categories?.raw?.slug} />
+              {/* Size Chart */}
+              {product?.sizeChartImage && (
+                <ProductSizeChart 
+                  imageUrl={product.sizeChartImage.url}
+                  altText={product.sizeChartImage.publicId || 'Size Chart'}
+                />
+              )}
             </div>
 
             {/* Actions */}

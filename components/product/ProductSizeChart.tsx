@@ -4,41 +4,25 @@ import { useState } from "react";
 import Image from "next/image";
 import { Plus } from "lucide-react";
 
-interface SizeGuideProps {
-  categorySlug: string | undefined;
+interface ProductSizeChartProps {
+  imageUrl: string;
+  altText?: string;
 }
 
-// Mapping of category slugs to their respective size guide images
-const SIZE_GUIDE_BY_CATEGORY: Record<string, string> = {
-  "the-prestige-line": "/Size guides/punjabi-size-guide.jpeg",
-  "ethnic": "/Size guides/punjabi-size-guide.jpeg",
-  shirt: "/Size guides/shirt-size-guide.jpeg",
-  pant: "/Size guides/pant-size-guide.jpeg",
-  // Add more categories as needed
-};
-
-export function SizeGuide({ categorySlug }: SizeGuideProps) {
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-
-  // Get the size guide image for the current category
-  const sizeGuideImage = categorySlug ? SIZE_GUIDE_BY_CATEGORY[categorySlug] : null;
-
-  // Don't render if no size guide is available for this category
-  if (!sizeGuideImage) {
-    return null;
-  }
+export function ProductSizeChart({ imageUrl, altText }: ProductSizeChartProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
-      {/* Size Guide Thumbnail */}
+      {/* Size Chart Thumbnail */}
       <div
         className="mt-6 cursor-pointer group w-fit"
-        onClick={() => setIsSizeGuideOpen(true)}
+        onClick={() => setIsOpen(true)}
       >
         <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20 p-2 transition-all duration-200 group-hover:border-primary/50 group-hover:shadow-md">
           <Image
-            src={sizeGuideImage}
-            alt="Size Guide"
+            src={imageUrl}
+            alt={altText || "Size Chart"}
             width={280}
             height={180}
             className="w-64 h-auto rounded-lg object-cover"
@@ -50,15 +34,15 @@ export function SizeGuide({ categorySlug }: SizeGuideProps) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Size Guide
+          Size Chart
         </p>
       </div>
 
-      {/* Size Guide Modal */}
-      {isSizeGuideOpen && (
+      {/* Size Chart Modal */}
+      {isOpen && (
         <div
           className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setIsSizeGuideOpen(false)}
+          onClick={() => setIsOpen(false)}
         >
           <div
             className="relative"
@@ -66,13 +50,13 @@ export function SizeGuide({ categorySlug }: SizeGuideProps) {
           >
             <button
               className="absolute -top-8 -right-8 bg-background rounded-full p-2.5 shadow-lg transition-colors z-10 cursor-pointer hover:bg-primary hover:text-background"
-              onClick={() => setIsSizeGuideOpen(false)}
+              onClick={() => setIsOpen(false)}
             >
               <Plus size={20} className="rotate-45" />
             </button>
             <Image
-              src={sizeGuideImage}
-              alt="Size Guide"
+              src={imageUrl}
+              alt={altText || "Size Chart"}
               width={500}
               height={500}
               className="w-full h-auto rounded-2xl"

@@ -105,6 +105,11 @@ export interface ApiProduct {
   updatedAt?: string;
   // New nested pricing object (from updated API endpoints)
   pricing?: ProductPricing;
+  sizeChartImage?: {
+    id: number;
+    url: string;
+    publicId: string;
+  } | null;
   [key: string]: any;
 }
 
